@@ -90,6 +90,8 @@ Clear Git-local hook variables before tests that create other repositories:
 `unset $(git rev-parse --local-env-vars)`.
 See [ADR 0028](../decisions/0028-pre-push-runs-the-full-local-gate-suite.md).
 
+`pnpm check:docs` reads untracked files too, so an untracked draft PRD in `docs/prd/` fails it locally until each behaviour links a running E2E test; keep a draft outside `docs/prd/` until then. Run one `pnpm e2e` per machine at a time: a second run fails fast with `is already used` on its server ports instead of sharing the first run's servers.
+
 ## Tool ownership
 
 - Biome owns formatting and import ordering. Its linter runs on `.json`,
