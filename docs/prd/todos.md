@@ -255,7 +255,8 @@ looks for the id. An id that names no to-do gets a `404` with the
   succeeds but the re-read of the list fails, the page shows the alert
   `Could not load the to-dos` and no filters, Clear done or list, as when the
   first read fails. The api keeps the change, and a successful add still
-  empties the field.
+  empties the field. The next change re-reads the list and, when that read
+  succeeds, shows it again with no alert.
   - Proved by [says so when the list fails to load after a change](../../apps/web/e2e/todos.spec.ts)
 - **Reads the list when the page opens and after each successful change.**
   Returning to the tab, coming back online and a failed change read nothing.

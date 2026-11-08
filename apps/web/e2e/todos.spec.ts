@@ -917,10 +917,17 @@ test.describe('Failures and refreshing', () => {
 
     await expect(page.getByRole('alert')).toHaveText('Could not load the to-dos');
     await expect(page.getByRole('group', { name: 'Filter' })).toHaveCount(0);
+    await expect(clearDone(page)).toHaveCount(0);
     await expect(page.getByRole('list')).toHaveCount(0);
     await expect(titleField(page)).toHaveValue('');
     await expect(addButton(page)).toBeEnabled();
     expect((await listThroughApi(request)).map(({ title }) => title)).toEqual(['First', 'Second']);
+
+    await page.unrouteAll({ behavior: 'wait' });
+    await addOnPage(page, 'Third');
+
+    await expectTitles(page, ['First', 'Second', 'Third']);
+    await expect(page.getByRole('alert')).toHaveCount(0);
   });
 
   test('reads the list only when the page opens and after a successful change', async ({
