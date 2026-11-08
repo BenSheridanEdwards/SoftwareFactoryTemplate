@@ -67,9 +67,15 @@ named their files are removed or moved to the to-do feature. Recorded evidence
 (trial records and fixtures, the tour proof, older ADRs) keeps its content.
 
 ADR 0032's contract and ADR 0107's storage model still hold; the to-do
-feature is now the working example of both. ADR 0107's second-feature
-isolation proof moves to the Oxlint fixture tree, which already seeds
-sibling-feature violations.
+feature is now the working example of both. With one real feature left,
+ADR 0107's isolation proof reads the real to-do route and api application
+and pairs each with a fixture `archive` sibling in the Oxlint policy test.
+
+Deleting the two old features exposed two tooling faults, fixed here. The
+changed-coverage gate asked for an E2E spec naming each deleted slice; it now
+counts only slices whose folder is still in the tree. The Pact consumer test
+merged into a `web-api.json` left by an earlier run, so a renamed interaction
+lingered and failed the provider check; it now starts from a fresh file.
 
 ## Consequences
 
@@ -83,4 +89,8 @@ sibling-feature violations.
   build a to-do app beside a reference that is now a to-do app. The brief and
   its recorded runs stay as they are; whether the research project keeps
   that brief is a separate decision.
-- The bundle, Lighthouse and coverage budgets stay where they are.
+- `.agents/templates/list-route.md` still points trial agents at
+  `routes/greeting/`. It belongs to the trial brief, so it changes with that
+  decision.
+- The bundle, Lighthouse and coverage budgets stay where they are. The JS
+  bundle grows from 107.67 kB to about 108.7 kB of its 110 kB limit.
