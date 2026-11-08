@@ -29,24 +29,25 @@ record brings the same hook layout upstream.
 
 [ADR 0062](0062-pre-commit-steps-stay-under-30-seconds.md) lets a step into
 pre-commit only when it finishes in under 30 seconds, with timings recorded.
-On 8 November 2026, on one Apple M2 Max with load averages of 8 to 24 from
-other work, the median of five wall-clock runs of each step on this
-repository, before and after a one-file staged change, was:
+On 8 November 2026, on one Apple M2 Max with load averages of 5 to 24 from
+other work, the median of five wall-clock runs of each step, with
+[ADR 0124](0124-oxlint-owns-all-lint-biome-only-formats.md) applied, on the
+whole repository and after a one-file staged change, was:
 
 | Step | Whole repository | One staged file |
 | --- | --- | --- |
-| `pnpm typecheck` | 0.90 s | 0.83 s |
-| staged Biome | 0.21 s | 0.11 s |
-| `pnpm lint:policy` | 1.42 s | 1.34 s |
-| `pnpm lint:styles` | 0.69 s | 0.66 s |
-| `pnpm lint:anti-slop` | 1.00 s | 1.02 s |
-| `pnpm check:suppressions` | 1.11 s | 1.13 s |
-| `pnpm arch:gate` | 1.88 s | 1.78 s |
-| `pnpm fallow:audit` | 1.12 s | 1.47 s |
-| `pnpm secret-scan` | 0.66 s | 0.63 s |
+| `pnpm typecheck` | 0.84 s | 0.90 s |
+| staged Biome | 0.14 s | 0.10 s |
+| `pnpm lint:policy` | 1.40 s | 1.44 s |
+| `pnpm lint:styles` | 0.66 s | 0.67 s |
+| `pnpm lint:anti-slop` | 1.05 s | 1.03 s |
+| `pnpm check:suppressions` | 1.14 s | 1.18 s |
+| `pnpm arch:gate` | 1.86 s | 1.93 s |
+| `pnpm fallow:audit` | 2.82 s | 1.55 s |
+| `pnpm secret-scan` | 1.18 s | 1.56 s |
 
-The whole hook takes about 9 seconds. The slowest step, `pnpm arch:gate`,
-takes under 2 seconds.
+The whole hook takes about 11 seconds. The slowest step takes under
+3 seconds, a tenth of the budget.
 
 ## Decision
 
