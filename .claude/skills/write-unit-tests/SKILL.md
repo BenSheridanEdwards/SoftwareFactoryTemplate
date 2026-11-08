@@ -18,16 +18,20 @@ the failing test first); and coverage below `jest.config.ts`'s 80% threshold.
 - Use one behaviour per `it`, named as a sentence about the product.
 - Test logic where it lives. Test domain rules (`checkTitle` in `domain.ts`)
   and use cases (`addTodo` in `application.ts`) as functions. Test procedures
-  through `createCallerFactory(<name>Router)({})` from `trpc.ts`, with valid
+  through `createCallerFactory(create<Name>Router())({})` from `trpc.ts`, with valid
   input and `BAD_REQUEST` rejection; see `apps/api/src/features/todos/procedures.test.ts`.
   Test form schemas by decoding (`todoFormSchema.test.ts`), and hooks and
   pages through rendered behaviour. See `.agents/project/ARCHITECTURE.md`.
 - Render pages and hooks that call the api inside the api client's
-  `TestApiProvider`, with one typed handler per procedure path
-  (`{ 'todos.add': add }`). Assert received input with `jest.fn` handlers;
-  use a rejecting handler for errors. Run real hooks and providers, leaving
-  hooks unmocked. Model: `apps/web/src/routes/todos/TodosPage.test.tsx`, which
-  renders the page over an in-memory set of handlers. Test a hook on its own with
+  `TestApiProvider`. It serves the real app router in memory, with empty stores
+  for each render, so the test runs the feature's procedures, application and
+  domain code. Write no fake api. Add data through the router with `seed`
+  (`async (api) => { await api.todos.add.mutate({ title: 'First' }); }`).
+  Give a typed handler for a procedure path only to fail that call
+  (`() => Promise.reject(new Error('api down'))`), hold it, or record it with
+  `jest.fn((input, serve) => serve(input))`; `serve` passes the call on to the
+  router. Run real hooks and providers, leaving hooks unmocked. Model:
+  `apps/web/src/routes/todos/TodosPage.test.tsx`. Test a hook on its own with
   `renderHook` and a `TestApiProvider` wrapper.
 - Replace dependencies through their seams. `jest.mock` fails `pnpm lint:anti-slop`.
 - Fix console warnings, console errors and Node process warnings; the Jest

@@ -93,13 +93,15 @@ included ([ADR 0033](../decisions/0033-result-diagrams-and-structure-validation.
 
 | File | Holds | Shape in the to-do feature |
 | --- | --- | --- |
-| `procedures.ts` | The feature's tRPC router. Each procedure validates its input with `.input(Schema.toStandardSchemaV1(schema))`, with `Schema` from `effect`, and delegates to application. It maps application errors to `TRPCError`. | `todosRouter = router({ add: procedure.input(Schema.toStandardSchemaV1(addInputSchema)).mutation(({ input }) => unwrapOrThrow(addTodo(input))), ... })`; `unwrapOrThrow` looks the problem kind up in `ERROR_CODES` (`as const satisfies Record<TodoProblem['kind'], TRPCError['code']>`), so `invalid-title` becomes `BAD_REQUEST`, `not-found` becomes `NOT_FOUND`, and a new kind fails the type check |
-| `application.ts` | The use cases. It calls domain rules and integrations and knows no transport. | `addTodo(request)` checks the title with `checkTitle`, makes the to-do with `newTodo` and writes the longer list to the store |
+| `procedures.ts` | The feature's tRPC router. Each procedure validates its input with `.input(Schema.toStandardSchemaV1(schema))`, with `Schema` from `effect`, and delegates to application. It maps application errors to `TRPCError`. | `createTodosRouter()` builds `todos = createTodoUseCases()` and returns `router({ add: procedure.input(Schema.toStandardSchemaV1(addInputSchema)).mutation(({ input }) => unwrapOrThrow(todos.addTodo(input))), ... })`; `unwrapOrThrow` looks the problem kind up in `ERROR_CODES` (`as const satisfies Record<TodoProblem['kind'], TRPCError['code']>`), so `invalid-title` becomes `BAD_REQUEST`, `not-found` becomes `NOT_FOUND`, and a new kind fails the type check |
+| `application.ts` | The use cases. It calls domain rules and integrations and knows no transport. | `createTodoUseCases()` makes a new in-memory store and returns the use cases over it; `addTodo(request)` checks the title with `checkTitle`, makes the to-do with `newTodo` and writes the longer list to the store |
 | `domain.ts` | Pure types and rules. It imports nothing by value: no tRPC, no Effect, no Node. | `Todo`, `normaliseTitle`, `checkTitle`, `withDone`, `withTitle`, `replaceTodo`, `removeTodo` |
 | `integrations.ts` | Storage, including in-memory storage, and every effect: `fetch`, Node IO, `Effect.runPromise`, `Effect.runSync`, `Effect.runFork`. It imports domain types only; application calls domain rules and integrations. | `createInMemoryTodos()` closes over the list and makes ids with `randomUUID`. |
-| `index.ts` | The public surface: the feature's router. | `export { todosRouter } from './procedures.ts';` |
+| `index.ts` | The public surface: the feature's router factory. | `export { createTodosRouter } from './procedures.ts';` |
 
-Mount each feature router through its `index.ts` in `api/src/router.ts`.
+Mount each feature router through its `index.ts` in `createAppRouter()` in
+`api/src/router.ts`. Each call builds every feature over a new, empty store:
+the server builds `appRouter` once, and each page test builds its own.
 
 Every relative import in the api names its `.ts` extension, because Node runs
 the source directly (`node src/server.ts`) and `tsconfig.api.json` resolves
@@ -125,9 +127,18 @@ reaches the api through `useTrpc()` from `../../api-client`.
 After a mutation, invalidate the queries it changes in `onSuccess` with
 `queryClient.invalidateQueries({ queryKey: trpc.<router>.<procedure>.queryKey() })`.
 
-Route and hook tests use `TestApiProvider` with a typed handler per procedure
-path and exercise real hooks and providers. Copy the to-do page test;
-a missing handler fails with `TestApiProvider has no handler for <path>`.
+Route and hook tests render inside `TestApiProvider`, which runs the real app
+router in memory with empty stores for each render, so they exercise real hooks,
+providers, procedures, application and domain code. Fill the stores through the
+router with `seed`. Give a typed handler for a procedure path only to fail,
+hold or record that call; its `serve(input)` passes the call on to the router.
+Copy the to-do page test.
+
+Web code imports the api by type only, so a test reaches the router through
+the web Jest project's setup, `tooling/jest/serve-app-router.ts`. It finds the
+result under test and hands its `createAppRouter` to that result's api client
+(`serveAppRouterInTests` in `web/src/api-client/testAppRouter.ts`). Tooling
+sits outside the role table, so the boundaries and the bundle stay as they are.
 
 ## The rules
 
@@ -216,10 +227,11 @@ reference result; a trial result uses `showcase/<id>/` in place of `apps/`.
    `application.ts`, `procedures.ts` and `index.ts`. Add `integrations.ts` for
    storage or any effect.
 2. Write the domain and application tests first, then a procedures test through
-   `createCallerFactory(<name>Router)({})`, as in
+   `createCallerFactory(create<Name>Router())({})`, as in
    `apps/api/src/features/todos/procedures.test.ts`.
 3. Mount the router in `apps/api/src/router.ts`: import
-   `./features/<name>/index.ts` and add it to `router({ ... })`.
+   `./features/<name>/index.ts` and add `create<Name>Router()` to the
+   `router({ ... })` in `createAppRouter()`.
 
 ### Add a procedure
 
@@ -240,7 +252,8 @@ reference result; a trial result uses `showcase/<id>/` in place of `apps/`.
    `use<Name>Form.ts` and `<name>FormSchema.ts`, and each component in its own
    file built from `@repo/ui` primitives. Style it with Tailwind classes on the
    theme scale and the `@repo/ui` tokens, as `routes/todos/` does.
-3. Test the page and hooks through `TestApiProvider`.
+3. Test the page and hooks through `TestApiProvider`, which serves the real
+   app router; seed data through it and fail a procedure with a handler.
 4. Mount the page in `apps/web/src/App.tsx`.
 5. Specify the behaviour in `apps/web/e2e/<route-name>.spec.ts`. Playwright
    runs every spec in that folder.
