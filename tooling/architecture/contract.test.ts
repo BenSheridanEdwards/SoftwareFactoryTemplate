@@ -128,13 +128,14 @@ describe('loadContract', () => {
 describe("the repository's contract, read through Fallow", () => {
   const repository = loadRepositoryContract();
 
-  it('has the eleven roles of the role table', () => {
+  it('has the twelve roles of the role table', () => {
     expect([...repository.roles].sort()).toEqual([
       'api-app',
       'api-application',
       'api-domain',
       'api-integrations',
       'api-procedures',
+      'api-rules',
       'api-trpc',
       'ui',
       'web-api-client',
@@ -144,10 +145,10 @@ describe("the repository's contract, read through Fallow", () => {
     ]);
   });
 
-  it('lets every role except ui reach every other role, by value or by type', () => {
+  it('lets every role except ui and api-rules reach every other role, by value or by type', () => {
     const reach = new Set(repository.directions.map(({ from, to }) => `${from} ${to}`));
     const missing = repository.roles
-      .filter((role: string) => role !== 'ui')
+      .filter((role: string) => role !== 'ui' && role !== 'api-rules')
       .flatMap((from: string) =>
         repository.roles
           .filter((to: string) => to !== from && !reach.has(`${from} ${to}`))
@@ -157,8 +158,8 @@ describe("the repository's contract, read through Fallow", () => {
     expect(repository.directions.filter(({ from, to }) => from === to)).toEqual([]);
   });
 
-  it('lets ui reach no other role, by value or by type', () => {
-    expect(repository.directions.filter(({ from }) => from === 'ui')).toEqual([]);
+  it.each(['ui', 'api-rules'])('lets %s reach no other role, by value or by type', (role) => {
+    expect(repository.directions.filter(({ from }) => from === role)).toEqual([]);
   });
 
   it('allows value imports along exactly the listed directions', () => {
@@ -172,14 +173,17 @@ describe("the repository's contract, read through Fallow", () => {
       'web-routes -> web-features',
       'web-routes -> web-api-client',
       'web-routes -> ui',
+      'web-routes -> api-rules',
       'web-features -> web-api-client',
       'web-features -> ui',
+      'web-features -> api-rules',
       'api-app -> api-trpc',
       'api-app -> api-procedures',
       'api-procedures -> api-trpc',
       'api-procedures -> api-application',
       'api-application -> api-domain',
       'api-application -> api-integrations',
+      'api-domain -> api-rules',
     ]);
     expect(repository.directions).toContainEqual({
       from: 'api-integrations',

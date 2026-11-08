@@ -88,6 +88,7 @@ Take option 2, with the module in the api feature.
 | `tooling/architecture/structure.mjs` | `route-colocation` also allows `@<scope>/api/<feature>/rules` from a route, and an edge to its own result's `api/src/features/*/rules.ts`. |
 | `apps/api/package.json` | Adds the export `"./*/rules"` with a `default` condition to `src/features/*/rules.ts`; `.` stays `types` only. |
 | `apps/web/package.json` | Moves `@repo/api` from `devDependencies` to `dependencies`, because the web bundle now ships code from it. |
+| `tooling/architecture/contract.test.ts`, `tooling/trial/inclusion.test.ts` | The pinned role list, value directions and domain program gain `api-rules`. Seeded tests in `boundaries.test.ts` and `structure.test.ts` prove each allowance and each failure. |
 | `ARCHITECTURE.md`, `CONVENTIONS.md` | The role table, the api file roles, the rules table and the contract table name `rules.ts`. |
 | `AGENTS.md` | Not changed in the prototype. If this is accepted, its rules table sentence on route co-location also names "its api's feature rules modules (`@<scope>/api/<feature>/rules`)". |
 

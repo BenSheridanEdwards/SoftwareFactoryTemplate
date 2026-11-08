@@ -352,6 +352,7 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
       expect.arrayContaining(['showcase/x/web/e2e/todos.spec.ts', 'showcase/x/web/vite.config.ts']),
     );
     expect(filesOf('tsconfig.domain.json')).toEqual([
+      'showcase/x/api/src/features/todos/rules.ts',
       'showcase/x/api/src/features/todos/domain.ts',
     ]);
   });

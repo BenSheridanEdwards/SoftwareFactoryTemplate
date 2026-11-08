@@ -27,14 +27,15 @@ to a result root (`apps/` or `showcase/<id>/`).
 | --- | --- | --- |
 | `web-app` | `web/src/main.tsx`, `web/src/App.tsx`, `web/src/index.css` | `web-routes`, `web-api-client`, `ui` |
 | `web-api-client` | `web/src/api-client/**` | no other role |
-| `web-routes` | `web/src/routes/<route>/**` | own route, api-client public surface, `@repo/ui`, external npm packages |
+| `web-routes` | `web/src/routes/<route>/**` | own route, api-client public surface, `@repo/ui`, `api-rules` through `@<scope>/api/<feature>/rules`, external npm packages |
 | `web-features` | legacy Fallow zone; rejected in every result by structure | keep web feature code inside its route |
 | `ui` | `packages/ui/src/**` | no other role, types included |
 | `api-app` | `api/src/server.ts`, `api/src/router.ts` | `api-trpc`, `api-procedures` |
 | `api-trpc` | `api/src/trpc.ts` | no other role |
 | `api-procedures` | `api/src/features/<name>/{index,procedures}.ts`, `features/<name>/procedures/**` | `api-trpc`, `api-application` |
 | `api-application` | `api/src/features/<name>/application.ts`, `features/<name>/application/**` | `api-domain`, `api-integrations` |
-| `api-domain` | `api/src/features/<name>/domain.ts`, `features/<name>/domain/**` | no other role |
+| `api-domain` | `api/src/features/<name>/domain.ts`, `features/<name>/domain/**` | `api-rules` |
+| `api-rules` | `api/src/features/<name>/rules.ts` | no other role, types included ([ADR 0127](../decisions/0127-share-a-features-validation-rules-between-api-and-web.md)) |
 | `api-integrations` | `api/src/features/<name>/integrations.ts`, `features/<name>/integrations/**` | `api-domain` types only |
 
 Tests (`*.test.ts(x)`), `web/e2e/**`, `web/index.html`, `web/vite.config.ts`
@@ -58,7 +59,7 @@ included ([ADR 0033](../decisions/0033-result-diagrams-and-structure-validation.
   role.
 - Every route owns its components, hooks, state, schemas, types and tests.
   `single-route-features` rejects web features and feature reports for every result.
-  `route-colocation` permits imports only from its own folder, `@repo/ui`, its api-client barrel and external npm packages.
+  `route-colocation` permits imports only from its own folder, `@repo/ui`, its api-client barrel, its own api's feature rules (`@<scope>/api/<feature>/rules`) and external npm packages.
   Trial routes also follow the exact [list-route template](../templates/list-route.md),
   enforced by `trial-route-inventory` ([ADR 0075](../decisions/0075-canonical-colocated-routes.md)).
 - In each api feature with application and domain source files, application
@@ -95,7 +96,8 @@ included ([ADR 0033](../decisions/0033-result-diagrams-and-structure-validation.
 | --- | --- | --- |
 | `procedures.ts` | The feature's tRPC router. Each procedure validates its input with `.input(Schema.toStandardSchemaV1(schema))`, with `Schema` from `effect`, and delegates to application. It maps application errors to `TRPCError`. | `todosRouter = router({ add: procedure.input(Schema.toStandardSchemaV1(addInputSchema)).mutation(({ input }) => unwrapOrThrow(addTodo(input))), ... })`; `unwrapOrThrow` looks the problem kind up in `ERROR_CODES` (`as const satisfies Record<TodoProblem['kind'], TRPCError['code']>`), so `invalid-title` becomes `BAD_REQUEST`, `not-found` becomes `NOT_FOUND`, and a new kind fails the type check |
 | `application.ts` | The use cases. It calls domain rules and integrations and knows no transport. | `addTodo(request)` checks the title with `checkTitle`, makes the to-do with `newTodo` and writes the longer list to the store |
-| `domain.ts` | Pure types and rules. It imports nothing by value: no tRPC, no Effect, no Node. | `Todo`, `normaliseTitle`, `checkTitle`, `withDone`, `withTitle`, `replaceTodo`, `removeTodo` |
+| `domain.ts` | Pure types and rules. It imports only its feature's `rules.ts` by value: no tRPC, no Effect, no Node. | `Todo`, `checkTitle`, `withDone`, `withTitle`, `replaceTodo`, `removeTodo` |
+| `rules.ts` | The values the domain and the web form both need to check an input: limits, messages, normalisers. It imports nothing. The web imports it as `@<scope>/api/<feature>/rules` ([ADR 0127](../decisions/0127-share-a-features-validation-rules-between-api-and-web.md)). | `TITLE_MAX_LENGTH`, `TITLE_MESSAGES`, `normaliseTitle`; `todoFormSchema.ts` decodes with `normaliseTitle` and checks the same limit and messages |
 | `integrations.ts` | Storage, including in-memory storage, and every effect: `fetch`, Node IO, `Effect.runPromise`, `Effect.runSync`, `Effect.runFork`. It imports domain types only; application calls domain rules and integrations. | `createInMemoryTodos()` closes over the list and makes ids with `randomUUID`. |
 | `index.ts` | The public surface: the feature's router. | `export { todosRouter } from './procedures.ts';` |
 
@@ -151,7 +153,7 @@ each check's message names the fix.
 | Scaffold API exports match the reference's names and kinds. | Structure `scaffold-exports`; API report freshness | `pnpm arch:gate`, `pnpm api:check` |
 | The domain is pure, and application knows no tRPC. | Fallow `api-domain`; `contract/domain-pure`, `contract/application-without-trpc`; `tsconfig.domain.json` (no Node types) | `pnpm arch:gate`, `pnpm fallow:audit`, `pnpm typecheck` |
 | Effects run only in integrations or the api composition root. | `contract/effects-in-integrations`, `contract/io-effects-in-integrations`, `contract/node-io-in-integrations` | `pnpm arch:gate`, `pnpm fallow:audit` |
-| The web reaches the api only by type: `import type` of the router type. | Fallow `allowTypeOnly` (a value import of `api-app` fails); the `types`-only export of `@repo/api`; `contract/trpc-client-in-api-client`, `contract/trpc-server-off-the-web` | `pnpm arch:gate`, `pnpm fallow:audit` |
+| The web reaches the api only by type: `import type` of the router type. The one value import is a feature's pure `rules.ts`, through `@<scope>/api/<feature>/rules`. | Fallow `allowTypeOnly` (a value import of `api-app` fails); the `types`-only `.` export of `@repo/api`, whose one runtime export is `./*/rules`; Fallow zone `api-rules` and `contract/rules-pure`; `contract/trpc-client-in-api-client`, `contract/trpc-server-off-the-web` | `pnpm arch:gate`, `pnpm fallow:audit` |
 | Components style with Tailwind classes on the theme scale and the `@repo/ui` tokens; the `@theme` block in `packages/ui/src/styles.css` holds every token. | Oxlint `policy/no-arbitrary-styles`; `scripts/check-styles.mjs` for CSS and `index.html` ([ADR 0114](../decisions/0114-tailwind-on-the-ui-design-tokens.md)) | `pnpm lint:policy`, `pnpm lint:styles` |
 | UI primitives hold no business logic. | Fallow `ui` imports no other role, types included; `contract/ui-without-logic` | `pnpm arch:gate`, `pnpm fallow:audit` |
 | One React component per file. | Oxlint `policy/one-component-per-file` | `pnpm lint:policy` |

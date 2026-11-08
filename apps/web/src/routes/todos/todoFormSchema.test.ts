@@ -1,3 +1,4 @@
+import { TITLE_MAX_LENGTH, TITLE_MESSAGES } from '@repo/api/todos/rules';
 import { Schema } from 'effect';
 import { todoFormSchema } from './todoFormSchema';
 
@@ -29,4 +30,11 @@ it.each([
 
 it('encodes a normalised title without changing it', () => {
   expect(Schema.encodeSync(todoFormSchema)({ title: 'Buy milk' })).toEqual({ title: 'Buy milk' });
+});
+
+it("checks the api's own limit and messages", () => {
+  expect(validate('')).toEqual({ issues: [{ path: ['title'], message: TITLE_MESSAGES.blank }] });
+  expect(validate('d'.repeat(TITLE_MAX_LENGTH + 1))).toEqual({
+    issues: [{ path: ['title'], message: TITLE_MESSAGES.tooLong }],
+  });
 });

@@ -4,7 +4,6 @@ import {
   doneIds,
   findTodo,
   newTodo,
-  normaliseTitle,
   removeTodo,
   replaceTodo,
   withDone,
@@ -14,15 +13,6 @@ import {
 const first = newTodo('1', 'First');
 const second = withDone(newTodo('2', 'Second'), true);
 const third = newTodo('3', 'Third');
-
-it.each([
-  ['  Buy   milk  ', 'Buy milk'],
-  ['Buy\tmilk', 'Buy milk'],
-  ['Buy\n\nmilk', 'Buy milk'],
-  ['\u00a0Buy\u00a0\u00a0milk\u00a0', 'Buy milk'],
-])('normalises %j to %j', (title, normalised) => {
-  expect(normaliseTitle(title)).toBe(normalised);
-});
 
 it('accepts a title of 1 to 100 characters after normalising it', () => {
   expect(checkTitle(' a ')).toEqual({ ok: true, value: 'a' });
