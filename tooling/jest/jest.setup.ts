@@ -7,6 +7,11 @@ import { toHaveNoViolations } from 'jest-axe';
 
 expect.extend(toHaveNoViolations);
 
+// `present` unwraps a value a test expects, so a test file needs no import for it.
+import { present } from './present';
+
+Object.assign(globalThis, { present });
+
 // jsdom leaves out the encoding globals that browsers and Node both ship, and
 // Effect reads TextEncoder when it loads.
 import { setImmediate } from 'node:timers';
