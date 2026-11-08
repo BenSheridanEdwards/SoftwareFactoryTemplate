@@ -1,5 +1,5 @@
 import type { APIRequestContext, Request, Route } from '@playwright/test';
-import { expect, type Page, test } from './fixtures';
+import { expect, type Page, present, test } from './fixtures';
 
 /**
  * The to-do behaviour, end to end: the page in Chromium, the Vite server's
@@ -560,7 +560,7 @@ test.describe('Marking done', () => {
 
   test('disables every change control while a change waits', async ({ page, request }) => {
     const [, second] = await addAllThroughApi(request, ['First', 'Second', 'Third']);
-    await setDoneThroughApi(request, second?.id ?? '');
+    await setDoneThroughApi(request, present(second).id);
     await openPage(page);
     await page.getByRole('button', { name: 'Edit Third' }).click();
     const release = await holdCalls(page, 'todos.setDone');
@@ -738,7 +738,7 @@ test.describe('Deleting', () => {
 test.describe('Filtering', () => {
   test('filters to active or done to-dos and back to all', async ({ page, request }) => {
     const [, second] = await addAllThroughApi(request, ['First', 'Second', 'Third']);
-    await setDoneThroughApi(request, second?.id ?? '');
+    await setDoneThroughApi(request, present(second).id);
     await openPage(page);
 
     await filterButton(page, 'Active').click();
@@ -802,8 +802,8 @@ test.describe('Filtering', () => {
 test.describe('Clearing done to-dos', () => {
   test('clears every done to-do whatever the filter', async ({ page, request }) => {
     const [first, , third] = await addAllThroughApi(request, ['First', 'Second', 'Third']);
-    await setDoneThroughApi(request, first?.id ?? '');
-    await setDoneThroughApi(request, third?.id ?? '');
+    await setDoneThroughApi(request, present(first).id);
+    await setDoneThroughApi(request, present(third).id);
     await openPage(page);
     await filterButton(page, 'Active').click();
 
@@ -838,7 +838,7 @@ test.describe('Clearing done to-dos', () => {
   }) => {
     expectConsole(/Failed to load resource: .*500/);
     const [first] = await addAllThroughApi(request, ['First', 'Second']);
-    await setDoneThroughApi(request, first?.id ?? '');
+    await setDoneThroughApi(request, present(first).id);
     await openPage(page);
     await failCalls(page, 'todos.clearDone');
 

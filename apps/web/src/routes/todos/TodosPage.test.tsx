@@ -3,12 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { type TestApiHandlers, TestApiProvider } from '../../api-client';
 import { TodosPage } from './TodosPage';
-
-interface Todo {
-  readonly id: string;
-  readonly title: string;
-  readonly done: boolean;
-}
+import type { Todo } from './useTodos';
 
 /** An in-memory api for the page, with a hook to fail or hold any call. */
 function fakeApi(initial: readonly Todo[]) {
