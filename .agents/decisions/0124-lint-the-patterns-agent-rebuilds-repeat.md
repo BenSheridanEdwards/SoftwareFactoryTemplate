@@ -33,11 +33,15 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   `{ list: list.data, refreshing: list.isFetching }` pass, as does a mutation
   hook's `{ submitting, problem }`.
 - `policy/test-unwraps-values`: a test takes a value with `present()` and an
-  outcome's value with `unwrap()`. `?? ''` and an `x.ok ? x.value… : <literal>`
-  stand-in fail. The rule also runs on
-  each result's `web/e2e/**/*.ts`, in an override of its own.
+  outcome's value with `unwrap()`. `?? ''` fails, and so does a ternary on
+  `x.ok` whose other branch reads `x.value…` and whose fallback is a literal;
+  `response.ok ? 'passed' : 'failed'` passes. The rule also runs on each
+  result's `web/e2e/**/*.ts`, in an override of its own.
 - `policy/test-imports-the-type`: a test declares no interface or type alias
-  that a non-test module in its folder exports.
+  that a non-test module in its folder exports with a declaration at the
+  start of a line, so `export type` inside a string or comment does not
+  count. One scan of a folder serves all its tests until a module in it
+  changes.
 - `policy/message-uses-its-limit`: a string, template or JSX text writes no
   limit as a count. A limit is a module-scope `const` of 10 or more in the
   same file whose name holds `MAX`, `MIN`, `MAXIMUM`, `MINIMUM`, `LIMIT`,

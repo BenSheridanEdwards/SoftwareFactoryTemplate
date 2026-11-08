@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, matchesGlob, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import policy, { colourLiterals } from '../tooling/oxlint-plugin-policy.js';
+import policy, { colourLiterals, siblingTypes } from '../tooling/oxlint-plugin-policy.js';
 import { findNegativePhrasing, findSlop } from './check-doc-phrasing.mjs';
 
 const ROOT = resolve(__dirname, '..');
@@ -890,8 +890,13 @@ declare const unwrap: <Value>(outcome: { ok: true; value: Value } | { ok: false 
 declare const added: { ok: true; value: { id: string } } | { ok: false };
 declare const ids: string[];
 declare const message: string | undefined;
+declare const response: { ok: boolean; status: number };
+declare const other: { value: string };
 export const id = unwrap(added).id;
 export const fallback = added.ok ? added.value.id : undefined;
+export const verdict = response.ok ? 'passed' : 'failed';
+export const code = !response.ok ? '' : response.status;
+export const elsewhere = response.ok ? other.value : '';
 export const first = present(ids[0]);
 export const shown = message ?? 'waiting';
 `,
@@ -940,6 +945,38 @@ export const todos: readonly Todo[] = [];
     'slop-type-api',
     'apps/api/src/features/todos/domain.ts',
     'export interface Problem {\n  readonly kind: string;\n}\n',
+  ),
+  // Only a declaration at the start of a line exports a type; text in strings and comments does not.
+  {
+    caseRoot: 'slop-type-text',
+    path: 'apps/web/src/routes/todos/TodosPage.test.tsx',
+    source: `
+interface Todo {
+  readonly id: string;
+}
+type Problem = { readonly message: string };
+export const cases: readonly [Todo, Problem] = [{ id: '1' }, { message: 'Enter a title' }];
+`,
+  },
+  subject('slop-type-text', 'apps/web/src/routes/todos/TodosPage.tsx'),
+  subject(
+    'slop-type-text',
+    'apps/web/src/routes/todos/useTodos.ts',
+    "// export type Problem = string;\nexport const sample = 'export interface Todo { id: string }';\nexport const useTodos = () => [];\n",
+  ),
+  // Each test in a folder reads the same scan of its siblings.
+  ...['TodoItem', 'TodoList'].map((name) => ({
+    caseRoot: 'slop-type-folder',
+    path: `apps/web/src/routes/todos/${name}.test.tsx`,
+    source: "type Todo = { readonly id: string };\nexport const todo: Todo = { id: '1' };\n",
+    code: 'policy(test-imports-the-type)',
+  })),
+  subject('slop-type-folder', 'apps/web/src/routes/todos/TodoItem.tsx'),
+  subject('slop-type-folder', 'apps/web/src/routes/todos/TodoList.tsx'),
+  subject(
+    'slop-type-folder',
+    'apps/web/src/routes/todos/useTodos.ts',
+    'export type Todo = { id: string };\nexport const useTodos = () => [];\n',
   ),
   {
     caseRoot: 'slop-type-valid',
@@ -1777,6 +1814,22 @@ it('turns on every policy rule at error in result roots', () => {
       );
     });
   });
+});
+it('scans the type exports of a folder once until a file in it changes', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'sibling-types-'));
+  try {
+    writeFileSync(join(folder, 'useTodos.ts'), 'export type Todo = { id: string };\n');
+    const first = siblingTypes(folder, false);
+    expect(siblingTypes(folder, false)).toBe(first);
+    expect([...first]).toEqual([['Todo', './useTodos']]);
+    writeFileSync(join(folder, 'domain.ts'), 'export interface Problem {}\n');
+    expect([...siblingTypes(folder, true)]).toEqual([
+      ['Problem', './domain.ts'],
+      ['Todo', './useTodos.ts'],
+    ]);
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
 });
 const minedRules = [
   'one-status-from-hooks',

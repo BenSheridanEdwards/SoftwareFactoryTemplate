@@ -1,6 +1,6 @@
 // Repository policy rules that no installed plugin expresses (ADR 0019, ADR 0103). Each
 // message names the fix, so an agent can act on the error alone.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, posix, relative, sep } from 'node:path';
 
 const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*$/;
@@ -1226,13 +1226,24 @@ const oneStatusFromHooks = {
 
 const isEmptyString = (node) => node?.type === 'Literal' && node.value === '';
 
-/** The value `x.ok ? x.value… : ''` reads, as source text, or null. */
+/** Whether `chain` reads `<outcome>.value…` of the outcome `outcome.ok` tests. */
+const readsValueOf = (chain, outcome) =>
+  chain?.root === outcome.root &&
+  [...outcome.names.slice(0, -1), 'value'].every((name, index) => chain.names[index] === name);
+
+/** The outcome and fallback of `x.ok ? x.value… : ''` or `!x.ok ? '' : x.value…`, or null. */
 function placeholderOutcome(node) {
   const negated = node.test.type === 'UnaryExpression' && node.test.operator === '!';
   const test = memberChain(negated ? node.test.argument : node.test);
-  const fallback = negated ? node.consequent : node.alternate;
+  const [read, fallback] = negated
+    ? [node.alternate, node.consequent]
+    : [node.consequent, node.alternate];
 
-  return test?.names.at(-1) === 'ok' && fallback.type === 'Literal' ? { ...test, fallback } : null;
+  return test?.names.at(-1) === 'ok' &&
+    fallback.type === 'Literal' &&
+    readsValueOf(memberChain(read), test)
+    ? { ...test, fallback }
+    : null;
 }
 
 const testUnwrapsValues = {
@@ -1280,18 +1291,41 @@ const testUnwrapsValues = {
   },
 };
 
-const EXPORTED_TYPE = /export\s+(?:declare\s+)?(?:interface|type)\s+([A-Za-z_$][\w$]*)/g;
+// A declaration starts its line, so `export type` inside a string or a comment does not count.
+const EXPORTED_TYPE = /^export\s+(?:declare\s+)?(?:interface|type)\s+([A-Za-z_$][\w$]*)/gm;
+const siblingScans = new Map();
 
-/** Each type name a module exports by declaration, mapped to its module specifier. */
-function siblingTypes(directory, keepExtension) {
-  return readdirSync(directory)
+/** A folder's non-test modules, sorted, each with its modification time. */
+const siblingModules = (directory) =>
+  readdirSync(directory)
     .filter((file) => /\.tsx?$/.test(file) && !isSpecFile(file) && !file.endsWith('.d.ts'))
-    .flatMap((file) =>
-      [...readFileSync(join(directory, file), 'utf8').matchAll(EXPORTED_TYPE)].map((match) => [
-        match[1],
-        `./${keepExtension ? file : file.replace(/\.tsx?$/, '')}`,
-      ]),
+    .sort()
+    .map((file) => [file, statSync(join(directory, file)).mtimeMs]);
+
+/**
+ * Each type name a module in `directory` exports by declaration, mapped to its
+ * module specifier. One scan serves every test in the folder until a module
+ * in it is added, removed or changed.
+ */
+export function siblingTypes(directory, keepExtension) {
+  const modules = siblingModules(directory);
+  const key = `${directory}\0${keepExtension}\0${JSON.stringify(modules)}`;
+
+  if (!siblingScans.has(key)) {
+    siblingScans.set(
+      key,
+      new Map(
+        modules.flatMap(([file]) =>
+          [...readFileSync(join(directory, file), 'utf8').matchAll(EXPORTED_TYPE)].map((match) => [
+            match[1],
+            `./${keepExtension ? file : file.replace(/\.tsx?$/, '')}`,
+          ]),
+        ),
+      ),
     );
+  }
+
+  return siblingScans.get(key);
 }
 
 const testImportsTheType = {
@@ -1308,8 +1342,9 @@ const testImportsTheType = {
       return {};
     }
 
-    const exported = new Map(
-      siblingTypes(dirname(context.filename), API_SOURCE.test(repositoryPath(context))),
+    const exported = siblingTypes(
+      dirname(context.filename),
+      API_SOURCE.test(repositoryPath(context)),
     );
 
     const check = (node) => {
