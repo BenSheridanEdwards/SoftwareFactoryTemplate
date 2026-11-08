@@ -18,5 +18,10 @@
     "outDir": ".cache/types",
     "tsBuildInfoFile": ".cache/types/api.tsbuildinfo"
   },
-  "include": ["apps/api/src", "showcase/*/api/src"]
+  "include": [
+    "apps/api/src",
+    "showcase/*/api/src",
+    "tooling/types/present.d.ts",
+    "tooling/jest/present.ts"
+  ]
 }

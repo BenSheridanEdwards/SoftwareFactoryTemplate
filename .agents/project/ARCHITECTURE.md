@@ -143,6 +143,7 @@ each check's message names the fix.
 | Every file belongs to one role and one slice. | Fallow `coverage.requireAllFiles`; `policy/slice-isolation` for a loose file under `src/routes/` or `src/features/` | `pnpm arch:gate`, `pnpm lint:policy` |
 | A package reaches another only by its package name. | `policy/slice-isolation` (relative import out of the package) | `pnpm lint:policy` |
 | A module is imported through its `index.ts`. | Oxlint `no-restricted-imports`; API reports | `pnpm lint:policy`, `pnpm api:check` |
+| A slice re-exports only from its `index.ts`; its other modules import each name from the module that declares it. | Oxlint `policy/import-types-from-their-owner` | `pnpm lint:policy` |
 | Procedures validate their input with Effect Schema. | Oxlint `policy/procedure-input-schema` | `pnpm lint:policy` |
 | Procedures delegate to application logic. | Fallow `api-procedures` value-imports only `api-trpc`, `api-application` | `pnpm arch:gate` |
 | Integrations import domain types only. | Fallow `api-integrations` allows `api-domain` through `allowTypeOnly` | `pnpm arch:gate`, `pnpm fallow:audit` |

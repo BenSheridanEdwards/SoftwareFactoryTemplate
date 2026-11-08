@@ -40,3 +40,11 @@ export const test = base.extend<ConsoleFixtures>({
     { auto: true },
   ],
 });
+
+/** The value a step expects to be there; a missing one fails the test where it is read. */
+export function present<Value>(value: Value | null | undefined): Value {
+  if (value === undefined || value === null) {
+    throw new Error(`Expected a value, received ${value}`);
+  }
+  return value;
+}
