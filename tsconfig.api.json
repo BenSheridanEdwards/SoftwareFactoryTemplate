@@ -18,10 +18,7 @@
     "outDir": ".cache/types",
     "tsBuildInfoFile": ".cache/types/api.tsbuildinfo"
   },
-  "include": [
-    "apps/api/src",
-    "showcase/*/api/src",
-    "tooling/types/present.d.ts",
-    "tooling/jest/present.ts"
-  ]
+  "include": ["apps/api/src", "showcase/*/api/src"],
+  // Its tests type-check in tsconfig.api.test.json, which sees the Jest test globals.
+  "exclude": ["**/*.test.ts"]
 }

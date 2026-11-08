@@ -1,6 +1,6 @@
 // Repository policy rules that no installed plugin expresses (ADR 0019, ADR 0103). Each
 // message names the fix, so an agent can act on the error alone.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, posix, relative, sep } from 'node:path';
 
 const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*$/;
@@ -1084,12 +1084,12 @@ const unwrapChain = (node) =>
     ? unwrapChain(node.expression)
     : node;
 
-/** `{ root, names }` for a member chain such as `query.data?.message`, or null. */
+/** `{ root, node, names }` for a member chain such as `query.data?.message`, or null. */
 function memberChain(node) {
   const current = unwrapChain(node);
 
   if (current?.type === 'Identifier') {
-    return { root: current.name, names: [] };
+    return { root: current.name, node: current, names: [] };
   }
 
   if (current?.type !== 'MemberExpression' || current.computed) {
@@ -1098,36 +1098,76 @@ function memberChain(node) {
 
   const inner = memberChain(current.object);
 
-  return inner && { root: inner.root, names: [...inner.names, current.property.name] };
+  return inner && { ...inner, names: [...inner.names, current.property.name] };
 }
 
+/** The variable `name` names where `node` sits, found through the scope chain, or undefined. */
+function variableAt(context, node, name) {
+  const lookup = (scope) => (scope ? (scope.set.get(name) ?? lookup(scope.upper)) : undefined);
+
+  return lookup(context.sourceCode.getScope(node));
+}
+
+/** The initialiser of the `const` an identifier names in its own scope, or null. */
+function constInit(context, identifier) {
+  const [definition, ...others] = variableAt(context, identifier, identifier.name)?.defs ?? [];
+
+  return others.length === 0 &&
+    definition?.type === 'Variable' &&
+    definition.parent?.kind === 'const' &&
+    definition.node.id.type === 'Identifier'
+    ? definition.node.init
+    : null;
+}
+
+const QUERY_HOOKS = new Set(['useQuery', 'useSuspenseQuery', 'useInfiniteQuery']);
+
+/** `useQuery(…)`, `useSuspenseQuery(…)`, `useInfiniteQuery(…)` or a client's `x.useQuery(…)`. */
+const isQueryCall = (node) => {
+  const callee = node?.type === 'CallExpression' ? unwrapChain(node.callee) : null;
+  const name = callee?.type === 'MemberExpression' ? callee.property.name : callee?.name;
+
+  return QUERY_HOOKS.has(name);
+};
+
+// `error` and `isFetching` describe a state rather than choose one, so they stay out.
 const QUERY_STATUS_FIELDS = new Set([
   'data',
-  'error',
   'status',
   'isPending',
   'isLoading',
-  'isFetching',
   'isError',
   'isSuccess',
 ]);
 
-/** The query field a value reads first (`list.data ?? []` reads `data` of `list`), or null. */
-function statusField(node, constants) {
+/** What a value reads through: the left of `a ?? b`, or the key of a lookup such as `STATES[list.status]`. */
+const READS_THROUGH = {
+  LogicalExpression: (node) => node.left,
+  MemberExpression: (node) => (node.computed ? node.property : null),
+};
+
+/** The expression a value reads, following one `const` binding resolved in its own scope. */
+function readExpression(context, node, follow) {
   const value = unwrapChain(node);
+  const inner = READS_THROUGH[value?.type]?.(value);
 
-  if (value?.type === 'LogicalExpression') {
-    return statusField(value.left, constants);
+  if (inner) {
+    return readExpression(context, inner, follow);
   }
 
-  if (value?.type === 'Identifier' && constants.has(value.name)) {
-    return statusField(constants.get(value.name), new Map());
-  }
+  const bound = follow && value?.type === 'Identifier' ? constInit(context, value) : null;
 
-  const chain = memberChain(value);
+  return bound ? readExpression(context, bound, false) : value;
+}
+
+/** The query state a value reads (`list.data ?? []` reads `data` of `list`), or null; only a query hook's result counts. */
+function statusField(context, node) {
+  const chain = memberChain(readExpression(context, node, true));
   const field = chain?.names[0];
 
-  return field && QUERY_STATUS_FIELDS.has(field) ? { root: chain.root, field } : null;
+  return QUERY_STATUS_FIELDS.has(field) && isQueryCall(constInit(context, chain.node))
+    ? { root: chain.root, field }
+    : null;
 }
 
 /** The object a function returns: a `return { ... }` or an arrow's `({ ... })` body. */
@@ -1150,8 +1190,6 @@ const oneStatusFromHooks = {
       return {};
     }
 
-    const constants = new Map();
-
     const check = (node) => {
       const object = unwrapChain(returnedObject(node));
       const owner = context.sourceCode.getAncestors(node).findLast(isFunctionNode);
@@ -1164,7 +1202,7 @@ const oneStatusFromHooks = {
 
       const reads = object.properties
         .filter((property) => property.type === 'Property')
-        .map((property) => statusField(property.value, constants))
+        .map((property) => statusField(context, property.value))
         .filter(Boolean);
 
       [...new Set(reads.map(({ root }) => root))]
@@ -1182,33 +1220,40 @@ const oneStatusFromHooks = {
         });
     };
 
-    return {
-      'VariableDeclaration[kind="const"] > VariableDeclarator[id.type="Identifier"]'(node) {
-        if (node.init) constants.set(node.id.name, node.init);
-      },
-      ReturnStatement: check,
-      ArrowFunctionExpression: check,
-    };
+    return { ReturnStatement: check, ArrowFunctionExpression: check };
   },
 };
 
 const isEmptyString = (node) => node?.type === 'Literal' && node.value === '';
 
-/** The value `x.ok ? x.value… : ''` reads, as source text, or null. */
+/** Whether `chain` reads `<outcome>.value…` of the outcome `outcome.ok` tests. */
+const readsValueOf = (chain, outcome) =>
+  chain?.root === outcome.root &&
+  [...outcome.names.slice(0, -1), 'value'].every((name, index) => chain.names[index] === name);
+
+/** The outcome and fallback of `x.ok ? x.value… : ''` or `!x.ok ? '' : x.value…`, or null. */
 function placeholderOutcome(node) {
   const negated = node.test.type === 'UnaryExpression' && node.test.operator === '!';
   const test = memberChain(negated ? node.test.argument : node.test);
-  const fallback = negated ? node.consequent : node.alternate;
+  const [read, fallback] = negated
+    ? [node.alternate, node.consequent]
+    : [node.consequent, node.alternate];
 
-  return test?.names.at(-1) === 'ok' && fallback.type === 'Literal' ? { ...test, fallback } : null;
+  return test?.names.at(-1) === 'ok' &&
+    fallback.type === 'Literal' &&
+    readsValueOf(memberChain(read), test)
+    ? { ...test, fallback }
+    : null;
 }
 
 const testUnwrapsValues = {
   meta: {
     type: 'problem',
     messages: {
+      present:
+        'Unwrap `{{expression}}` with `present({{expression}})`, a Jest global that an E2E spec imports from `./fixtures`, so a missing value fails the test here instead of standing in as `{{fallback}}`.',
       unwrap:
-        'Unwrap `{{expression}}` with `present({{expression}})` (a Jest global; an E2E spec imports it from `./fixtures`), so a missing value fails the test here instead of standing in as `{{fallback}}`.',
+        'Unwrap `{{expression}}` with `unwrap({{expression}})`, a Jest global, so a failure fails the test here with its problem instead of standing in as `{{fallback}}`.',
     },
     schema: [],
   },
@@ -1217,42 +1262,70 @@ const testUnwrapsValues = {
       return {};
     }
 
-    const report = (node, expression, fallback) =>
+    const report = (node, messageId, expression, fallback) =>
       context.report({
         node,
-        messageId: 'unwrap',
+        messageId,
         data: { expression, fallback: context.sourceCode.getText(fallback) },
       });
 
     return {
       'LogicalExpression[operator="??"]'(node) {
         if (isEmptyString(node.right)) {
-          report(node, context.sourceCode.getText(node.left), node.right);
+          report(node, 'present', context.sourceCode.getText(node.left), node.right);
         }
       },
       ConditionalExpression(node) {
         const outcome = placeholderOutcome(node);
 
         if (outcome) {
-          report(node, [outcome.root, ...outcome.names.slice(0, -1)].join('.'), outcome.fallback);
+          report(
+            node,
+            'unwrap',
+            [outcome.root, ...outcome.names.slice(0, -1)].join('.'),
+            outcome.fallback,
+          );
         }
       },
     };
   },
 };
 
-const EXPORTED_TYPE = /export\s+(?:declare\s+)?(?:interface|type)\s+([A-Za-z_$][\w$]*)/g;
+// A declaration starts its line, so `export type` inside a string or a comment does not count.
+const EXPORTED_TYPE = /^export\s+(?:declare\s+)?(?:interface|type)\s+([A-Za-z_$][\w$]*)/gm;
+const siblingScans = new Map();
 
-/** Each type name a module exports by declaration, mapped to its module specifier. */
-function siblingTypes(directory, keepExtension) {
-  return readdirSync(directory)
+/** A folder's non-test modules, sorted, each with its modification time. */
+const siblingModules = (directory) =>
+  readdirSync(directory)
     .filter((file) => /\.tsx?$/.test(file) && !isSpecFile(file) && !file.endsWith('.d.ts'))
-    .flatMap((file) =>
-      [...readFileSync(join(directory, file), 'utf8').matchAll(EXPORTED_TYPE)].map((match) => [
-        match[1],
-        `./${keepExtension ? file : file.replace(/\.tsx?$/, '')}`,
-      ]),
+    .sort()
+    .map((file) => [file, statSync(join(directory, file)).mtimeMs]);
+
+/**
+ * Each type name a module in `directory` exports by declaration, mapped to its
+ * module specifier. One scan serves every test in the folder until a module
+ * in it is added, removed or changed.
+ */
+export function siblingTypes(directory, keepExtension) {
+  const modules = siblingModules(directory);
+  const key = `${directory}\0${keepExtension}\0${JSON.stringify(modules)}`;
+
+  if (!siblingScans.has(key)) {
+    siblingScans.set(
+      key,
+      new Map(
+        modules.flatMap(([file]) =>
+          [...readFileSync(join(directory, file), 'utf8').matchAll(EXPORTED_TYPE)].map((match) => [
+            match[1],
+            `./${keepExtension ? file : file.replace(/\.tsx?$/, '')}`,
+          ]),
+        ),
+      ),
     );
+  }
+
+  return siblingScans.get(key);
 }
 
 const testImportsTheType = {
@@ -1269,8 +1342,9 @@ const testImportsTheType = {
       return {};
     }
 
-    const exported = new Map(
-      siblingTypes(dirname(context.filename), API_SOURCE.test(repositoryPath(context))),
+    const exported = siblingTypes(
+      dirname(context.filename),
+      API_SOURCE.test(repositoryPath(context)),
     );
 
     const check = (node) => {
@@ -1291,6 +1365,29 @@ const testImportsTheType = {
 
 // A limit below ten is too common in prose ("3 times") to tie to one constant.
 const SMALLEST_LIMIT = 10;
+const LIMIT_WORDS = new Set(['MAX', 'MAXIMUM', 'MIN', 'MINIMUM', 'LIMIT', 'LENGTH', 'LEN']);
+
+/** `TITLE_MAX_LENGTH` or `maxTitleLength`: a name with a limit word in it. */
+const isLimitName = (name) =>
+  name
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toUpperCase()
+    .split('_')
+    .some((word) => LIMIT_WORDS.has(word));
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The limit written as a count of something: `100 characters`, `1,000 items`. */
+const countPattern = (value) =>
+  new RegExp(
+    `(?<![\\w.,])(?:${[...new Set([String(value), value.toLocaleString('en-GB')])].map(escapeRegExp).join('|')})\\s+[A-Za-z]`,
+  );
+
+/** An import or export source, or text inside a JSX attribute, holds no message. */
+const isMessageText = (context, node) =>
+  !context.sourceCode
+    .getAncestors(node)
+    .some((ancestor) => ancestor.type === 'JSXAttribute' || ancestor.source === node);
 
 const messageUsesItsLimit = {
   meta: {
@@ -1306,8 +1403,11 @@ const messageUsesItsLimit = {
       return {};
     }
 
-    const limits = new Map();
+    const limits = [];
     const texts = [];
+    const addText = (node, text) => {
+      if (isMessageText(context, node)) texts.push([node, text]);
+    };
 
     return {
       'Program > VariableDeclaration[kind="const"] > VariableDeclarator, Program > ExportNamedDeclaration > VariableDeclaration[kind="const"] > VariableDeclarator'(
@@ -1315,25 +1415,30 @@ const messageUsesItsLimit = {
       ) {
         const value = node.init?.type === 'Literal' ? node.init.value : undefined;
 
-        if (node.id.type === 'Identifier' && typeof value === 'number' && value >= SMALLEST_LIMIT) {
-          limits.set(String(value), node.id.name);
+        if (
+          node.id.type === 'Identifier' &&
+          isLimitName(node.id.name) &&
+          typeof value === 'number' &&
+          value >= SMALLEST_LIMIT
+        ) {
+          limits.push({ name: node.id.name, value, pattern: countPattern(value) });
         }
       },
       Literal(node) {
-        if (isStringLiteral(node)) texts.push([node, node.value]);
+        if (isStringLiteral(node)) addText(node, node.value);
       },
       TemplateElement(node) {
-        texts.push([node, node.value.cooked ?? '']);
+        addText(node, node.value.cooked ?? '');
       },
       JSXText(node) {
-        texts.push([node, node.value]);
+        addText(node, node.value);
       },
       'Program:exit'() {
         texts.forEach(([node, text]) => {
-          [...limits]
-            .filter(([value]) => new RegExp(`(?<![\\w.])${value}(?!\\w|\\.\\d)`).test(text))
-            .forEach(([value, name]) => {
-              context.report({ node, messageId: 'limit', data: { name, value } });
+          limits
+            .filter(({ pattern }) => pattern.test(text))
+            .forEach(({ name, value }) => {
+              context.report({ node, messageId: 'limit', data: { name, value: String(value) } });
             });
         });
       },
@@ -1341,18 +1446,16 @@ const messageUsesItsLimit = {
   },
 };
 
+/** A module in a slice other than the slice's own `index.ts`; a nested `components/index.ts` counts. */
 const isSliceModule = (path) => {
-  const source = PACKAGE_SOURCE.exec(path);
+  const rest = sliceOf(PACKAGE_SOURCE.exec(path)?.[2] ?? '')?.rest ?? [];
 
-  return (
-    Boolean(source && sliceOf(source[2])?.rest.length) &&
-    !/^index\.[cm]?[jt]sx?$/.test(basename(path))
-  );
+  return rest.length > 0 && !(rest.length === 1 && /^index\.[cm]?[jt]sx?$/.test(rest[0]));
 };
 
 const exportedName = (specifier) => specifier.local.name ?? specifier.local.value;
 
-const importTypesFromTheirOwner = {
+const reexportOnlyFromIndex = {
   meta: {
     type: 'problem',
     messages: {
@@ -1449,7 +1552,7 @@ const keepRejections = {
     type: 'problem',
     messages: {
       swallowed:
-        'Handle the failure where it shows (`onError`, a `failure` state) and let the promise reject; returning `{{value}}` hides the error from callers and tests.',
+        'Handle the failure where it shows (`onError`, a `failure` state) and let the promise reject; returning `{{value}}` hides the error from callers and tests. To ignore a failure on purpose, settle the promise with `Promise.allSettled` and read its result.',
     },
     schema: [],
   },
@@ -1458,31 +1561,19 @@ const keepRejections = {
       return {};
     }
 
-    const constants = new Map();
-    const handlers = [];
-
     const resolve = (node) =>
-      node?.type === 'Identifier' && constants.has(node.name) ? constants.get(node.name) : node;
+      node?.type === 'Identifier' ? (constInit(context, node) ?? node) : node;
 
     return {
-      'VariableDeclaration[kind="const"] > VariableDeclarator[id.type="Identifier"]'(node) {
-        if (node.init) constants.set(node.id.name, node.init);
-      },
       CallExpression(node) {
         const method =
           node.callee.type === 'MemberExpression' && !node.callee.computed
             ? node.callee.property.name
             : undefined;
         const handler = node.arguments[REJECTION_HANDLER.get(method) ?? node.arguments.length];
+        const value = handler && swallowedValue(resolve(handler));
 
-        if (handler) handlers.push([node, handler]);
-      },
-      'Program:exit'() {
-        handlers.forEach(([node, handler]) => {
-          const value = swallowedValue(resolve(handler));
-
-          if (value) context.report({ node, messageId: 'swallowed', data: { value } });
-        });
+        if (value) context.report({ node, messageId: 'swallowed', data: { value } });
       },
     };
   },
@@ -1648,7 +1739,7 @@ export default {
     'test-unwraps-values': testUnwrapsValues,
     'test-imports-the-type': testImportsTheType,
     'message-uses-its-limit': messageUsesItsLimit,
-    'import-types-from-their-owner': importTypesFromTheirOwner,
+    'reexport-only-from-index': reexportOnlyFromIndex,
     'keep-rejections': keepRejections,
   },
 };

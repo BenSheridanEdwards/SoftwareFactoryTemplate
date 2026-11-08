@@ -35,7 +35,7 @@ it('marks, renames and deletes a to-do in place', async () => {
   addTodo({ title: 'First' });
   const added = addTodo({ title: 'Second' });
   addTodo({ title: 'Third' });
-  const { id } = present(added);
+  const { id } = unwrap(added);
 
   expect(setTodoDone({ id, done: true })).toEqual({
     ok: true,
@@ -68,7 +68,7 @@ it('answers not found for an unknown id', async () => {
 
 it('clears the done to-dos and returns their ids', async () => {
   const { addTodo, clearDoneTodos, listTodos, setTodoDone } = await application();
-  const ids = ['First', 'Second', 'Third'].map((title) => present(addTodo({ title })).id);
+  const ids = ['First', 'Second', 'Third'].map((title) => unwrap(addTodo({ title })).id);
   setTodoDone({ id: present(ids[0]), done: true });
   setTodoDone({ id: present(ids[2]), done: true });
 

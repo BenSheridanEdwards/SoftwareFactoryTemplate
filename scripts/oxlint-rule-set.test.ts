@@ -90,7 +90,7 @@ const RESULT_ROOT = {
       'test-unwraps-values',
       'test-imports-the-type',
       'message-uses-its-limit',
-      'import-types-from-their-owner',
+      'reexport-only-from-index',
       'keep-rejections',
     ].map((name) => [`policy/${name}`, ['error']]),
   ),

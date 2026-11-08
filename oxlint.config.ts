@@ -215,7 +215,7 @@ export default {
         'policy/test-unwraps-values': 'error',
         'policy/test-imports-the-type': 'error',
         'policy/message-uses-its-limit': 'error',
-        'policy/import-types-from-their-owner': 'error',
+        'policy/reexport-only-from-index': 'error',
         'policy/keep-rejections': 'error',
         'max-depth': ['error', 4],
         'no-restricted-imports': [

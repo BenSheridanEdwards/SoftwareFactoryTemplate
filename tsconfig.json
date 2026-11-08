@@ -5,6 +5,7 @@
   // writes to `.cache/types`, so api source, Node imports included, is checked
   // by the api program alone. `pnpm typecheck` builds them with `tsc -b`.
   // The root configs and e2e specs run on Node: tsconfig.node.json.
+  // Its unit tests are checked by tsconfig.test.json.
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "useDefineForClassFields": true,
@@ -17,14 +18,10 @@
 
     "types": ["jest", "@testing-library/jest-dom"]
   },
-  "include": [
-    "apps/web/src",
-    "showcase/*/web/src",
-    "packages/ui/src",
-    "tooling/types/styles.d.ts",
-    "tooling/types/present.d.ts"
-  ],
-  "exclude": ["**/*.contract.test.ts"],
+  "include": ["apps/web/src", "showcase/*/web/src", "packages/ui/src", "tooling/types/styles.d.ts"],
+  // Unit tests type-check in tsconfig.test.json, the one browser program that
+  // sees the Jest test globals; contract tests run on Node (tsconfig.node.json).
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"],
   "references": [{ "path": "./tsconfig.api.json" }],
   "ts-node": {
     "transpileOnly": true,
