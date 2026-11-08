@@ -120,6 +120,13 @@ export function collectSlices(changedFiles) {
   return [...slices.values()];
 }
 
+/** The changed slices whose folder is still in the tree under `root`; a deleted slice needs no spec. */
+function presentSlices(changedFiles, root) {
+  return collectSlices(changedFiles).filter((slice) =>
+    existsSync(resolve(root, slice.result, 'web/src', slice.kind, slice.name)),
+  );
+}
+
 const normalize = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
 /** True when `haystack` names `slice`: its normalized text contains the slice name. */
@@ -423,7 +430,7 @@ function runDecide() {
     candidates
       .filter((path) => matchesGlob(path, glob))
       .map((path) => ({ path, text: filesystem.readText(path) }));
-  const slices = collectSlices(changed);
+  const slices = presentSlices(changed, root);
   const blockingGaps = [
     ...coverageGaps(slices, read(SPEC_GLOB)),
     ...(coverage ? lineCoverageGaps(sources, coverage) : []),
@@ -473,7 +480,7 @@ function runCoverageGate() {
     .map((path) => ({ path, text: filesystem.readText(path) }));
   const gaps = [
     ...lineCoverageGaps(sources, coverage),
-    ...coverageGaps(collectSlices(changed), specs),
+    ...coverageGaps(presentSlices(changed, root), specs),
   ];
   if (gaps.length > 0) {
     gaps.forEach((gap) => {
