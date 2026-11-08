@@ -1,56 +1,57 @@
 import { fileURLToPath } from 'node:url';
 import { RECOMMENDED_RULES } from 'oxlint-plugin-react-doctor';
+import { generalRules } from './tooling/oxlint-general-rules.ts';
 import doctor from './tooling/oxlint-plugin-react-doctor.js';
 
-// Each excluded rule repeats a check owned by the engine named beside it.
+// Each excluded rule repeats a check owned by the native rule named beside it.
 const singleOwnerRules = {
-  'react-doctor/alt-text': true, // Biome a11y/useAltText
-  'react-doctor/anchor-ambiguous-text': true, // Biome a11y/noAmbiguousAnchorText
-  'react-doctor/anchor-has-content': true, // Biome a11y/useAnchorContent
-  'react-doctor/anchor-is-valid': true, // Biome a11y/useValidAnchor
-  'react-doctor/aria-activedescendant-has-tabindex': true, // Biome a11y/useAriaActivedescendantWithTabindex
-  'react-doctor/aria-props': true, // Biome a11y/useValidAriaProps
-  'react-doctor/aria-proptypes': true, // Biome a11y/useValidAriaValues
-  'react-doctor/aria-role': true, // Biome a11y/useValidAriaRole
-  'react-doctor/aria-unsupported-elements': true, // Biome a11y/noAriaUnsupportedElements
-  'react-doctor/autocomplete-valid': true, // Biome a11y/useValidAutocomplete
-  'react-doctor/button-has-type': true, // Biome a11y/useButtonType
-  'react-doctor/click-events-have-key-events': true, // Biome a11y/useKeyWithClickEvents
-  'react-doctor/heading-has-content': true, // Biome a11y/useHeadingContent
-  'react-doctor/html-has-lang': true, // Biome a11y/useHtmlLang
-  'react-doctor/iframe-has-title': true, // Biome a11y/useIframeTitle
-  'react-doctor/img-redundant-alt': true, // Biome a11y/noRedundantAlt
-  'react-doctor/interactive-supports-focus': true, // Biome a11y/useFocusableInteractive
-  'react-doctor/label-has-associated-control': true, // Biome a11y/noLabelWithoutControl
-  'react-doctor/lang': true, // Biome a11y/useValidLang
-  'react-doctor/media-has-caption': true, // Biome a11y/useMediaCaption
-  'react-doctor/mouse-events-have-key-events': true, // Biome a11y/useKeyWithMouseEvents
-  'react-doctor/no-access-key': true, // Biome a11y/noAccessKey
-  'react-doctor/no-aria-hidden-on-focusable': true, // Biome a11y/noAriaHiddenOnFocusable
-  'react-doctor/no-autofocus': true, // Biome a11y/noAutofocus
-  'react-doctor/no-distracting-elements': true, // Biome a11y/noDistractingElements
-  'react-doctor/no-interactive-element-to-noninteractive-role': true, // Biome a11y/noInteractiveElementToNoninteractiveRole
-  'react-doctor/no-noninteractive-element-to-interactive-role': true, // Biome a11y/noNoninteractiveElementToInteractiveRole
-  'react-doctor/no-noninteractive-tabindex': true, // Biome a11y/noNoninteractiveTabindex
-  'react-doctor/no-redundant-roles': true, // Biome a11y/noRedundantRoles
-  'react-doctor/no-static-element-interactions': true, // Biome a11y/noStaticElementInteractions
-  'react-doctor/prefer-tag-over-role': true, // Biome a11y/useSemanticElements
-  'react-doctor/role-has-required-aria-props': true, // Biome a11y/useAriaPropsForRole
-  'react-doctor/role-supports-aria-props': true, // Biome a11y/useAriaPropsSupportedByRole
-  'react-doctor/scope': true, // Biome a11y/noHeaderScope
-  'react-doctor/tabindex-no-positive': true, // Biome a11y/noPositiveTabindex
-  'react-doctor/jsx-key': true, // Biome correctness/useJsxKeyInIterable
-  'react-doctor/no-render-return-value': true, // Biome correctness/noRenderReturnValue
-  'react-doctor/void-dom-elements-no-children': true, // Biome correctness/noVoidElementsWithChildren
-  'react-doctor/no-spread-accumulator-in-reduce': true, // Biome performance/noAccumulatingSpread
-  'react-doctor/jsx-no-script-url': true, // Biome security/noScriptUrl
-  'react-doctor/jsx-no-target-blank': true, // Biome security/noBlankTarget
-  'react-doctor/no-danger-with-children': true, // Biome security/noDangerouslySetInnerHtmlWithChildren
-  'react-doctor/no-eval': true, // Biome security/noGlobalEval
-  'react-doctor/no-non-null-assertion-on-maybe-undefined-result': true, // Biome style/noNonNullAssertion
-  'react-doctor/jsx-no-comment-textnodes': true, // Biome suspicious/noCommentText
-  'react-doctor/jsx-no-duplicate-props': true, // Biome suspicious/noDuplicateJsxProps
-  'react-doctor/no-array-index-as-key': true, // Biome suspicious/noArrayIndexKey
+  'react-doctor/alt-text': true, // jsx-a11y/alt-text
+  'react-doctor/anchor-ambiguous-text': true, // jsx-a11y/anchor-ambiguous-text
+  'react-doctor/anchor-has-content': true, // jsx-a11y/anchor-has-content
+  'react-doctor/anchor-is-valid': true, // jsx-a11y/anchor-is-valid
+  'react-doctor/aria-activedescendant-has-tabindex': true, // jsx-a11y/aria-activedescendant-has-tabindex
+  'react-doctor/aria-props': true, // jsx-a11y/aria-props
+  'react-doctor/aria-proptypes': true, // jsx-a11y/aria-proptypes
+  'react-doctor/aria-role': true, // jsx-a11y/aria-role
+  'react-doctor/aria-unsupported-elements': true, // jsx-a11y/aria-unsupported-elements
+  'react-doctor/autocomplete-valid': true, // jsx-a11y/autocomplete-valid
+  'react-doctor/button-has-type': true, // react/button-has-type
+  'react-doctor/click-events-have-key-events': true, // jsx-a11y/click-events-have-key-events
+  'react-doctor/heading-has-content': true, // jsx-a11y/heading-has-content
+  'react-doctor/html-has-lang': true, // jsx-a11y/html-has-lang
+  'react-doctor/iframe-has-title': true, // jsx-a11y/iframe-has-title
+  'react-doctor/img-redundant-alt': true, // jsx-a11y/img-redundant-alt
+  'react-doctor/interactive-supports-focus': true, // jsx-a11y/interactive-supports-focus
+  'react-doctor/label-has-associated-control': true, // jsx-a11y/label-has-associated-control
+  'react-doctor/lang': true, // jsx-a11y/lang
+  'react-doctor/media-has-caption': true, // jsx-a11y/media-has-caption
+  'react-doctor/mouse-events-have-key-events': true, // jsx-a11y/mouse-events-have-key-events
+  'react-doctor/no-access-key': true, // jsx-a11y/no-access-key
+  'react-doctor/no-aria-hidden-on-focusable': true, // jsx-a11y/no-aria-hidden-on-focusable
+  'react-doctor/no-autofocus': true, // jsx-a11y/no-autofocus
+  'react-doctor/no-distracting-elements': true, // jsx-a11y/no-distracting-elements
+  'react-doctor/no-interactive-element-to-noninteractive-role': true, // jsx-a11y/no-interactive-element-to-noninteractive-role
+  'react-doctor/no-noninteractive-element-to-interactive-role': true, // jsx-a11y/no-noninteractive-element-to-interactive-role
+  'react-doctor/no-noninteractive-tabindex': true, // jsx-a11y/no-noninteractive-tabindex
+  'react-doctor/no-redundant-roles': true, // jsx-a11y/no-redundant-roles
+  'react-doctor/no-static-element-interactions': true, // jsx-a11y/no-static-element-interactions
+  'react-doctor/prefer-tag-over-role': true, // jsx-a11y/prefer-tag-over-role
+  'react-doctor/role-has-required-aria-props': true, // jsx-a11y/role-has-required-aria-props
+  'react-doctor/role-supports-aria-props': true, // jsx-a11y/role-supports-aria-props
+  'react-doctor/scope': true, // jsx-a11y/scope
+  'react-doctor/tabindex-no-positive': true, // jsx-a11y/tabindex-no-positive
+  'react-doctor/jsx-key': true, // react/jsx-key
+  'react-doctor/no-render-return-value': true, // react/no-render-return-value
+  'react-doctor/void-dom-elements-no-children': true, // react/void-dom-elements-no-children
+  'react-doctor/no-spread-accumulator-in-reduce': true, // oxc/no-accumulating-spread
+  'react-doctor/jsx-no-script-url': true, // react/jsx-no-script-url
+  'react-doctor/jsx-no-target-blank': true, // react/jsx-no-target-blank
+  'react-doctor/no-danger-with-children': true, // react/no-danger-with-children
+  'react-doctor/no-eval': true, // eslint/no-eval
+  'react-doctor/no-non-null-assertion-on-maybe-undefined-result': true, // typescript/no-non-null-assertion
+  'react-doctor/jsx-no-comment-textnodes': true, // react/jsx-no-comment-textnodes
+  'react-doctor/jsx-no-duplicate-props': true, // react/jsx-no-duplicate-props
+  'react-doctor/no-array-index-as-key': true, // react/no-array-index-key
   'react-doctor/rules-of-hooks': true, // react-hooks/rules-of-hooks
   'react-doctor/exhaustive-deps': true, // react-hooks/exhaustive-deps
   'react-doctor/no-set-state-in-render': true, // react-hooks/set-state-in-render
@@ -111,7 +112,7 @@ export default {
     restriction: 'off',
     nursery: 'off',
   },
-  plugins: ['react', 'unicorn'],
+  plugins: ['react', 'unicorn', 'typescript', 'jsx-a11y', 'oxc', 'jest'],
   options: { respectEslintDisableDirectives: false },
   jsPlugins: [
     {
@@ -119,6 +120,7 @@ export default {
       specifier: import.meta.resolve('eslint-plugin-better-tailwindcss'),
     },
     fileURLToPath(new URL('./tooling/oxlint-plugin-policy.js', import.meta.url)),
+    fileURLToPath(new URL('./tooling/oxlint-plugin-naming.js', import.meta.url)),
     {
       name: doctor.meta.name,
       specifier: fileURLToPath(new URL('./tooling/oxlint-plugin-react-doctor.js', import.meta.url)),
@@ -140,6 +142,7 @@ export default {
     '.cache/**',
   ],
   rules: {
+    ...generalRules,
     'no-else-return': ['error', { allowElseIf: false }],
     'no-param-reassign': ['error', { props: true }],
     'policy/no-loops': 'error',
@@ -247,6 +250,14 @@ export default {
     {
       files: ['{apps,showcase/*}/web/e2e/**/*.ts'],
       rules: { 'policy/test-unwraps-values': 'error' },
+    },
+    {
+      // Naming and file names, ported from Biome's override (ADR 0126).
+      files: ['{apps,packages}/*/src/**', 'showcase/*/*/src/**'],
+      rules: {
+        'naming/naming-convention': 'error',
+        'unicorn/filename-case': ['error', { cases: { camelCase: true, pascalCase: true } }],
+      },
     },
   ],
 };

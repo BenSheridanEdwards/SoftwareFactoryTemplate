@@ -137,7 +137,8 @@ skills ship with the agent.
 The toolchain combines Biome, Oxlint, strict TypeScript over four programs, Fallow boundaries and
 `contract/<id>` rules, structure checks, and unit and E2E tests. [Quality
 gates](../.agents/project/QUALITY_GATES.md) defines the hook sequence: pre-commit checks types, staged
-formatting/lint, changed-file Fallow complexity and secrets; pre-push requires freshly fetched
+formatting, every lint, style and suppression rule, the architecture gate, changed-file Fallow complexity and
+secrets; pre-push requires freshly fetched
 `origin/main`, `pnpm verify` and `pnpm e2e`. CI repeats every gate on a clean checkout. Each pre-commit step
 must take under 30 seconds on a realistic change; record measurements and review slower steps for a move to
 pre-push. Timing is held by review. Running every convention check before every commit remains a target
@@ -163,7 +164,8 @@ allowlist ([ADR 0084](../.agents/decisions/0084-reject-every-inline-suppression.
 Label standards without gates as targets. Close aliases, re-exports, inline disables and config edits around
 a rule before calling it finished. Changes that loosen or rewrite enforcement need the approver's sign-off on the
 exact commit ([ADR 0024](../.agents/decisions/0024-sign-off-only-loosening-enforcement-changes.md)). Biome
-owns format and general lint; Oxlint owns policy, hooks, Compiler and React Doctor rules; the React Doctor CLI owns project checks.
+owns formatting, import order and JSON and CSS lint; Oxlint owns every other lint rule, including general, policy,
+hooks, Compiler and React Doctor rules; the React Doctor CLI owns project checks.
 
 ### 2. Layers import downward, slices stand alone, decisions live in ADRs
 
@@ -214,8 +216,8 @@ merges and deploys.
 
 Write transforms over `const` with `map`, `filter`, `flatMap`, `some`, `every`, `find`, `reduce` and
 `Object.fromEntries` instead of loops, `let` accumulators, `push` or in-place mutation. Use `reduce` for one
-value; build arrays and objects with `map`, `flatMap` and `Object.fromEntries`. Biome rejects accumulating
-spread. Biome `style/useConst` and React Hooks immutability, globals and purity rules cover single-assignment
+value; build arrays and objects with `map`, `flatMap` and `Object.fromEntries`. Oxlint rejects accumulating
+spread. Oxlint `eslint/prefer-const` and React Hooks immutability, globals and purity rules cover single-assignment
 bindings and mutation during render in package TypeScript. Oxlint rejects loops (`policy/no-loops`) and parameter reassignment, including parameter property mutation
 ([ADR 0079](../.agents/decisions/0079-no-advisory-lint.md)). Oxlint also rejects redundant else after return
 everywhere; result roots reject nested ternaries, lonely if, array forEach, sort and reverse,

@@ -319,13 +319,16 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
     expect(checked.output).toContain(file);
   });
 
-  it('fails the Biome naming override on a seeded file name', () => {
+  it('fails the Oxlint file-name rule on a seeded file name', () => {
+    const command = JSON.parse(readFileSync(join(copy, 'package.json'), 'utf8')).scripts[
+      'lint:policy'
+    ].split(' && ')[0];
     const linted = withSeed({ 'showcase/x/web/src/routes/todos/bad_name.ts': 'export {};\n' }, () =>
-      run(['biome', 'lint', 'showcase/x']),
+      run(['sh', '-c', `${command} showcase/x`]),
     );
 
     expect(linted.code).toBe(1);
-    expect(linted.output).toContain('useFilenamingConvention');
+    expect(linted.output).toContain('unicorn(filename-case)');
     expect(linted.output).toContain('bad_name.ts');
   });
 

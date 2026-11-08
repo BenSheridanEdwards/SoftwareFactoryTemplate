@@ -77,8 +77,12 @@ test('appends exactly one complete record for a failing hook', () => {
     model: null,
     passed: false,
     hookExitCode: 1,
-    tools: [parseBiome(fixture('biome')), parseOxlint(fixture('oxlint'))],
-    total: 5,
+    tools: [
+      parseBiome(fixture('biome')),
+      parseOxlint(fixture('oxlint-policy'), 'oxlint-policy'),
+      parseOxlint(fixture('oxlint')),
+    ],
+    total: 6,
   });
 });
 
@@ -118,7 +122,7 @@ test('CLI preserves successful exit even when reporting or appending fails', () 
   expect(input.append).not.toHaveBeenCalled();
 });
 
-test('real hook retains its failure and logs both linters, then passes after repair', () => {
+test('real hook retains its failure and logs every linter, then passes after repair', () => {
   mkdirSync('.scratch', { recursive: true });
   const folder = mkdtempSync(join(process.cwd(), '.scratch/lint-usage-'));
   // The fixture links checkout dependencies, so pnpm must leave them in place.
@@ -131,11 +135,12 @@ test('real hook retains its failure and logs both linters, then passes after rep
   const source = (path: string) => readFileSync(path, 'utf8');
   mkdirSync(join(folder, 'scripts'));
   mkdirSync(join(folder, '.husky'));
-  ['biome.json', '.oxlintrc.json'].forEach((file) => {
+  ['biome.json', '.oxlintrc.json', 'oxlint.config.ts'].forEach((file) => {
     writeFileSync(join(folder, file), source(file));
   });
   symlinkSync(join(process.cwd(), 'node_modules'), join(folder, 'node_modules'));
   symlinkSync(join(process.cwd(), 'vendor'), join(folder, 'vendor'));
+  symlinkSync(join(process.cwd(), 'tooling'), join(folder, 'tooling'));
   writeFileSync(join(folder, 'scripts/lint-usage.mjs'), source('scripts/lint-usage.mjs'));
   writeFileSync(join(folder, '.husky/pre-commit'), source('.husky/pre-commit'));
   const scripts = JSON.parse(source('package.json')).scripts;
@@ -144,33 +149,29 @@ test('real hook retains its failure and logs both linters, then passes after rep
     JSON.stringify({
       scripts: {
         typecheck: 'node -e "process.exit(0)"',
+        'lint:policy': scripts['lint:policy'],
+        'lint:styles': 'node -e "process.exit(0)"',
         'lint:anti-slop': scripts['lint:anti-slop'],
+        'check:suppressions': 'node -e "process.exit(0)"',
+        'arch:gate': 'node -e "process.exit(0)"',
         'fallow:audit': 'node -e "process.exit(0)"',
         'secret-scan': 'node -e "process.exit(0)"',
       },
     }),
   );
   command('git', ['init']);
-  writeFileSync(join(folder, '.gitignore'), 'node_modules\nvendor\n.cache\n');
+  writeFileSync(join(folder, '.gitignore'), 'node_modules\nvendor\ntooling\n.cache\n');
   writeFileSync(join(folder, 'scripts/bad.ts'), 'debugger;\n');
   writeFileSync(join(folder, 'scripts/assertion.ts'), 'export const value = 1 as number;\n');
   command('git', ['add', '.']);
-  const original = command('pnpm', [
-    'exec',
-    'biome',
-    'check',
-    '--error-on-warnings',
-    '--staged',
-    '--no-errors-on-unmatched',
-    '.',
-  ]);
+  const original = command('pnpm', ['lint:policy']);
   const failed = command('sh', ['.husky/pre-commit']);
   expect(failed.status).toBe(original.status);
   expect(failed.status).not.toBe(0);
   const log = join(folder, '.cache/factory-usage/lint-runs.jsonl');
   const lines = readFileSync(log, 'utf8').trim().split('\n');
   expect(lines).toHaveLength(1);
-  expect(lines[0]).toContain('lint/suspicious/noDebugger');
+  expect(lines[0]).toContain('eslint(no-debugger)');
   expect(lines[0]).toContain('require-safety-comment-for-type-assertion');
   expect(JSON.parse(lines[0] ?? '').passed).toBe(false);
   writeFileSync(join(folder, 'scripts/bad.ts'), 'export const answer = 42;\n');

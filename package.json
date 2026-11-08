@@ -19,7 +19,7 @@
     "build": "pnpm -r build",
     "preview": "pnpm --filter @repo/web preview",
     "typecheck": "node scripts/typecheck.mjs",
-    "lint": "biome lint --error-on-warnings .",
+    "lint": "pnpm lint:policy",
     "format": "biome format --write .",
     "check": "biome check --error-on-warnings .",
     "lint:policy": "env -u NAPI_RS_NATIVE_LIBRARY_PATH -u VP_VERSION -u OXLINT_TSGOLINT_PATH oxlint --no-ignore --config oxlint.config.ts --deny-warnings",

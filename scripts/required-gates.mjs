@@ -201,29 +201,24 @@ export const HOOK_STEPS = [
     job: 'integration',
     steps: [{ run: 'pnpm test:integration' }],
   },
-  ...[
-    'check:lockfile',
-    'check:context',
-    'check:suppressions',
-    'check:docs',
-    'check:adr',
-    'lint:policy',
-    'lint:styles',
-    'react-doctor',
-  ].map((script) => ({
-    sources: ['package.json verify'],
-    command: `pnpm ${script}`,
-    workflow: 'ci.yml',
-    job: 'quality',
-    steps: [{ run: `pnpm ${script}` }],
-  })),
-  ...['typecheck', 'lint:anti-slop'].map((script) => ({
-    sources: ['.husky/pre-commit', 'package.json verify'],
-    command: `pnpm ${script}`,
-    workflow: 'ci.yml',
-    job: 'quality',
-    steps: [{ run: `pnpm ${script}` }],
-  })),
+  ...['check:lockfile', 'check:context', 'check:docs', 'check:adr', 'react-doctor'].map(
+    (script) => ({
+      sources: ['package.json verify'],
+      command: `pnpm ${script}`,
+      workflow: 'ci.yml',
+      job: 'quality',
+      steps: [{ run: `pnpm ${script}` }],
+    }),
+  ),
+  ...['typecheck', 'lint:policy', 'lint:styles', 'lint:anti-slop', 'check:suppressions'].map(
+    (script) => ({
+      sources: ['.husky/pre-commit', 'package.json verify'],
+      command: `pnpm ${script}`,
+      workflow: 'ci.yml',
+      job: 'quality',
+      steps: [{ run: `pnpm ${script}` }],
+    }),
+  ),
   {
     sources: ['.husky/pre-commit'],
     command: 'pnpm exec biome check --error-on-warnings --staged --no-errors-on-unmatched .',
@@ -286,6 +281,13 @@ export const HOOK_STEPS = [
     workflow: 'ci.yml',
     job: 'required-gates',
     steps: [{ run: 'node scripts/required-gates.mjs --check' }],
+  },
+  {
+    sources: ['.husky/pre-commit'],
+    command: 'pnpm arch:gate',
+    workflow: 'ci.yml',
+    job: 'fallow',
+    steps: [{ run: 'pnpm arch:gate' }],
   },
   {
     sources: ['package.json verify'],

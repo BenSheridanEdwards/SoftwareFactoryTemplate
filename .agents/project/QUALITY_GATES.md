@@ -33,12 +33,12 @@ rules live in [AGENTS.md](../../AGENTS.md); proof requirements live in
 | --- | --- | --- | --- |
 | Claude Code, trusted Codex Bash sessions and Cursor agents | `.agents/hooks/block-gate-bypass.sh` (Cursor uses `.agents/hooks/cursor-gate-bypass.sh`) | Common hook bypasses are refused; scope and gaps are in [ADR 0027](../decisions/0027-block-common-hook-bypasses.md) and [Cursor runs the gate-bypass hook](../decisions/0090-cursor-runs-the-gate-bypass-hook.md). | Command guard; see ADR 0027 for gaps |
 | Commit message | `.husky/commit-msg` | Conventional Commits via commitlint. | commitlint via commit-msg |
-| Pre-commit | `.husky/pre-commit` | `pnpm typecheck` (TypeScript 7.0.2 by path), staged Biome (lint + format + imports), `pnpm lint:anti-slop`, `pnpm fallow:audit` (including complexity in touched files), `pnpm secret-scan` (staged gitleaks). Each step must finish in under 30 seconds; review holds this budget ([ADR 0062](../decisions/0062-pre-commit-steps-stay-under-30-seconds.md)). | Run the hook commands below |
+| Pre-commit | `.husky/pre-commit` | `pnpm typecheck` (TypeScript 7.0.2 by path), staged Biome (format, imports, JSON and CSS lint), `pnpm lint:policy` (every Oxlint rule), `pnpm lint:styles`, `pnpm lint:anti-slop`, `pnpm check:suppressions`, `pnpm arch:gate`, `pnpm fallow:audit` (including complexity in touched files), `pnpm secret-scan` (staged gitleaks) ([ADR 0125](../decisions/0125-pre-commit-runs-every-lint-style-and-architecture-gate.md)). Each step must finish in under 30 seconds; review holds this budget ([ADR 0062](../decisions/0062-pre-commit-steps-stay-under-30-seconds.md)). | Run the hook commands below |
 | Pre-push | `.husky/pre-push` | Every pushed branch contains freshly fetched origin/main (the one local up-to-date check), then `pnpm verify` (the full local gate suite, including the production build) and `pnpm e2e` (Playwright E2E and axe scan for every result). A clean merge from main skips pre-commit, so this is where it gets checked. | `pnpm verify` + `pnpm e2e` |
-| Local proof | `pnpm verify` + `pnpm e2e` | Context layer, suppression policy, positive doc phrasing, PRD links, required-gate contract, dependency ADR check, typecheck, Biome, Oxlint policy lint, style check, vendored anti-slop rules (Oxlint), React Doctor, Fallow, architecture checks (`pnpm arch:check`), coverage per result and changed source, Web-API contract, API integration, slice E2E mapping, build, size, E2E. Local verify runs contract after coverage and before integration; CI unit, contract, integration and E2E lanes run in parallel, and `Required gates` needs all four. A console warning or error fails a Jest test or a Playwright page ([ADR 0086](../decisions/0086-console-warnings-fail-tests.md)). | `pnpm verify` + `pnpm e2e` |
+| Local proof | `pnpm verify` + `pnpm e2e` | Context layer, suppression policy, positive doc phrasing, PRD links, required-gate contract, dependency ADR check, typecheck, Biome formatting and JSON and CSS lint, Oxlint lint, style check, vendored anti-slop rules (Oxlint), React Doctor, Fallow, architecture checks (`pnpm arch:check`), coverage per result and changed source, Web-API contract, API integration, slice E2E mapping, build, size, E2E. Local verify runs contract after coverage and before integration; CI unit, contract, integration and E2E lanes run in parallel, and `Required gates` needs all four. A console warning or error fails a Jest test or a Playwright page ([ADR 0086](../decisions/0086-console-warnings-fail-tests.md)). | `pnpm verify` + `pnpm e2e` |
 | Vendored anti-slop | `.oxlintrc.json` (`pnpm lint:anti-slop`) | Clean generic and Effect tag rules at `error`, with `--deny-warnings`, in pre-commit, `pnpm verify` and the existing CI quality job. `pnpm check:suppressions` rejects every inline suppression and coverage pragma; an exception lives in `ALLOWED_SUPPRESSIONS` in `scripts/check-suppressions.mjs`, which needs sign-off. | `pnpm lint:anti-slop` |
 | Context layer | `scripts/check-context-layer.mjs` (`pnpm check:context`) | Operating contract, harness wiring, project docs, house skills, ADR naming and unique context sections. | `pnpm check:context` |
-| CI quality | `.github/workflows/ci.yml` | Full-history checkouts in up-to-date, quality, fallow and coverage use `filter: blob:none`; security fetches every blob for gitleaks. PR head contains main, context layer, suppression policy, positive doc phrasing, PRD links, dependency ADR check, typecheck, Biome, Oxlint policy lint, style check, vendored anti-slop rules (Oxlint), React Doctor, Fallow, architecture gate, role diagram and API report freshness, tests, changed-file coverage and slice E2E mapping, build, security. `Required gates` judges every lane and checks the contract. Unit, contract, integration and E2E lanes run in parallel; `Required gates` needs all four. Three weighted tooling shards also run independently ([API integration tests run as their own required lane](../decisions/0094-api-integration-tests-run-as-their-own-required-lane.md)). | `pnpm verify` + `pnpm e2e`; security audit is hosted |
+| CI quality | `.github/workflows/ci.yml` | Full-history checkouts in up-to-date, quality, fallow and coverage use `filter: blob:none`; security fetches every blob for gitleaks. PR head contains main, context layer, suppression policy, positive doc phrasing, PRD links, dependency ADR check, typecheck, Biome formatting and JSON and CSS lint, Oxlint lint, style check, vendored anti-slop rules (Oxlint), React Doctor, Fallow, architecture gate, role diagram and API report freshness, tests, changed-file coverage and slice E2E mapping, build, security. `Required gates` judges every lane and checks the contract. Unit, contract, integration and E2E lanes run in parallel; `Required gates` needs all four. Three weighted tooling shards also run independently ([API integration tests run as their own required lane](../decisions/0094-api-integration-tests-run-as-their-own-required-lane.md)). | `pnpm verify` + `pnpm e2e`; security audit is hosted |
 | CI security | `.github/workflows/codeql.yml` | CodeQL JavaScript/TypeScript analysis. | Hosted only |
 | CI nonfunctional | `.github/workflows/lighthouse.yml` | Lighthouse budgets (median of three runs) on PRs that touch UI-relevant files, as decided by the tested `scripts/lighthouse-scope.mjs`; other PRs report the same check green with audits skipped. | `pnpm lhci` on request |
 | PR contract | `.github/workflows/pr-quality.yml` (`scripts/validate-pr-body.mjs`) | Template proof, title, branch and portable paths; [PR quality](PR_QUALITY.md) owns the body requirements. | `pnpm validate:pr` with PR environment fields |
@@ -62,20 +62,24 @@ Pre-commit runs these steps in order:
 
 1. `pnpm typecheck` runs `bun check --no-script` over each program through `scripts/typecheck.mjs`.
 2. `pnpm exec biome check --error-on-warnings --staged --no-errors-on-unmatched .`
-3. `pnpm lint:anti-slop`
-4. `pnpm fallow:audit`
-5. `pnpm secret-scan`
+3. `pnpm lint:policy`
+4. `pnpm lint:styles`
+5. `pnpm lint:anti-slop`
+6. `pnpm check:suppressions`
+7. `pnpm arch:gate`
+8. `pnpm fallow:audit`
+9. `pnpm secret-scan`
 
 An EXIT trap records each attempt in `.cache/factory-usage/lint-runs.jsonl`,
-including failed attempts. It reruns staged Biome and the configured anti-slop
+including failed attempts. It reruns staged Biome, `pnpm lint:policy` and the configured anti-slop
 command with JSON reporters and records per-rule counts and unique file paths,
 UTC time, branch, staged tree, HEAD, optional agent/model metadata and hook status.
 Set `FACTORY_USAGE_LOG=0` to turn it off. Collection is local telemetry, not a
 gate: logger errors leave the hook result intact. See
 [Record per-rule lint failures on every pre-commit](../decisions/0100-record-per-rule-lint-failures-on-every-pre-commit.md).
 
-Biome and gitleaks read staged content. Typecheck covers the project; Oxlint
-covers its configured sources. Fallow audits touched files against the last
+Biome and gitleaks read staged content. Typecheck, Oxlint, the style check, the
+suppression scan and the architecture gate read the files on disk. Fallow audits touched files against the last
 fetched `origin/main`, falling back to local `main` when the remote ref is absent.
 Keep each pre-commit step under 30 seconds and record its timing in the PR
 ([ADR 0062](../decisions/0062-pre-commit-steps-stay-under-30-seconds.md)).
@@ -88,9 +92,14 @@ See [ADR 0028](../decisions/0028-pre-push-runs-the-full-local-gate-suite.md).
 
 ## Tool ownership
 
-- Biome owns formatting, import ordering, and general JavaScript/TypeScript
-  lint.
-- Oxlint owns core and repository policy (`pnpm lint:policy`) through
+- Biome owns formatting and import ordering. Its linter runs on `.json`,
+  `.jsonc` and `.css` files only, the formats Oxlint does not parse
+  ([ADR 0126](../decisions/0126-oxlint-owns-all-lint-biome-only-formats.md)).
+- Oxlint owns every other lint rule. `pnpm lint:policy` runs the 170 general rules
+  in `tooling/oxlint-general-rules.ts` in every linted file (the native
+  replacements for Biome's rules, including its React and test domain rules),
+  naming rules in package sources through
+  `tooling/oxlint-plugin-naming.js`, and core and repository policy through
   `tooling/oxlint-plugin-policy.js`, native hooks and Compiler rules (`react/*`),
   and 349 React Doctor rules through `oxlint-plugin-react-doctor` with curated
   settings ([ADR 0103](../decisions/0103-eslint-is-retired.md)).
@@ -172,7 +181,7 @@ step of `verify` to the required lane and CI step that repeats its check.
 Add the CI step and its mapping together when adding a local gate. A missing
 mapping, CI step or required lane fails the check
 ([CI re-runs every local hook step](../decisions/0087-ci-re-runs-every-local-hook-step.md)).
-Staged Biome maps to the full-tree check, staged secrets to the history scan,
+Staged Biome maps to the full-tree format check, staged secrets to the history scan,
 and commitlint to PR-title validation because the title becomes the squash
 commit message. `verify` runs across the aggregate's lanes; each child step
 has its own mapping.
