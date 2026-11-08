@@ -168,6 +168,91 @@ test.describe('Loading and empty states', () => {
   });
 });
 
+test.describe('The page', () => {
+  test('shows only the parts the PRD lists', async ({ page, request }) => {
+    const release = await holdCalls(page, 'todos.list');
+    await page.goto('/');
+    await expect(page.getByRole('main')).toMatchAriaSnapshot(`
+      - main:
+        - /children: deep-equal
+        - heading "To-dos" [level=1]
+        - text: Title
+        - textbox "Title"
+        - button "Add"
+        - status: Loading to-dos…
+    `);
+    release();
+    await expect(page.getByRole('main')).toMatchAriaSnapshot(`
+      - main:
+        - /children: deep-equal
+        - heading "To-dos" [level=1]
+        - text: Title
+        - textbox "Title"
+        - button "Add"
+        - group "Filter":
+          - button "All" [pressed]
+          - button "Active"
+          - button "Done"
+        - button "Clear done" [disabled]
+        - paragraph: No to-dos to show
+    `);
+
+    await addThroughApi(request, 'Buy milk');
+    await setDoneThroughApi(request, (await addThroughApi(request, 'Book the room')).id);
+    await openPage(page);
+    await expect(page.getByRole('main')).toMatchAriaSnapshot(`
+      - main:
+        - /children: deep-equal
+        - heading "To-dos" [level=1]
+        - text: Title
+        - textbox "Title"
+        - button "Add"
+        - group "Filter":
+          - button "All" [pressed]
+          - button "Active"
+          - button "Done"
+        - button "Clear done"
+        - list "To-dos":
+          - listitem:
+            - checkbox "Buy milk"
+            - text: Buy milk
+            - button "Edit Buy milk": Edit
+            - button "Delete Buy milk": Delete
+          - listitem:
+            - checkbox "Book the room" [checked]
+            - text: Book the room
+            - button "Edit Book the room": Edit
+            - button "Delete Book the room": Delete
+    `);
+
+    await page.getByRole('button', { name: 'Edit Buy milk', exact: true }).click();
+    await expect(page.getByRole('main')).toMatchAriaSnapshot(`
+      - main:
+        - /children: deep-equal
+        - heading "To-dos" [level=1]
+        - text: Title
+        - textbox "Title"
+        - button "Add"
+        - group "Filter":
+          - button "All" [pressed]
+          - button "Active"
+          - button "Done"
+        - button "Clear done"
+        - list "To-dos":
+          - listitem:
+            - text: New title
+            - textbox "New title": Buy milk
+            - button "Save"
+            - button "Cancel"
+          - listitem:
+            - checkbox "Book the room" [checked]
+            - text: Book the room
+            - button "Edit Book the room": Edit
+            - button "Delete Book the room": Delete
+    `);
+  });
+});
+
 test.describe('Adding', () => {
   test('adds a to-do to the end of the list', async ({ page, request }) => {
     await addThroughApi(request, 'Read the review');

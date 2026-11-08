@@ -6,7 +6,7 @@ Follow one small promise from the product requirement to its assertions.
 
 The [to-do requirement](../prd/todos.md) says a blank title must show `Enter a title`, mark the field invalid and send the API zero `todos.add` requests.
 
-The [browser test](../../apps/web/e2e/todos.spec.ts#L206-L216) observes both the page and outgoing requests:
+The [browser test](../../apps/web/e2e/todos.spec.ts#L291-L301) observes both the page and outgoing requests:
 
 ```ts
 await expect(page.getByRole('alert')).toHaveText('Enter a title');
@@ -15,7 +15,7 @@ expect(sent).toEqual([]);
 
 These are two assertions from a larger test. The second assertion checks the unwanted side effect that the visible error alone would miss. The full test starts recording `todos.add` requests before submitting the blank title.
 
-**Follow the source:** [Product requirement](../prd/todos.md) · [Complete browser test](../../apps/web/e2e/todos.spec.ts#L206-L216)
+**Follow the source:** [Product requirement](../prd/todos.md) · [Complete browser test](../../apps/web/e2e/todos.spec.ts#L291-L301)
 
 ---
 

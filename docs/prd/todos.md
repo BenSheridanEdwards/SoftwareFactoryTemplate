@@ -70,6 +70,9 @@ While a to-do is being edited, its row shows a text field labelled
 `Cancel` in place of its checkbox, title and buttons. One to-do is edited at a
 time.
 
+These are the only parts of the page. Its `main` landmark holds them directly,
+with no other landmark, region, heading or text around or between them.
+
 ## The api
 
 The router key is `todos`. Each procedure's input and output is JSON over the
@@ -219,6 +222,11 @@ looks for the id. An id that names no to-do gets a `404` with the
 - **Reads the list when the page opens and after each successful change.**
   Returning to the tab, coming back online and a failed change read nothing.
   - Proved by [reads the list only when the page opens and after a successful change](../../apps/web/e2e/todos.spec.ts)
+- **Shows only the parts listed above.** While loading, with an empty list,
+  with an active and a done to-do, and with an edit open, the accessibility
+  tree of `main` holds exactly the parts in [The page](#the-page), in that
+  order.
+  - Proved by [shows only the parts the PRD lists](../../apps/web/e2e/todos.spec.ts)
 - **Works for every visitor.** The empty page, a list with an active and a
   done to-do, the validation error and an open edit each pass the WCAG 2.1 A
   and AA rules that axe checks in Chromium.

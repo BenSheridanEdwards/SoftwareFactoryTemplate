@@ -6,7 +6,7 @@ Check the unwanted consequence as well as the visible result.
 
 The requirement makes two promises for a blank title: show `Enter a title` and send zero `todos.add` requests. An implementation could display the right warning while still sending the request. That is the illustrated fault above.
 
-A test that checks only the warning could pass that faulty implementation. The existing [browser test](../../apps/web/e2e/todos.spec.ts#L206-L216) also records `todos.add` requests and checks the list:
+A test that checks only the warning could pass that faulty implementation. The existing [browser test](../../apps/web/e2e/todos.spec.ts#L291-L301) also records `todos.add` requests and checks the list:
 
 ```ts
 expect(sent).toEqual([]);
@@ -18,7 +18,7 @@ To test the test itself, deliberately introduce the unwanted request in a test c
 
 The same discipline applies to source rules: exercise an allowed example as well as a violation, and choose rules that prevent a mistake the team cares about.
 
-**Follow the source:** [Requirement](../prd/todos.md) · [Complete browser test](../../apps/web/e2e/todos.spec.ts#L206-L216) · [Optional: rejected and accepted type-rule examples](../../scripts/anti-slop-lint.test.ts#L66-L84)
+**Follow the source:** [Requirement](../prd/todos.md) · [Complete browser test](../../apps/web/e2e/todos.spec.ts#L291-L301) · [Optional: rejected and accepted type-rule examples](../../scripts/anti-slop-lint.test.ts#L66-L84)
 
 ---
 
