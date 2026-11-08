@@ -38,6 +38,14 @@ the page re-reads the list. Each behaviour links to an E2E test. Its Covers
 list names the two feature folders, and no other PRD promises anything about
 them.
 
+**The to-do app is the reference feature.** It crosses the web page, the tRPC
+contract and every api layer, so each gate in the repo has real code to check:
+title rules and state changes in the api domain, storage in integrations,
+forms and server state in the route's hooks, and Tailwind on the `@repo/ui`
+tokens. Because every visible detail has an E2E test, a rebuild from the PRD
+alone behaves the same as the original, and the exercise shows what the gates
+catch and what they let through.
+
 **Rules live in the api domain.** `apps/api/src/features/todos/domain.ts`
 holds the title rules (normalise, then check 1 to 100 characters) and the
 state changes, as pure functions. Application calls them and the in-memory
