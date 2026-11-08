@@ -61,6 +61,15 @@ worker and empties the list through the api before each test. The
 accessibility and visual specs serve a fixed `todos.list` answer through
 `page.route`, so they read no shared state and write none.
 
+**E2E runs start their own servers.** Because `todos.spec.ts` empties the
+list, a run that reused a running api would wipe someone's to-dos and test
+their code instead of this checkout's. Playwright therefore starts every
+server itself on ports 1000 above the `pnpm dev` ports (6173 and 4001 for the
+reference) and never reuses one: `pnpm e2e` runs beside `pnpm dev` and leaves
+its list alone, and a busy port fails the run instead of passing against the
+wrong code. With `E2E_BASE_URL`, the api Playwright starts keeps :3001, where a
+web server you manage proxies `/trpc`, and also fails when that port is busy.
+
 **Greeting and recent greetings go.** Their routes, api features, PRDs, E2E
 specs, API reports, visual baselines, docs, skill pages and test fixtures that
 named their files are removed or moved to the to-do feature. Recorded evidence

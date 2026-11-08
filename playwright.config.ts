@@ -21,11 +21,15 @@ import { listResults } from './tooling/results.mjs';
  * shipping product. `E2E_BASE_URL` still points the reference at a preview you
  * manage yourself (it wins over `E2E_BUILD`), with the api on :3001 that
  * Playwright starts.
+ *
+ * Playwright starts every server itself and never reuses one, on ports 1000
+ * above the `pnpm dev` ports, so a run with `pnpm dev` open neither reads nor
+ * empties the dev api's to-dos, and a busy port fails the run (ADR 0123).
  */
 // Set E2E_BASE_URL=http://localhost:3000 to use a web server you manage yourself,
 // for example the built preview from `pnpm preview`, instead of starting Vite.
 const externalBaseUrl = process.env.E2E_BASE_URL;
-const reuseExistingServer = !process.env.CI;
+const E2E_PORT_OFFSET = 1000;
 const productionBuild =
   process.env.E2E_BUILD === undefined
     ? Boolean(process.env.CI)
@@ -37,6 +41,13 @@ type WebServer = Extract<PlaywrightTestConfig['webServer'], readonly unknown[]>[
 
 const webUrl = (port: number) => `http://127.0.0.1:${port}`;
 const usesExternalServer = (id: string) => id === 'reference' && Boolean(externalBaseUrl);
+// A web server you manage proxies `/trpc` to the dev api port, so that api keeps it.
+const e2eResults = results.map((result) => ({
+  ...result,
+  ports: usesExternalServer(result.id)
+    ? result.ports
+    : { web: result.ports.web + E2E_PORT_OFFSET, api: result.ports.api + E2E_PORT_OFFSET },
+}));
 const usesProductionBuild = (id: string) =>
   id === 'reference' && productionBuild && !externalBaseUrl;
 
@@ -51,7 +62,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['html', { open: 'never' }], ['github']] : 'list',
   use: { trace: 'on-first-retry' },
   projects: [
-    ...results.map(({ id, web, ports }) => ({
+    ...e2eResults.map(({ id, web, ports }) => ({
       name: id,
       testDir: `./${web}/e2e`,
       use: {
@@ -59,7 +70,7 @@ export default defineConfig({
         baseURL: usesExternalServer(id) ? externalBaseUrl : webUrl(ports.web),
       },
     })),
-    ...results
+    ...e2eResults
       .filter(({ id }) => id !== 'reference')
       .map(({ id, ports }) => ({
         name: `${id}-acceptance`,
@@ -68,21 +79,17 @@ export default defineConfig({
         use: { ...devices['Desktop Chrome'], baseURL: webUrl(ports.web) },
       })),
   ],
-  webServer: results.flatMap(({ id, web, api, ports }): WebServer[] => {
+  webServer: e2eResults.flatMap(({ id, web, api, ports }): WebServer[] => {
     const apiServer: WebServer = {
       command: `node ${api}/src/server.ts`,
       env: { PORT: String(ports.api) },
       port: ports.api,
-      reuseExistingServer,
+      reuseExistingServer: false,
       timeout: 60_000,
     };
     if (usesExternalServer(id)) {
       return [apiServer];
     }
-    // The built web server never reuses an existing server, so a busy port
-    // fails explicitly in managed production mode rather than silently serving
-    // a stray dev server and skipping the build; the dev server keeps
-    // `reuseExistingServer` (api and showcase are unchanged).
     const webServer: WebServer = usesProductionBuild(id)
       ? {
           command: `pnpm build && pnpm exec vite preview --host 127.0.0.1 --port ${ports.web} --strictPort`,
@@ -97,7 +104,7 @@ export default defineConfig({
           cwd: web,
           env: { API_ORIGIN: webUrl(ports.api) },
           url: webUrl(ports.web),
-          reuseExistingServer,
+          reuseExistingServer: false,
           timeout: 120_000,
         };
     return [apiServer, webServer];
