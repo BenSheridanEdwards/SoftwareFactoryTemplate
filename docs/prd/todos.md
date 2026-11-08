@@ -97,12 +97,11 @@ looks for the id. An id that names no to-do gets a `404` with the
 - **Shows a loading message until the list arrives.** The page shows the
   status `Loading to-dos…`, and no filters, until `todos.list` answers.
   - Proved by [shows a loading message until the list arrives](../../apps/web/e2e/todos.spec.ts)
-- **Opens on the All filter, with an empty message and a disabled Clear done
-  when there are no to-dos.** With an empty list, the page shows
-  `No to-dos to show` and no list, `All` is pressed, `Active` and `Done` are
-  not, and `Clear done` is disabled. The `Filter` group holds only its three
-  buttons' text. The filter lives only in the open page, so a reload returns
-  to `All`.
+- **Opens on the All filter, with an empty message and a disabled Clear done when there are no to-dos.**
+  With an empty list, the page shows `No to-dos to show` and no list, `All` is
+  pressed, `Active` and `Done` are not, and `Clear done` is disabled. The
+  `Filter` group holds only its three buttons' text. The filter lives only in
+  the open page, so a reload returns to `All`.
   - Proved by [starts on the All filter with an empty message when there are no to-dos](../../apps/web/e2e/todos.spec.ts)
   - Proved by [returns to the All filter when the page reloads](../../apps/web/e2e/todos.spec.ts)
 - **Says so when the list fails to load.** A failed `todos.list` shows the
@@ -218,11 +217,11 @@ looks for the id. An id that names no to-do gets a `404` with the
 
 ### Filtering
 
-- **Filters to active or done to-dos and back to all, and shows which filter
-  is selected.** `Active` shows only active to-dos, `Done` only done ones and
-  `All` every to-do, each in list order. The selected button is the pressed
-  one, and its border and text take the focus colour. On `Active`, marking a
-  to-do done removes it from the list. A filter that matches nothing shows
+- **Filters to active or done to-dos and back to all, and shows which filter is selected.**
+  `Active` shows only active to-dos, `Done` only done ones and `All` every
+  to-do, each in list order. The selected button is the pressed one, and its
+  border and text take the focus colour. On `Active`, marking a to-do done
+  removes it from the list. A filter that matches nothing shows
   `No to-dos to show`.
   - Proved by [filters to active or done to-dos and back to all](../../apps/web/e2e/todos.spec.ts)
   - Proved by [shows the selected filter in the focus colour](../../apps/web/e2e/todos.spec.ts)
@@ -231,10 +230,10 @@ looks for the id. An id that names no to-do gets a `404` with the
 
 ### Clearing done to-dos
 
-- **Clears every done to-do, whatever the filter, and only while one is
-  done.** `Clear done` deletes all done to-dos, including ones the filter
-  hides, keeps the active ones and the filter, and is then disabled. With only
-  active to-dos it is disabled and does nothing; marking one done enables it.
+- **Clears every done to-do, whatever the filter, and only while one is done.**
+  `Clear done` deletes all done to-dos, including ones the filter hides, keeps
+  the active ones and the filter, and is then disabled. With only active
+  to-dos it is disabled and does nothing; marking one done enables it.
   - Proved by [clears every done to-do whatever the filter](../../apps/web/e2e/todos.spec.ts)
   - Proved by [enables Clear done only while a to-do is done](../../apps/web/e2e/todos.spec.ts)
 - **Keeps the done to-dos and says so when clearing fails.** A failed
