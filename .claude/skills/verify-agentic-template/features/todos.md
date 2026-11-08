@@ -38,5 +38,6 @@ Require a passing `doctor`, including `to-do api answers through /trpc`.
 
 - The list lives in the api process the run launched, so journeys add their own
   titles and leave other to-dos alone.
-- Queries have no retries and no refetch on focus, so request errors show at once.
+- Queries have no retries, so request errors show at once; the to-do list query
+  also skips refetch on focus and on reconnect.
 - tRPC batches calls: `/trpc/todos.list?batch=1&input=...`.

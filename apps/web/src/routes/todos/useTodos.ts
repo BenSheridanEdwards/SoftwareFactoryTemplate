@@ -17,11 +17,12 @@ const FAILURES = {
   clearDone: 'Could not clear the done to-dos',
 } as const;
 
+/** A failed read, the first or a re-read after a change, hides any older list. */
 function toTodoList(query: { data: readonly Todo[] | undefined; isError: boolean }): TodoList {
-  if (query.data) {
-    return { status: 'loaded', todos: query.data };
+  if (query.isError) {
+    return { status: 'failed' };
   }
-  return query.isError ? { status: 'failed' } : { status: 'loading' };
+  return query.data ? { status: 'loaded', todos: query.data } : { status: 'loading' };
 }
 
 /**
@@ -32,7 +33,13 @@ export function useTodos() {
   const trpc = useTrpc();
   const queryClient = useQueryClient();
   const [failure, setFailure] = useState<string | null>(null);
-  const list = useQuery(trpc.todos.list.queryOptions());
+  // The list is read when the page opens and after a successful change only.
+  const list = useQuery(
+    trpc.todos.list.queryOptions(undefined, {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    }),
+  );
   const changeOptions = (change: keyof typeof FAILURES) => ({
     onMutate: () => setFailure(null),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: trpc.todos.list.queryKey() }),

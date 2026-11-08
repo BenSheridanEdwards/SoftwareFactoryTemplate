@@ -58,9 +58,13 @@ because the web reaches the api by type only, and sends the normalised title.
 answers and the list is re-read. Mutations await the list invalidation, so
 every change control stays disabled until the new list arrives. A failure
 leaves the list as it was, keeps what the visitor typed and shows one alert
-for the latest failure. The query client turns off refetch on focus and on
-reconnect, so the list is read when the page opens and after a successful
-change only.
+for the latest failure. A re-read that fails after a successful change shows
+the same alert as a failed first read, so the page never shows a stale list
+without saying so. The list query in `useTodos` turns off refetch on focus
+and on reconnect, so the list is read when the page opens and after a
+successful change only. The setting sits on that query, inside the folders
+the PRD covers, rather than on the shared query client, so a rebuild of the
+feature carries it and other queries keep the library defaults.
 
 **E2E tests share one api, so one spec writes to it.** Playwright runs specs
 in parallel against one api process, and the list is global. `todos.spec.ts`

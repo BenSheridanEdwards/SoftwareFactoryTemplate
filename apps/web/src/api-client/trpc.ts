@@ -20,14 +20,7 @@ const trpcContext: TrpcContext = createTRPCContext<AppRouter>();
 export const TrpcProvider: TrpcContext['TRPCProvider'] = trpcContext.TRPCProvider;
 export const useTrpc: TrpcContext['useTRPC'] = trpcContext.useTRPC;
 
-/**
- * A failed request shows its error at once, and a query reads again only when
- * the page asks: the user retries by acting again, not by refocusing the tab.
- */
+/** A failed request shows its error at once; the user retries by submitting again. */
 export function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false },
-    },
-  });
+  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
