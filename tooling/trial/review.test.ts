@@ -18,6 +18,9 @@ import { dirname, join, resolve } from 'node:path';
 import { planReview, runReview, validateReview } from './review.mjs';
 import { systemDeps } from './run-trial.mjs';
 
+// Reviews run Oxlint in child processes; under load one can pass Jest's 5 s default.
+jest.setTimeout(30_000);
+
 const ROOT = resolve(import.meta.dirname, '../..');
 const RECORD = JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures/todo-01.json'), 'utf8'));
 const ANSWER = {

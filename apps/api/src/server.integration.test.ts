@@ -19,6 +19,11 @@ async function freePort() {
   }
 }
 
+// A loaded machine can take several seconds to start Node; a healthy start takes
+// well under one. The test timeout leaves room for the startup and the request.
+const STARTUP_TIMEOUT = 15_000;
+const TEST_TIMEOUT = 30_000;
+
 function startApi(port: string) {
   const env = { ...process.env };
   env.PORT = port;
@@ -54,7 +59,7 @@ async function waitForListening(child: ChildProcessWithoutNullStreams, output: s
     const onExit = () => fail(new Error(`API exited before listening: ${output.join('')}`));
     const timer = setTimeout(
       () => fail(new Error(`API startup timed out: ${output.join('')}`)),
-      3_000,
+      STARTUP_TIMEOUT,
     );
     child.stdout.on('data', onData);
     child.once('exit', onExit);
@@ -63,7 +68,7 @@ async function waitForListening(child: ChildProcessWithoutNullStreams, output: s
 }
 
 // The server logs before Node finishes binding its socket.
-async function waitForSocket(port: number, deadline = Date.now() + 3_000): Promise<void> {
+async function waitForSocket(port: number, deadline = Date.now() + STARTUP_TIMEOUT): Promise<void> {
   const socket = connect(port, '127.0.0.1');
   try {
     await once(socket, 'connect');
@@ -136,26 +141,34 @@ describe('the API over real HTTP', () => {
       404,
       { error: { data: { code: 'NOT_FOUND' } } },
     ],
-  ])('%s', async (_description, procedure, request, status, body) => {
-    const port = await freePort();
-    const { child, output } = startApi(String(port));
-    await waitForListening(child, output);
-    await waitForSocket(port);
-    const response = await fetch(`http://127.0.0.1:${port}/trpc/${procedure}`, {
-      ...request,
-      headers: { 'content-type': 'application/json' },
-      signal: AbortSignal.timeout(5_000),
-    });
-    expect(response.status).toBe(status);
-    await expect(response.json()).resolves.toMatchObject(body);
-  });
+  ])(
+    '%s',
+    async (_description, procedure, request, status, body) => {
+      const port = await freePort();
+      const { child, output } = startApi(String(port));
+      await waitForListening(child, output);
+      await waitForSocket(port);
+      const response = await fetch(`http://127.0.0.1:${port}/trpc/${procedure}`, {
+        ...request,
+        headers: { 'content-type': 'application/json' },
+        signal: AbortSignal.timeout(5_000),
+      });
+      expect(response.status).toBe(status);
+      await expect(response.json()).resolves.toMatchObject(body);
+    },
+    TEST_TIMEOUT,
+  );
 
-  it('exits with an error before listening when PORT is invalid', async () => {
-    const { child, output } = startApi('abc');
-    const [code, signal] = await once(child, 'close');
-    expect(signal).toBeNull();
-    expect(code).not.toBeNull();
-    expect(code).not.toBe(0);
-    expect(output.join('')).not.toContain('api listening');
-  });
+  it(
+    'exits with an error before listening when PORT is invalid',
+    async () => {
+      const { child, output } = startApi('abc');
+      const [code, signal] = await once(child, 'close');
+      expect(signal).toBeNull();
+      expect(code).not.toBeNull();
+      expect(code).not.toBe(0);
+      expect(output.join('')).not.toContain('api listening');
+    },
+    TEST_TIMEOUT,
+  );
 });
