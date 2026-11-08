@@ -46,8 +46,8 @@ afterEach(() => {
 /** A summary where the reference is fully covered and todo-01 has `covered` of 10 in each metric. */
 const summary = (covered: number) => ({
   total: file(100 + covered, 110),
-  [join(root, 'apps/web/src/routes/greeting/GreetingPage.tsx')]: file(60, 60),
-  [join(root, 'apps/api/src/features/greeting/domain.ts')]: file(40, 40),
+  [join(root, 'apps/web/src/routes/todos/TodosPage.tsx')]: file(60, 60),
+  [join(root, 'apps/api/src/features/todos/domain.ts')]: file(40, 40),
   [join(root, 'packages/ui/src/Button.tsx')]: file(0, 0),
   [join(root, 'showcase/todo-01/web/src/routes/todos/TodosPage.tsx')]: file(covered, 6),
   [join(root, 'showcase/todo-01/api/src/features/todos/domain.ts')]: file(0, 4),

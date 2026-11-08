@@ -169,8 +169,8 @@ const stateAndEffectsInHooks = {
     type: 'problem',
     messages: {
       outsideHook:
-        'Move `{{hook}}` into a named custom hook (for example `useGreeting` in ' +
-        '`useGreeting.ts`) and call that hook here. State, effects, server state and form ' +
+        'Move `{{hook}}` into a named custom hook (for example `useTodos` in ' +
+        '`useTodos.ts`) and call that hook here. State, effects, server state and form ' +
         'state live only in `use*` hooks.',
       reexport:
         'Call `{{hook}}` inside a named custom hook instead of re-exporting it. A re-export ' +

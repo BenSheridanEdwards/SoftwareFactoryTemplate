@@ -13,26 +13,32 @@ import {
 
 const head = 'a'.repeat(40);
 const button = 'packages/ui/src/Button.tsx';
-const greeting = 'apps/web/src/routes/greeting/GreetingMessage.tsx';
+const todoList = 'apps/web/src/routes/todos/TodoList.tsx';
 // Trimmed Fallow 3.33.1 closures, without run-specific telemetry.
-const greetingImporters = [
+const todoListImporters = [
   'apps/web/index.html',
   'apps/web/src/App.tsx',
   'apps/web/src/main.tsx',
-  'apps/web/src/routes/greeting/GreetingPage.test.tsx',
-  'apps/web/src/routes/greeting/GreetingPage.tsx',
-  'apps/web/src/routes/greeting/index.ts',
+  'apps/web/src/routes/todos/TodosPage.test.tsx',
+  'apps/web/src/routes/todos/TodosPage.tsx',
+  'apps/web/src/routes/todos/index.ts',
 ];
-const buttonImporters = [...greetingImporters, 'apps/web/src/routes/greeting/GreetingForm.tsx'];
+const buttonImporters = [
+  ...todoListImporters,
+  'apps/web/src/routes/todos/TodoEditForm.tsx',
+  'apps/web/src/routes/todos/TodoForm.tsx',
+  'apps/web/src/routes/todos/TodoItem.tsx',
+  'apps/web/src/routes/todos/TodoToolbar.tsx',
+];
 const trace = (seed: string, importers = buttonImporters) => ({
   kind: 'trace',
   seed,
   affected_not_shown: importers,
-  coordination_gap: [{ consumer_file: 'apps/web/src/routes/greeting/GreetingForm.tsx' }],
+  coordination_gap: [{ consumer_file: 'apps/web/src/routes/todos/TodoForm.tsx' }],
 });
 const guard = {
   kind: 'guard',
-  files: [button, greeting, ...buttonImporters].map((path) => ({
+  files: [button, todoList, ...buttonImporters].map((path) => ({
     path,
     zone: path === button ? { name: 'ui' } : null,
   })),
@@ -42,7 +48,7 @@ const input = {
   changed: [button],
   closures: { [button]: trace(button) },
   guard,
-  tracked: new Set([button, greeting, ...buttonImporters]),
+  tracked: new Set([button, todoList, ...buttonImporters]),
 };
 
 describe('trusted blast-radius grading', () => {
@@ -52,7 +58,7 @@ describe('trusted blast-radius grading', () => {
 
   it('accepts complete evidence and assigns package, result and root units', () => {
     expect(parse(evidence)).toEqual(evidence);
-    expect([button, greeting, 'showcase/todo/web/src/App.tsx', 'README.md'].map(unitOf)).toEqual([
+    expect([button, todoList, 'showcase/todo/web/src/App.tsx', 'README.md'].map(unitOf)).toEqual([
       'packages/ui',
       'apps',
       'showcase/todo',
@@ -101,16 +107,16 @@ describe('trusted blast-radius grading', () => {
 
   it('rejects non-JSON and evidence omitting any changed file', () => {
     expect(parseBlastRadius('{', { head, changed: [button] })).toBeUndefined();
-    expect(parse(evidence, [button, greeting])).toBeUndefined();
+    expect(parse(evidence, [button, todoList])).toBeUndefined();
   });
 
   it('ignores extra evidence seeds while requiring every API-listed changed file', () => {
-    const extra = { path: greeting, inGraph: false, importers: [], consumers: [] };
+    const extra = { path: todoList, inGraph: false, importers: [], consumers: [] };
     expect(
       parse({
         ...evidence,
         files: [...evidence.files, extra],
-        zones: { ...evidence.zones, [greeting]: null },
+        zones: { ...evidence.zones, [todoList]: null },
       }),
     ).toMatchObject({ files: evidence.files });
   });
@@ -127,16 +133,16 @@ describe('trusted blast-radius grading', () => {
     expect(gaps[0]).toContain(button);
     expect(gaps[0]).toContain('apps');
     expect(gaps[0]).toContain('showcase/todo');
-    expect(summary.count).toBe(8);
+    expect(summary.count).toBe(11);
     const rendered = renderBlastRadius(summary).join('\n');
-    expect(rendered).toContain('8');
+    expect(rendered).toContain('11');
     expect(rendered).toContain('todo-web');
-    expect(rendered).toContain('apps/web/src/routes/greeting/GreetingForm.tsx');
+    expect(rendered).toContain('apps/web/src/routes/todos/TodoForm.tsx');
   });
 
   it('keeps composition roots in the same result and judges each seed separately', () => {
     const files = [
-      { path: greeting, inGraph: true, importers: greetingImporters, consumers: [] },
+      { path: todoList, inGraph: true, importers: todoListImporters, consumers: [] },
       { path: button, inGraph: true, importers: ['packages/ui/src/index.ts'], consumers: [] },
     ];
     expect(blastRadiusGaps({ ...evidence, files }).gaps).toEqual([]);
@@ -169,7 +175,7 @@ describe('shapeBlastRadius', () => {
         path: button,
         inGraph: true,
         importers: buttonImporters.toSorted(),
-        consumers: ['apps/web/src/routes/greeting/GreetingForm.tsx'],
+        consumers: ['apps/web/src/routes/todos/TodoForm.tsx'],
       },
     ]);
     expect(evidence.zones[button]).toBe('ui');
@@ -179,14 +185,14 @@ describe('shapeBlastRadius', () => {
   it('deduplicates overlapping closures, removes changed and untracked importers', () => {
     const evidence = shapeBlastRadius({
       ...input,
-      changed: [greeting, button, button],
+      changed: [todoList, button, button],
       closures: {
-        [button]: trace(button, [...buttonImporters, greeting, 'untracked.ts', ...buttonImporters]),
-        [greeting]: trace(greeting, [...greetingImporters, button]),
+        [button]: trace(button, [...buttonImporters, todoList, 'untracked.ts', ...buttonImporters]),
+        [todoList]: trace(todoList, [...todoListImporters, button]),
       },
     });
-    expect(evidence.files.map((file: { path: string }) => file.path)).toEqual([greeting, button]);
-    expect(evidence.files[0].importers).toEqual(greetingImporters);
+    expect(evidence.files.map((file: { path: string }) => file.path)).toEqual([todoList, button]);
+    expect(evidence.files[0].importers).toEqual(todoListImporters);
     expect(evidence.files[1].importers).toEqual(buttonImporters.toSorted());
   });
 
@@ -212,7 +218,7 @@ describe('shapeBlastRadius', () => {
     { error: true, message: 'analysis failed', exit_code: 2 },
     null,
     {},
-    { ...trace(button), seed: greeting },
+    { ...trace(button), seed: todoList },
     { ...trace(button), affected_not_shown: [42] },
     { ...trace(button), coordination_gap: [{}] },
   ])('rejects failed or malformed closures: %j', (closure) => {
@@ -296,19 +302,14 @@ describe('--collect', () => {
     const evidence = JSON.parse(readFileSync(output, 'utf8'));
     expect(evidence.head).toBe(head);
     expect(evidence.files[0].importers.filter((path: string) => path.startsWith('apps/'))).toEqual(
-      [
-        ...buttonImporters,
-        'apps/web/src/routes/recent-greetings/RecentGreetingsPage.test.tsx',
-        'apps/web/src/routes/recent-greetings/RecentGreetingsPage.tsx',
-        'apps/web/src/routes/recent-greetings/index.ts',
-      ].toSorted(),
+      [...buttonImporters, todoList].toSorted(),
     );
     expect(evidence.zones[button]).toBe('ui');
   }, 30_000);
 
   it('preserves the six route-private importers, including composition roots', () => {
-    expect(collect({ CHANGED: greeting, HEAD_SHA: head }).status).toBe(0);
-    expect(JSON.parse(readFileSync(output, 'utf8')).files[0].importers).toEqual(greetingImporters);
+    expect(collect({ CHANGED: todoList, HEAD_SHA: head }).status).toBe(0);
+    expect(JSON.parse(readFileSync(output, 'utf8')).files[0].importers).toEqual(todoListImporters);
   }, 30_000);
 
   it.each([

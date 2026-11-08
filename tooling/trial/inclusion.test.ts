@@ -36,8 +36,8 @@ const PACKAGES_WITH_MODULES = ['apps/api', 'packages/ui'];
 const PNPM_IN_COPY = ['--config.verify-deps-before-run=false'];
 /** Split, so this file holds no directive the suppression check would read. */
 const TS = '@ts';
-const WEB_FILE = 'web/src/routes/greeting/GreetingPage.tsx';
-const API_FILE = 'api/src/features/greeting/procedures.ts';
+const WEB_FILE = 'web/src/routes/todos/TodosPage.tsx';
+const API_FILE = 'api/src/features/todos/procedures.ts';
 
 const env: NodeJS.ProcessEnv = {
   ...process.env,
@@ -229,7 +229,7 @@ describe('a showcase result', () => {
     const listed = run(['playwright', 'test', '--list']);
 
     expect(listed).toMatchObject({ code: 0 });
-    expect(listed.output).toMatch(/\[x\] › showcase\/x\/web\/e2e\/greeting\.spec\.ts/);
+    expect(listed.output).toMatch(/\[x\] › showcase\/x\/web\/e2e\/todos\.spec\.ts/);
     expect(listed.output).toMatch(/\[x-acceptance\] › tooling\/trial\/acceptance\/todo\.spec\.ts/);
   });
 
@@ -277,7 +277,7 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
     ].split(' && ')[0];
     const linted = withSeed(
       {
-        'showcase/x/web/src/routes/greeting/One.tsx':
+        'showcase/x/web/src/routes/todos/One.tsx':
           'export function One() {\n  return <p>one</p>;\n}\n\nexport function Two() {\n  return <p>two</p>;\n}\n',
       },
       () => run(['sh', '-c', `${command} --format json showcase/x`]),
@@ -288,7 +288,7 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
     );
     expect(linted.code).toBe(1);
     expect(findings).toEqual([
-      'showcase/x/web/src/routes/greeting/One.tsx policy(one-component-per-file)',
+      'showcase/x/web/src/routes/todos/One.tsx policy(one-component-per-file)',
     ]);
   });
 
@@ -318,9 +318,8 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
   });
 
   it('fails the Biome naming override on a seeded file name', () => {
-    const linted = withSeed(
-      { 'showcase/x/web/src/routes/greeting/bad_name.ts': 'export {};\n' },
-      () => run(['biome', 'lint', 'showcase/x']),
+    const linted = withSeed({ 'showcase/x/web/src/routes/todos/bad_name.ts': 'export {};\n' }, () =>
+      run(['biome', 'lint', 'showcase/x']),
     );
 
     expect(linted.code).toBe(1);
@@ -338,21 +337,17 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
     expect(filesOf('tsconfig.json')).toContain(`showcase/x/${WEB_FILE}`);
     expect(filesOf('tsconfig.api.json')).toContain(`showcase/x/${API_FILE}`);
     expect(filesOf('tsconfig.node.json')).toEqual(
-      expect.arrayContaining([
-        'showcase/x/web/e2e/greeting.spec.ts',
-        'showcase/x/web/vite.config.ts',
-      ]),
+      expect.arrayContaining(['showcase/x/web/e2e/todos.spec.ts', 'showcase/x/web/vite.config.ts']),
     );
     expect(filesOf('tsconfig.domain.json')).toEqual([
-      'showcase/x/api/src/features/greeting/domain.ts',
-      'showcase/x/api/src/features/recent-greetings/domain.ts',
+      'showcase/x/api/src/features/todos/domain.ts',
     ]);
   });
 
   it('fails the api type check on a seeded extensionless import, and on nothing else', () => {
     const checked = withSeed(
       {
-        'showcase/x/api/src/features/greeting/seed.ts': "export { greet } from './application';\n",
+        'showcase/x/api/src/features/todos/seed.ts': "export { listTodos } from './application';\n",
       },
       () => run(['node', 'scripts/bun.mjs', 'check', '--no-script', '-p', 'tsconfig.api.json']),
     );
@@ -360,24 +355,13 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
 
     expect(checked.code).toBe(1);
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/^showcase\/x\/api\/src\/features\/greeting\/seed\.ts.*error TS2835/);
+    expect(errors[0]).toMatch(/^showcase\/x\/api\/src\/features\/todos\/seed\.ts.*error TS2835/);
   });
 
   it('passes the type check and the api report with a Node import in its api integrations', () => {
-    const application = 'showcase/x/api/src/features/greeting/application.ts';
-    const [checked, reported] = withSeed(
-      {
-        'showcase/x/api/src/features/greeting/integrations.ts':
-          "import { randomUUID } from 'node:crypto';\n\nexport function newGreetingId(): string {\n  return randomUUID();\n}\n",
-        [application]: readFileSync(join(copy, application), 'utf8')
-          .replace(
-            "from './domain.ts';\n",
-            "from './domain.ts';\nimport { newGreetingId } from './integrations.ts';\n",
-          )
-          .replace('  return {', '  newGreetingId();\n  return {'),
-      },
-      () => [script('typecheck'), script('api:check')],
-    );
+    const integrations = 'showcase/x/api/src/features/todos/integrations.ts';
+    expect(readFileSync(join(copy, integrations), 'utf8')).toContain("from 'node:crypto';");
+    const [checked, reported] = [script('typecheck'), script('api:check')];
 
     expect(checked.output).not.toContain('error TS');
     expect(checked.code).toBe(0);
@@ -394,8 +378,8 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
       'jest --coverage --selectProjects web api --runInBand && node tooling/coverage-by-result.mjs',
     ]);
 
-    expect(listed.output).toContain(`${copy}/showcase/x/web/src/routes/greeting/`);
-    expect(listed.output).toContain(`${copy}/showcase/x/api/src/features/greeting/`);
+    expect(listed.output).toContain(`${copy}/showcase/x/web/src/routes/todos/`);
+    expect(listed.output).toContain(`${copy}/showcase/x/api/src/features/todos/`);
     expect(covered.output).toContain('Coverage per result is at 80% or more: reference, x');
     expect(covered.code).toBe(0);
     const summary = JSON.parse(readFileSync(join(copy, 'coverage/coverage-summary.json'), 'utf8'));
@@ -411,9 +395,7 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
     ]);
     expect(collected).toMatchObject({ code: 0, output: '' });
     const evidence = JSON.parse(readFileSync(join(copy, '.git/blast-radius.json'), 'utf8'));
-    expect(evidence.files[0].importers).toContain(
-      'showcase/x/web/src/routes/greeting/GreetingForm.tsx',
-    );
+    expect(evidence.files[0].importers).toContain('showcase/x/web/src/routes/todos/TodoForm.tsx');
   });
 
   it('passes the architecture gate as a copy of the reference', () => {
@@ -434,8 +416,7 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
   it('fails the structure validator on a missing api domain role', () => {
     const checked = withSeed(
       {
-        'showcase/x/api/src/features/greeting/domain.ts': null,
-        'showcase/x/api/src/features/recent-greetings/domain.ts': null,
+        'showcase/x/api/src/features/todos/domain.ts': null,
       },
       () => run(['node', 'tooling/architecture/structure.mjs']),
     );
@@ -492,7 +473,7 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
   });
 
   it('fails the Fallow audit on a committed dead export', () => {
-    const domain = 'showcase/x/api/src/features/greeting/domain.ts';
+    const domain = 'showcase/x/api/src/features/todos/domain.ts';
     const audited = withCommittedSeed(
       'dead-export',
       {

@@ -82,7 +82,7 @@ describe('Jest scope over workspace package sources', () => {
 
   it('collects coverage from every package kind, showcase results included', () => {
     const paths = [
-      'apps/api/src/features/greeting/domain.ts',
+      'apps/api/src/features/todos/domain.ts',
       'packages/ui/src/Button.tsx',
       'showcase/todo-01/web/src/routes/todos/TodosPage.tsx',
       'showcase/todo-01/api/src/features/todos/application.ts',

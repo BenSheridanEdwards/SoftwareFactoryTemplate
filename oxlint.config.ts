@@ -226,7 +226,7 @@ export default {
                   '!**/routes/*/index.ts',
                 ],
                 message:
-                  'Import the module through its public surface, for example `../../features/name-input` or `./features/greeting/index.ts` in the api.',
+                  'Import the module through its public surface, for example `../../features/name-input` or `./features/todos/index.ts` in the api.',
               },
             ],
           },

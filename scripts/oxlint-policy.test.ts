@@ -315,57 +315,56 @@ const controls = [<Button />, <TextField label="Name" />, <input type="checkbox"
 ];
 const contractFixtures: Fixture[] = [
   ...[
-    ['recent-greetings/RecentGreetingsPage.tsx', 'greeting', 'GreetingPage'],
-    ['greeting/GreetingPage.tsx', 'recent-greetings', 'RecentGreetingsPage'],
-  ].flatMap(([file, sibling, symbol], index) => {
+    ['todos/TodosPage.tsx', "import { ArchivePage } from '../archive';"],
+    ['archive/ArchivePage.tsx', "import { TodosPage } from '../todos';"],
+  ].flatMap(([file, crossing], index) => {
     const path = `apps/web/src/routes/${file}`;
-    const source = readFileSync(join(ROOT, path), 'utf8');
+    const source = file.startsWith('todos/')
+      ? readFileSync(join(ROOT, path), 'utf8')
+      : 'export function ArchivePage() {\n  return <p>archive</p>;\n}\n';
     return [
       { caseRoot: `contract-route-clean-${index}`, path, source },
       {
         caseRoot: `contract-route-cross-${index}`,
         path,
-        source: `${source}\nimport { ${symbol} } from '../${sibling}';\n`,
+        source: `${source}\n${crossing}\n`,
         code: 'policy(slice-isolation)',
       },
     ];
   }),
   ...[
-    "import { formatGreeting } from '../greeting/domain.ts';",
-    "import { greetingRouter } from '../greeting/index.ts';",
+    "import { archiveTodo } from '../archive/domain.ts';",
+    "import { archiveRouter } from '../archive/index.ts';",
   ].map((source, index) => ({
-    caseRoot: `contract-recent-source-${index}`,
-    path: 'apps/api/src/features/recent-greetings/application.ts',
-    source: `${readFileSync(join(ROOT, 'apps/api/src/features/recent-greetings/application.ts'), 'utf8')}\n${source}\n`,
+    caseRoot: `contract-todos-source-${index}`,
+    path: 'apps/api/src/features/todos/application.ts',
+    source: `${readFileSync(join(ROOT, 'apps/api/src/features/todos/application.ts'), 'utf8')}\n${source}\n`,
     code: 'policy(slice-isolation)',
   })),
   {
-    path: 'apps/api/src/features/recent-greetings/application.ts',
-    source: readFileSync(
-      join(ROOT, 'apps/api/src/features/recent-greetings/application.ts'),
-      'utf8',
-    ),
+    path: 'apps/api/src/features/todos/application.ts',
+    source: readFileSync(join(ROOT, 'apps/api/src/features/todos/application.ts'), 'utf8'),
   },
   ...['domain.ts', 'index.ts'].map((entry) => ({
-    caseRoot: `contract-recent-${entry}`,
-    path: 'apps/api/src/features/greeting/application.ts',
-    source: `import { value } from '../recent-greetings/${entry}';`,
+    caseRoot: `contract-todos-${entry}`,
+    path: 'apps/api/src/features/archive/application.ts',
+    source: `import { value } from '../todos/${entry}';`,
     code: 'policy(slice-isolation)',
   })),
   {
-    path: 'apps/api/src/recent-consumer.ts',
-    source: "import { recentGreetingsRouter } from './features/recent-greetings/procedures.ts';",
+    path: 'apps/api/src/todos-consumer.ts',
+    source: "import { todosRouter } from './features/todos/procedures.ts';",
     code: 'eslint(no-restricted-imports)',
   },
   {
-    path: 'apps/api/src/recent-public.ts',
-    source: "import { recentGreetingsRouter } from './features/recent-greetings/index.ts';",
+    path: 'apps/api/src/todos-public.ts',
+    source: "import { todosRouter } from './features/todos/index.ts';",
   },
   ...[
     ['an alias', "export { useQuery as useQ } from '@tanstack/react-query';"],
     ['everything', "export * from 'react-hook-form';"],
   ].map(([_label, source]) => ({
-    path: 'apps/web/src/routes/greeting/hooks.ts',
+    path: 'apps/web/src/routes/todos/hooks.ts',
     source: source,
     code: 'policy(state-and-effects-in-hooks)',
   })),
@@ -419,49 +418,49 @@ const contractFixtures: Fixture[] = [
     messageContains: 'into a folder of its own',
   })),
   {
-    path: 'apps/web/src/routes/greeting/value.ts',
+    path: 'apps/web/src/routes/todos/value.ts',
     source: [
       "import { Button } from '@repo/ui';",
       "import { useTrpc } from '../../api-client';",
       "import { nameInput } from '../../features/name-input';",
-      "import { greetingFormSchema } from './greetingFormSchema';",
-      'export const value = [Button, useTrpc, nameInput, greetingFormSchema];',
+      "import { todoFormSchema } from './todoFormSchema';",
+      'export const value = [Button, useTrpc, nameInput, todoFormSchema];',
     ].join('\n'),
   },
   ...[
     ['a cast instead of a schema', '.input((value) => value as { name: string })'],
-    ['a bare Effect schema', '.input(greetInputSchema)'],
+    ['a bare Effect schema', '.input(addInputSchema)'],
     ['another standard schema', '.input(z.object({ name: z.string() }))'],
     ['a cast through a computed member', "['input']((value) => value as { name: string })"],
-    ['the Effect 3 adapter', '.input(Schema.standardSchemaV1(greetInputSchema))'],
+    ['the Effect 3 adapter', '.input(Schema.standardSchemaV1(addInputSchema))'],
   ].map(([_label, input]) => ({
-    path: 'apps/api/src/features/greeting/procedures.ts',
+    path: 'apps/api/src/features/todos/procedures.ts',
     source: `
 import { Schema } from 'effect';
 import { z } from 'zod';
 import { procedure } from '../../trpc.ts';
-const greetInputSchema = Schema.Struct({ name: Schema.String });
-export const greet = procedure${input}.query(({ input }) => input);
-export const unused = [z, greetInputSchema];
+const addInputSchema = Schema.Struct({ name: Schema.String });
+export const add = procedure${input}.query(({ input }) => input);
+export const unused = [z, addInputSchema];
 `,
     code: 'policy(procedure-input-schema)',
   })),
   {
-    path: 'apps/api/src/features/greeting/procedures.ts',
+    path: 'apps/api/src/features/todos/procedures.ts',
     source: `
 import * as Schema from 'effect/Schema';
 import { procedure } from '../../trpc.ts';
-const greetInputSchema = Schema.Struct({ name: Schema.String });
-export const greet = procedure.input(Schema.toStandardSchemaV1(greetInputSchema)).query(({ input }) => input);
+const addInputSchema = Schema.Struct({ name: Schema.String });
+export const add = procedure.input(Schema.toStandardSchemaV1(addInputSchema)).query(({ input }) => input);
 `,
   },
   {
-    path: 'apps/api/src/features/greeting/procedures.ts',
+    path: 'apps/api/src/features/todos/procedures.ts',
     source: `
 import { Schema } from 'effect';
 import { procedure } from '../../trpc.ts';
-const greetInputSchema = Schema.Struct({ name: Schema.String });
-export const greet = procedure.input(Schema.toStandardSchemaV1(greetInputSchema)).query(({ input }) => input);
+const addInputSchema = Schema.Struct({ name: Schema.String });
+export const add = procedure.input(Schema.toStandardSchemaV1(addInputSchema)).query(({ input }) => input);
 `,
   },
   ...[
@@ -483,7 +482,7 @@ export const greet = procedure.input(Schema.toStandardSchemaV1(greetInputSchema)
     ],
     ['the Effect 3 resolver', 'useForm({ resolver: effectTsResolver(schema) })'],
   ].map(([_label, call]) => ({
-    path: 'apps/web/src/routes/greeting/useNameForm.ts',
+    path: 'apps/web/src/routes/todos/useNameForm.ts',
     source: `
 import { effectTsResolver } from '@hookform/resolvers/effect-ts';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
@@ -499,30 +498,30 @@ export function useNameForm() {
     code: 'policy(form-uses-effect-schema)',
   })),
   {
-    path: 'apps/web/src/routes/greeting/useGreetingForm.ts',
+    path: 'apps/web/src/routes/todos/useTodoForm.ts',
     source: `
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { Schema } from 'effect';
 import { useForm } from 'react-hook-form';
-import { greetingFormSchema } from './greetingFormSchema';
-export function useGreetingForm() {
+import { todoFormSchema } from './todoFormSchema';
+export function useTodoForm() {
   return useForm({
-    resolver: standardSchemaResolver(Schema.toStandardSchemaV1(greetingFormSchema)),
+    resolver: standardSchemaResolver(Schema.toStandardSchemaV1(todoFormSchema)),
     defaultValues: { name: '' },
   });
 }
 `,
   },
   {
-    path: 'apps/web/src/routes/greeting/useGreetingForm.ts',
+    path: 'apps/web/src/routes/todos/useTodoForm.ts',
     source: `
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { toStandardSchemaV1 } from 'effect/Schema';
 import { useForm } from 'react-hook-form';
-import { greetingFormSchema } from './greetingFormSchema';
-export function useGreetingForm() {
+import { todoFormSchema } from './todoFormSchema';
+export function useTodoForm() {
   return useForm({
-    resolver: standardSchemaResolver(toStandardSchemaV1(greetingFormSchema)),
+    resolver: standardSchemaResolver(toStandardSchemaV1(todoFormSchema)),
     defaultValues: { name: '' },
   });
 }
@@ -544,13 +543,13 @@ export function useGreetingForm() {
     ['useWatch', 'react-hook-form', 'useWatch(options);'],
     ['useFormState', 'react-hook-form', 'useFormState(options);'],
   ].map(([hook, source, call]) => ({
-    path: 'apps/web/src/routes/greeting/GreetingPage.tsx',
+    path: 'apps/web/src/routes/todos/TodosPage.tsx',
     source: `
 import { ${hook} } from '${source}';
 declare const options: never;
-export function GreetingPage() {
+export function TodosPage() {
   ${call}
-  return <p>greeting</p>;
+  return <p>todos</p>;
 }
 `,
     codes: [
@@ -559,11 +558,11 @@ export function GreetingPage() {
     ],
   })),
   {
-    path: 'apps/web/src/routes/greeting/useGreeting.ts',
+    path: 'apps/web/src/routes/todos/useTodos.ts',
     source: `
 import { useQuery } from '@tanstack/react-query';
 declare const options: never;
-export function useGreeting() {
+export function useTodos() {
   return useQuery(options);
 }
 `,
@@ -713,12 +712,12 @@ export function SettingsPage() {
     source: 'export const value = 1;',
   },
   ...[
-    ['apps/web/src/routes/greeting/utils/x.ts', 'src/routes/greeting/utils'],
+    ['apps/web/src/routes/todos/utils/x.ts', 'src/routes/todos/utils'],
     ['apps/web/src/features/name-input/helpers/x.ts', 'src/features/name-input/helpers'],
-    ['apps/api/src/features/greeting/lib/x.ts', 'src/features/greeting/lib'],
+    ['apps/api/src/features/todos/lib/x.ts', 'src/features/todos/lib'],
     ['packages/ui/src/common/x.ts', 'src/common'],
     ['showcase/todo-02/web/src/shared/x.ts', 'src/shared'],
-    ['apps/web/src/routes/greeting/parts/misc/x.ts', 'src/routes/greeting/parts/misc'],
+    ['apps/web/src/routes/todos/parts/misc/x.ts', 'src/routes/todos/parts/misc'],
   ].map(([path, folder]) => ({
     path,
     source: 'export const x = 1;\n',
@@ -730,11 +729,11 @@ export function SettingsPage() {
     source: 'export const x = 1;\n',
   })),
   ...[
-    ['apps/web/src/routes/greeting/Foo.test.tsx', 'apps/web/src/routes/greeting/Foo'],
-    ['apps/web/src/routes/greeting/Missing.a11y.test.tsx', 'apps/web/src/routes/greeting/Missing'],
+    ['apps/web/src/routes/todos/Foo.test.tsx', 'apps/web/src/routes/todos/Foo'],
+    ['apps/web/src/routes/todos/Missing.a11y.test.tsx', 'apps/web/src/routes/todos/Missing'],
     [
-      'apps/web/src/routes/greeting/__tests__/GreetingPage.test.tsx',
-      'apps/web/src/routes/greeting/GreetingPage',
+      'apps/web/src/routes/todos/__tests__/TodosPage.test.tsx',
+      'apps/web/src/routes/todos/TodosPage',
     ],
   ].map(([path, subject]) => ({
     path,
@@ -743,9 +742,9 @@ export function SettingsPage() {
     messageContains: `\`${subject}.ts\` or`,
   })),
   ...[
-    'apps/api/src/features/greeting/domain.test.ts',
+    'apps/api/src/features/todos/domain.test.ts',
     'packages/ui/src/Button.test.tsx',
-    'apps/web/src/routes/greeting/GreetingPage.a11y.test.tsx',
+    'apps/web/src/routes/todos/TodosPage.a11y.test.tsx',
     'showcase/todo-01/web/src/routes/todos/useTodos.test.tsx',
     'apps/api/src/features/todos/todo.schema.test.ts',
   ].map((path) => ({ path, source: 'export const value = 1;\n' })),
@@ -1026,8 +1025,8 @@ const fixtures: Fixture[] = [
       source: 'function f() { if(a) { if(b) { if(c) { if(d) { f(); } } } } }',
     },
     ...[
-      'features/greeting/domain',
-      'routes/greeting/Page',
+      'features/todos/domain',
+      'routes/todos/Page',
       'shared/name/value',
       'api-client/internal',
     ].map((specifier, index) => ({
@@ -1038,7 +1037,7 @@ const fixtures: Fixture[] = [
   ]),
   {
     path: 'apps/api/src/public.ts',
-    source: "import { greetingRouter } from './features/greeting/index.ts';",
+    source: "import { todosRouter } from './features/todos/index.ts';",
   },
   ...['scripts', 'tooling'].flatMap((root) => [
     {
@@ -1095,9 +1094,9 @@ function lintTree(cases: Fixture[]) {
   });
   componentFixtures.forEach(({ caseRoot }) => {
     [
-      ['apps/api/src/features/greeting/domain.ts', 'export const value = 1;\n'],
+      ['apps/api/src/features/todos/domain.ts', 'export const value = 1;\n'],
       ['packages/ui/src/Button.tsx', 'export const value = 1;\n'],
-      ['apps/web/src/routes/greeting/GreetingPage.tsx', 'export const value = 1;\n'],
+      ['apps/web/src/routes/todos/TodosPage.tsx', 'export const value = 1;\n'],
       ['showcase/todo-01/web/src/routes/todos/useTodos.ts', 'export const useTodos = () => [];\n'],
       ['apps/api/src/features/todos/todo.schema.ts', 'export const schema = 1;\n'],
       ['apps/web/src/App.tsx', 'export const value = 1;\n'],

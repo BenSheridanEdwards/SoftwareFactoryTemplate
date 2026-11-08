@@ -12,7 +12,7 @@ const FALLOW_BIN = resolve(REPOSITORY_ROOT, 'node_modules/.bin/fallow');
 const RULE_PACK = 'tooling/architecture/contract.rules.jsonc';
 const WEB = 'apps/web/src';
 const API = 'apps/api/src';
-const GREETING = `${API}/features/greeting`;
+const TODOS = `${API}/features/todos`;
 
 /** A clean copy of the reference result's role layout: every import follows the contract. */
 const LAYOUT = {
@@ -22,12 +22,11 @@ const LAYOUT = {
   'apps/web/index.html': '<script type="module" src="/src/main.tsx"></script>\n',
   [`${WEB}/main.tsx`]:
     "import { App } from './App';\nimport { ApiProvider } from './api-client';\nimport { Button } from '@repo/ui';\nexport const root = [App, ApiProvider, Button];\n",
-  [`${WEB}/App.tsx`]:
-    "import { greeting } from './routes/greeting';\nexport const App = greeting;\n",
+  [`${WEB}/App.tsx`]: "import { todos } from './routes/todos';\nexport const App = todos;\n",
   [`${WEB}/api-client/index.ts`]:
     "import type { AppRouter } from '@repo/api';\nexport const ApiProvider = 1;\nexport type Router = AppRouter;\n",
-  [`${WEB}/routes/greeting/index.ts`]:
-    "import { ApiProvider } from '../../api-client';\nimport { nameInput } from '../../features/name-input';\nimport { Button } from '@repo/ui';\nexport const greeting = [ApiProvider, nameInput, Button];\n",
+  [`${WEB}/routes/todos/index.ts`]:
+    "import { ApiProvider } from '../../api-client';\nimport { nameInput } from '../../features/name-input';\nimport { Button } from '@repo/ui';\nexport const todos = [ApiProvider, nameInput, Button];\n",
   [`${WEB}/routes/settings/index.ts`]: 'export const settings = 1;\n',
   [`${WEB}/features/name-input/index.ts`]:
     "import { Button } from '@repo/ui';\nexport const nameInput = Button;\n",
@@ -40,17 +39,17 @@ const LAYOUT = {
   [`${API}/server.ts`]:
     "import { createServer } from 'node:http';\nimport { appRouter } from './router.ts';\nexport const server = [createServer, appRouter];\n",
   [`${API}/router.ts`]:
-    "import { greetingRouter } from './features/greeting/index.ts';\nimport { router } from './trpc.ts';\nexport const appRouter = router(greetingRouter);\nexport type AppRouter = typeof appRouter;\n",
+    "import { todosRouter } from './features/todos/index.ts';\nimport { router } from './trpc.ts';\nexport const appRouter = router(todosRouter);\nexport type AppRouter = typeof appRouter;\n",
   [`${API}/trpc.ts`]: 'export const router = (value: unknown) => value;\n',
-  [`${GREETING}/index.ts`]: "export { greetingRouter } from './procedures.ts';\n",
-  [`${GREETING}/procedures.ts`]:
-    "import type { Greeting } from './domain.ts';\nimport { greet } from './application.ts';\nimport { router } from '../../trpc.ts';\nexport const greetingRouter = router((name: string): Greeting => greet(name));\n",
-  [`${GREETING}/application.ts`]:
-    "import { formatGreeting, type Greeting } from './domain.ts';\nimport { remember } from './integrations.ts';\nexport const greet = (name: string): Greeting => ({ message: formatGreeting(remember(name)) });\n",
-  [`${GREETING}/domain.ts`]:
-    'export interface Greeting { readonly message: string }\nexport const formatGreeting = (name: string) => "Hello, " + name;\n',
-  [`${GREETING}/integrations.ts`]:
-    "import type { Greeting } from './domain.ts';\nexport const remember = (name: string) => { void fetch('https://example.com'); return name; };\nexport type Remembered = Greeting;\n",
+  [`${TODOS}/index.ts`]: "export { todosRouter } from './procedures.ts';\n",
+  [`${TODOS}/procedures.ts`]:
+    "import type { Todo } from './domain.ts';\nimport { addTodo } from './application.ts';\nimport { router } from '../../trpc.ts';\nexport const todosRouter = router((name: string): Todo => addTodo(name));\n",
+  [`${TODOS}/application.ts`]:
+    "import { formatTitle, type Todo } from './domain.ts';\nimport { remember } from './integrations.ts';\nexport const addTodo = (name: string): Todo => ({ message: formatTitle(remember(name)) });\n",
+  [`${TODOS}/domain.ts`]:
+    'export interface Todo { readonly message: string }\nexport const formatTitle = (name: string) => "Hello, " + name;\n',
+  [`${TODOS}/integrations.ts`]:
+    "import type { Todo } from './domain.ts';\nexport const remember = (name: string) => { void fetch('https://example.com'); return name; };\nexport type Remembered = Todo;\n",
 };
 
 /** The workspace links pnpm would create, so `@repo/*` resolves as it does in the repo. */
@@ -145,9 +144,9 @@ describe('Fallow contract over the reference result', () => {
   it.each([
     [
       'a route imports another route',
-      `${WEB}/routes/greeting/index.ts`,
-      "import { settings } from '../settings';\nexport const greeting = settings;\n",
-      'boundary web-routes/greeting -> web-routes/settings',
+      `${WEB}/routes/todos/index.ts`,
+      "import { settings } from '../settings';\nexport const todos = settings;\n",
+      'boundary web-routes/todos -> web-routes/settings',
     ],
     [
       'a feature imports a route',
@@ -158,7 +157,7 @@ describe('Fallow contract over the reference result', () => {
     [
       'the app imports a feature',
       `${WEB}/App.tsx`,
-      "import { greeting } from './routes/greeting';\nimport { status } from './features/status';\nexport const App = [greeting, status];\n",
+      "import { todos } from './routes/todos';\nimport { status } from './features/status';\nexport const App = [todos, status];\n",
       'boundary web-app -> web-features',
     ],
     [
@@ -169,21 +168,21 @@ describe('Fallow contract over the reference result', () => {
     ],
     [
       'a route value-imports the router',
-      `${WEB}/routes/greeting/index.ts`,
-      "import { appRouter } from '@repo/api';\nimport { ApiProvider } from '../../api-client';\nimport { nameInput } from '../../features/name-input';\nimport { Button } from '@repo/ui';\nexport const greeting = [appRouter, ApiProvider, nameInput, Button];\n",
-      'boundary web-routes/greeting -> api-app',
+      `${WEB}/routes/todos/index.ts`,
+      "import { appRouter } from '@repo/api';\nimport { ApiProvider } from '../../api-client';\nimport { nameInput } from '../../features/name-input';\nimport { Button } from '@repo/ui';\nexport const todos = [appRouter, ApiProvider, nameInput, Button];\n",
+      'boundary web-routes/todos -> api-app',
     ],
     [
       'the api root value re-exports domain code',
       `${API}/router.ts`,
-      "import { greetingRouter } from './features/greeting/index.ts';\nimport { router } from './trpc.ts';\nexport { formatGreeting } from './features/greeting/domain.ts';\nexport const appRouter = router(greetingRouter);\nexport type AppRouter = typeof appRouter;\n",
+      "import { todosRouter } from './features/todos/index.ts';\nimport { router } from './trpc.ts';\nexport { formatTitle } from './features/todos/domain.ts';\nexport const appRouter = router(todosRouter);\nexport type AppRouter = typeof appRouter;\n",
       'boundary api-app -> api-domain',
     ],
     [
       'a route type-imports a sibling route',
-      `${WEB}/routes/greeting/index.ts`,
-      "import type { settings } from '../settings';\nexport type Settings = typeof settings;\nexport const greeting = 1;\n",
-      'boundary web-routes/greeting -> web-routes/settings',
+      `${WEB}/routes/todos/index.ts`,
+      "import type { settings } from '../settings';\nexport type Settings = typeof settings;\nexport const todos = 1;\n",
+      'boundary web-routes/todos -> web-routes/settings',
     ],
     [
       'a ui primitive imports the api client',
@@ -205,26 +204,26 @@ describe('Fallow contract over the reference result', () => {
     ],
     [
       'procedures call domain code',
-      `${GREETING}/procedures.ts`,
-      "import { formatGreeting } from './domain.ts';\nimport { router } from '../../trpc.ts';\nexport const greetingRouter = router(formatGreeting);\n",
+      `${TODOS}/procedures.ts`,
+      "import { formatTitle } from './domain.ts';\nimport { router } from '../../trpc.ts';\nexport const todosRouter = router(formatTitle);\n",
       'boundary api-procedures -> api-domain',
     ],
     [
       'the api root imports application logic',
       `${API}/router.ts`,
-      "import { greet } from './features/greeting/application.ts';\nimport { router } from './trpc.ts';\nexport const appRouter = router(greet);\nexport type AppRouter = typeof appRouter;\n",
+      "import { addTodo } from './features/todos/application.ts';\nimport { router } from './trpc.ts';\nexport const appRouter = router(addTodo);\nexport type AppRouter = typeof appRouter;\n",
       'boundary api-app -> api-application',
     ],
     [
       'the domain imports application logic',
-      `${GREETING}/domain.ts`,
-      "import { greet } from './application.ts';\nexport interface Greeting { readonly message: string }\nexport const formatGreeting = (name: string) => String(greet) + name;\n",
+      `${TODOS}/domain.ts`,
+      "import { addTodo } from './application.ts';\nexport interface Todo { readonly message: string }\nexport const formatTitle = (name: string) => String(addTodo) + name;\n",
       'boundary api-domain -> api-application',
     ],
     [
       'an integration imports application logic',
-      `${GREETING}/integrations.ts`,
-      "import { greet } from './application.ts';\nexport const remember = (name: string) => String(greet) + name;\n",
+      `${TODOS}/integrations.ts`,
+      "import { addTodo } from './application.ts';\nexport const remember = (name: string) => String(addTodo) + name;\n",
       'boundary api-integrations -> api-application',
     ],
   ])('fails when %s', (_label, path, source, finding) => {
@@ -239,23 +238,23 @@ describe('Fallow contract over the reference result', () => {
     ],
     [
       'the domain type-imports application logic',
-      `${GREETING}/domain.ts`,
-      "import type { greet } from './application.ts';\nexport interface Greeting { readonly message: string }\nexport type Greet = typeof greet;\nexport const formatGreeting = (name: string) => 'Hello, ' + name;\n",
+      `${TODOS}/domain.ts`,
+      "import type { addTodo } from './application.ts';\nexport interface Todo { readonly message: string }\nexport type AddTodo = typeof addTodo;\nexport const formatTitle = (name: string) => 'Hello, ' + name;\n",
     ],
     [
       'an integration type-imports application logic',
-      `${GREETING}/integrations.ts`,
-      "import type { greet } from './application.ts';\nexport const remember = (name: string) => name;\nexport type Greet = typeof greet;\n",
+      `${TODOS}/integrations.ts`,
+      "import type { addTodo } from './application.ts';\nexport const remember = (name: string) => name;\nexport type AddTodo = typeof addTodo;\n",
     ],
     [
       'the api root type-imports application logic',
       `${API}/router.ts`,
-      "import { greetingRouter } from './features/greeting/index.ts';\nimport type { greet } from './features/greeting/application.ts';\nimport { router } from './trpc.ts';\nexport const appRouter = router(greetingRouter);\nexport type AppRouter = typeof appRouter;\nexport type Greet = typeof greet;\n",
+      "import { todosRouter } from './features/todos/index.ts';\nimport type { addTodo } from './features/todos/application.ts';\nimport { router } from './trpc.ts';\nexport const appRouter = router(todosRouter);\nexport type AppRouter = typeof appRouter;\nexport type AddTodo = typeof addTodo;\n",
     ],
     [
       'the app type-imports a feature',
       `${WEB}/App.tsx`,
-      "import { greeting } from './routes/greeting';\nimport type { status } from './features/status';\nexport type Status = typeof status;\nexport const App = greeting;\n",
+      "import { todos } from './routes/todos';\nimport type { status } from './features/status';\nexport type Status = typeof status;\nexport const App = todos;\n",
     ],
     [
       'a feature type-imports a route',
@@ -265,7 +264,7 @@ describe('Fallow contract over the reference result', () => {
     [
       'the api root re-exports a domain type',
       `${API}/router.ts`,
-      "import { greetingRouter } from './features/greeting/index.ts';\nimport { router } from './trpc.ts';\nexport type { Greeting } from './features/greeting/domain.ts';\nexport const appRouter = router(greetingRouter);\nexport type AppRouter = typeof appRouter;\n",
+      "import { todosRouter } from './features/todos/index.ts';\nimport { router } from './trpc.ts';\nexport type { Todo } from './features/todos/domain.ts';\nexport const appRouter = router(todosRouter);\nexport type AppRouter = typeof appRouter;\n",
     ],
   ])('passes when %s, a type-only import between roles', (_label, path, source) => {
     expect(architectureGate({ [path]: source })).toEqual({ status: 0, findings: [] });
@@ -300,116 +299,116 @@ describe('Fallow contract over the reference result', () => {
   it.each([
     [
       'the domain imports tRPC',
-      `${GREETING}/domain.ts`,
-      "import { initTRPC } from '@trpc/server';\nexport interface Greeting { readonly message: string }\nexport const formatGreeting = (name: string) => String(initTRPC) + name;\n",
+      `${TODOS}/domain.ts`,
+      "import { initTRPC } from '@trpc/server';\nexport interface Todo { readonly message: string }\nexport const formatTitle = (name: string) => String(initTRPC) + name;\n",
       ['policy contract/domain-pure'],
     ],
     [
       'the domain imports Effect',
-      `${GREETING}/domain.ts`,
-      "import { Schema } from 'effect';\nexport interface Greeting { readonly message: string }\nexport const formatGreeting = (name: string) => String(Schema) + name;\n",
+      `${TODOS}/domain.ts`,
+      "import { Schema } from 'effect';\nexport interface Todo { readonly message: string }\nexport const formatTitle = (name: string) => String(Schema) + name;\n",
       ['policy contract/domain-pure'],
     ],
     [
       'the domain loads Node through createRequire',
-      `${GREETING}/domain.ts`,
-      "import { createRequire } from 'node:module';\nexport interface Greeting { readonly message: string }\nexport const formatGreeting = (name: string) => String(createRequire) + name;\n",
+      `${TODOS}/domain.ts`,
+      "import { createRequire } from 'node:module';\nexport interface Todo { readonly message: string }\nexport const formatTitle = (name: string) => String(createRequire) + name;\n",
       ['policy contract/domain-pure'],
     ],
     [
       'application logic imports tRPC',
-      `${GREETING}/application.ts`,
-      "import { TRPCError } from '@trpc/server';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => ({ message: formatGreeting(String(TRPCError) + name) });\n",
+      `${TODOS}/application.ts`,
+      "import { TRPCError } from '@trpc/server';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => ({ message: formatTitle(String(TRPCError) + name) });\n",
       ['policy contract/application-without-trpc'],
     ],
     [
       'application logic calls fetch',
-      `${GREETING}/application.ts`,
-      "import { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => { void fetch('https://example.com'); return { message: formatGreeting(name) }; };\n",
+      `${TODOS}/application.ts`,
+      "import { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => { void fetch('https://example.com'); return { message: formatTitle(name) }; };\n",
       ['policy contract/effects-in-integrations', 'policy contract/io-effects-in-integrations'],
     ],
     [
       'application logic runs an Effect program',
-      `${GREETING}/application.ts`,
-      "import { Effect } from 'effect';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => ({ message: formatGreeting(Effect.runSync(Effect.succeed(name))) });\n",
+      `${TODOS}/application.ts`,
+      "import { Effect } from 'effect';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => ({ message: formatTitle(Effect.runSync(Effect.succeed(name))) });\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'application logic runs an Effect program through a namespace import',
-      `${GREETING}/application.ts`,
-      "import * as E from 'effect/Effect';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => ({ message: formatGreeting(E.runSync(E.succeed(name))) });\n",
+      `${TODOS}/application.ts`,
+      "import * as E from 'effect/Effect';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => ({ message: formatTitle(E.runSync(E.succeed(name))) });\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'application logic runs an Effect program through a named import',
-      `${GREETING}/application.ts`,
-      "import { runPromiseExit, succeed } from 'effect/Effect';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => { void runPromiseExit(succeed(name)); return { message: formatGreeting(name) }; };\n",
+      `${TODOS}/application.ts`,
+      "import { runPromiseExit, succeed } from 'effect/Effect';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => { void runPromiseExit(succeed(name)); return { message: formatTitle(name) }; };\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'application logic runs an Effect program with services through Effect 4 runPromiseWith',
-      `${GREETING}/application.ts`,
-      "import { Context, Effect } from 'effect';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => { void Effect.runPromiseWith(Context.empty())(Effect.succeed(name)); return { message: formatGreeting(name) }; };\n",
+      `${TODOS}/application.ts`,
+      "import { Context, Effect } from 'effect';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => { void Effect.runPromiseWith(Context.empty())(Effect.succeed(name)); return { message: formatTitle(name) }; };\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'application logic runs an Effect program through a named Effect 4 runSyncWith import',
-      `${GREETING}/application.ts`,
-      "import { runSyncWith, succeed } from 'effect/Effect';\nimport { Context } from 'effect';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => ({ message: formatGreeting(runSyncWith(Context.empty())(succeed(name))) });\n",
+      `${TODOS}/application.ts`,
+      "import { runSyncWith, succeed } from 'effect/Effect';\nimport { Context } from 'effect';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => ({ message: formatTitle(runSyncWith(Context.empty())(succeed(name))) });\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'application logic runs an Effect program through a ManagedRuntime',
-      `${GREETING}/application.ts`,
-      "import { Effect, Layer, ManagedRuntime } from 'effect';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => { void ManagedRuntime.make(Layer.empty).runPromise(Effect.succeed(name)); return { message: formatGreeting(name) }; };\n",
+      `${TODOS}/application.ts`,
+      "import { Effect, Layer, ManagedRuntime } from 'effect';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => { void ManagedRuntime.make(Layer.empty).runPromise(Effect.succeed(name)); return { message: formatTitle(name) }; };\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'application logic makes a ManagedRuntime through a named import',
-      `${GREETING}/application.ts`,
-      "import { make } from 'effect/ManagedRuntime';\nimport { Layer } from 'effect';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => ({ message: formatGreeting(name + String(make(Layer.empty))) });\n",
+      `${TODOS}/application.ts`,
+      "import { make } from 'effect/ManagedRuntime';\nimport { Layer } from 'effect';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => ({ message: formatTitle(name + String(make(Layer.empty))) });\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'application logic calls globalThis.fetch',
-      `${GREETING}/application.ts`,
-      "import { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => { void globalThis.fetch('https://example.com'); return { message: formatGreeting(name) }; };\n",
+      `${TODOS}/application.ts`,
+      "import { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => { void globalThis.fetch('https://example.com'); return { message: formatTitle(name) }; };\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'application logic imports Node DNS',
-      `${GREETING}/application.ts`,
-      "import { lookup } from 'node:dns';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => ({ message: formatGreeting(name + String(lookup)) });\n",
+      `${TODOS}/application.ts`,
+      "import { lookup } from 'node:dns';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => ({ message: formatTitle(name + String(lookup)) });\n",
       ['policy contract/node-io-in-integrations'],
     ],
     [
       'application logic opens an HTTPS request',
-      `${GREETING}/application.ts`,
-      "import { request } from 'node:https';\nimport { formatGreeting, type Greeting } from './domain.ts';\nexport const greet = (name: string): Greeting => { request('https://example.com'); return { message: formatGreeting(name) }; };\n",
+      `${TODOS}/application.ts`,
+      "import { request } from 'node:https';\nimport { formatTitle, type Todo } from './domain.ts';\nexport const addTodo = (name: string): Todo => { request('https://example.com'); return { message: formatTitle(name) }; };\n",
       ['policy contract/io-effects-in-integrations', 'policy contract/node-io-in-integrations'],
     ],
     [
       'a procedure imports Node file IO',
-      `${GREETING}/procedures.ts`,
-      "import { readFileSync } from 'node:fs';\nimport { greet } from './application.ts';\nimport { router } from '../../trpc.ts';\nexport const greetingRouter = router(() => greet(String(readFileSync)));\n",
+      `${TODOS}/procedures.ts`,
+      "import { readFileSync } from 'node:fs';\nimport { addTodo } from './application.ts';\nimport { router } from '../../trpc.ts';\nexport const todosRouter = router(() => addTodo(String(readFileSync)));\n",
       ['policy contract/node-io-in-integrations'],
     ],
     [
       'a route calls fetch',
-      `${WEB}/routes/greeting/index.ts`,
-      "export const greeting = fetch('/trpc/greeting.greet');\n",
+      `${WEB}/routes/todos/index.ts`,
+      "export const todos = fetch('/trpc/todos.list');\n",
       ['policy contract/effects-in-integrations', 'policy contract/io-effects-in-integrations'],
     ],
     [
       'a route calls self.fetch',
-      `${WEB}/routes/greeting/index.ts`,
-      "export const greeting = self.fetch('/trpc/greeting.greet');\n",
+      `${WEB}/routes/todos/index.ts`,
+      "export const todos = self.fetch('/trpc/todos.list');\n",
       ['policy contract/effects-in-integrations'],
     ],
     [
       'a route wires its own tRPC client',
-      `${WEB}/routes/greeting/index.ts`,
-      "import { createTRPCClient } from '@trpc/client';\nexport const greeting = createTRPCClient;\n",
+      `${WEB}/routes/todos/index.ts`,
+      "import { createTRPCClient } from '@trpc/client';\nexport const todos = createTRPCClient;\n",
       ['policy contract/trpc-client-in-api-client'],
     ],
     [
@@ -458,8 +457,8 @@ describe('Fallow contract over the reference result', () => {
 
   it('fails a fallow-ignore suppression that gives no reason', () => {
     const seed = {
-      [`${WEB}/routes/greeting/index.ts`]:
-        "import { ApiProvider } from '../../api-client';\n// fallow-ignore-next-line boundary-violation\nimport { settings } from '../settings';\nexport const greeting = [ApiProvider, settings];\n",
+      [`${WEB}/routes/todos/index.ts`]:
+        "import { ApiProvider } from '../../api-client';\n// fallow-ignore-next-line boundary-violation\nimport { settings } from '../settings';\nexport const todos = [ApiProvider, settings];\n",
     };
     const result = withSeededRepository(seed, (directory) =>
       spawnSync(FALLOW_BIN, ['dead-code', '--stale-suppressions', '-q'], {

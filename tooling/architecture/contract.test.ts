@@ -89,8 +89,8 @@ describe('loadContract', () => {
         'showcase/todo-01/web/src/routes/todos/TodosPage.tsx',
         'showcase/todo-01/api/src/features/todos/procedures.ts',
         'packages/ui/src/Button.tsx',
-        'apps/api/src/features/greeting/domain.ts',
-        'apps/web/e2e/greeting.spec.ts',
+        'apps/api/src/features/todos/domain.ts',
+        'apps/web/e2e/todos.spec.ts',
         'apps/web/src/routes/loose.ts',
         'scripts/check-suppressions.mjs',
       ].map(contract.roleOf),
@@ -194,9 +194,9 @@ describe('roleOf', () => {
     expect(
       [
         'showcase/todo-01/nested/web/src/routes/todos/TodosPage.tsx',
-        'packages/web/src/routes/greeting/GreetingPage.tsx',
-        'apps/api/src/features/greeting/index.ts',
-        'apps/api/src/features/greeting/procedures.ts',
+        'packages/web/src/routes/todos/TodosPage.tsx',
+        'apps/api/src/features/todos/index.ts',
+        'apps/api/src/features/todos/procedures.ts',
       ].map(contract.roleOf),
     ).toEqual([undefined, undefined, 'api-procedures', 'api-procedures']);
   });

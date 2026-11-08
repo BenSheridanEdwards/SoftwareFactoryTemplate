@@ -15,16 +15,16 @@ import {
 // The PR head every body below is checked against.
 const HEAD = '0a21f68d4a57e7998b1357444f2bdad00cea6528';
 const NORTH_STAR = 'abcdef1234567890abcdef1234567890abcdef12';
-const GREETING_BEHAVIOURS = [
-  'Greets the visitor by name.',
-  'Asks for a name before it calls the api.',
-  'The api rejects a blank name.',
-  'Says so when the api fails.',
+const TODO_BEHAVIOURS = [
+  'Adds a to-do to the end of the list.',
+  'Asks for a title and sends nothing when the title is blank.',
+  'The api rejects an invalid title as a bad request.',
+  'Keeps the typed title and says so when adding fails.',
   'Works for every visitor.',
 ];
-const reviewLines = (path: string, summaries = GREETING_BEHAVIOURS) =>
+const reviewLines = (path: string, summaries = TODO_BEHAVIOURS) =>
   summaries
-    .map((summary) => `- \`${path}\`: ${summary} Evidence: unchanged greeting tests`)
+    .map((summary) => `- \`${path}\`: ${summary} Evidence: unchanged todos tests`)
     .join('\n');
 const REVIEW_SECTION = '# PRD Behaviours to Review';
 const withReview = (body: string, checked: string) =>
@@ -46,13 +46,13 @@ interface IntentPorts {
   prdCoverage: { path: string; patterns: string[]; behaviours: string[] }[];
 }
 const INTENT_PORTS: IntentPorts = {
-  listPrdFiles: () => ['docs/prd/greeting.md', 'docs/prd/todo.md'],
+  listPrdFiles: () => ['docs/prd/todos.md', 'docs/prd/todo.md'],
   northStarCommit: () => NORTH_STAR,
   changedFiles: [],
-  prdCoverage: ['docs/prd/greeting.md', 'docs/prd/todo.md'].map((path) => ({
+  prdCoverage: ['docs/prd/todos.md', 'docs/prd/todo.md'].map((path) => ({
     path,
     patterns: [],
-    behaviours: GREETING_BEHAVIOURS,
+    behaviours: TODO_BEHAVIOURS,
   })),
 };
 
@@ -74,7 +74,7 @@ const VALID_BODY = [
   '# Verification Summary',
   '',
   '- Head commit: 0a21f68',
-  '- PRDs checked: docs/prd/greeting.md',
+  '- PRDs checked: docs/prd/todos.md',
   '- PRD impact: None',
   '- North Star commit: abcdef1',
   '- Commands run: `pnpm verify`, `pnpm e2e`.',
@@ -82,7 +82,7 @@ const VALID_BODY = [
   '',
   REVIEW_SECTION,
   '',
-  reviewLines('docs/prd/greeting.md'),
+  reviewLines('docs/prd/todos.md'),
   '',
   '# PR Proof Law',
   '',
@@ -92,17 +92,13 @@ const VALID_BODY = [
 const VALID_TITLE = 'feat(pr-quality): validate PR bodies in CI';
 
 describe('PRD behaviours to review', () => {
-  const check = (
-    section: string,
-    checked = 'docs/prd/greeting.md',
-    headSha: string | null = HEAD,
-  ) =>
+  const check = (section: string, checked = 'docs/prd/todos.md', headSha: string | null = HEAD) =>
     validatePullRequest({
       ...INTENT_PORTS,
       title: VALID_TITLE,
       headSha,
       body: VALID_BODY.replace(
-        '- PRDs checked: docs/prd/greeting.md',
+        '- PRDs checked: docs/prd/todos.md',
         `- PRDs checked: ${checked}`,
       ).replace(/# PRD Behaviours to Review[\s\S]*$/, section),
     });
@@ -112,17 +108,19 @@ describe('PRD behaviours to review', () => {
   });
   it('quotes the missing api failure behaviour', () => {
     const lines = reviewLines(
-      'docs/prd/greeting.md',
-      GREETING_BEHAVIOURS.filter((summary) => summary !== 'Says so when the api fails.'),
+      'docs/prd/todos.md',
+      TODO_BEHAVIOURS.filter(
+        (summary) => summary !== 'Keeps the typed title and says so when adding fails.',
+      ),
     );
     const result = check(section(lines));
     expect(result.ok).toBe(false);
     expect(result.errors.join('\n')).toContain(
-      '- `docs/prd/greeting.md`: Says so when the api fails. Evidence:',
+      '- `docs/prd/todos.md`: Keeps the typed title and says so when adding fails. Evidence:',
     );
   });
   it('accepts every behaviour with evidence', () => {
-    expect(check(section(reviewLines('docs/prd/greeting.md')))).toEqual({ ok: true, errors: [] });
+    expect(check(section(reviewLines('docs/prd/todos.md')))).toEqual({ ok: true, errors: [] });
   });
   it('accepts None for a docs only change', () => {
     expect(check(section('- None'), 'None: docs only change')).toEqual({ ok: true, errors: [] });
@@ -131,25 +129,25 @@ describe('PRD behaviours to review', () => {
     ['None while citing a PRD', '- None'],
     [
       'one word of evidence',
-      reviewLines('docs/prd/greeting.md').replaceAll('unchanged greeting tests', 'unchanged'),
+      reviewLines('docs/prd/todos.md').replaceAll('unchanged todos tests', 'unchanged'),
     ],
     [
       'duplicate behaviour',
-      `${reviewLines('docs/prd/greeting.md')}\n${reviewLines('docs/prd/greeting.md', [GREETING_BEHAVIOURS[0]])}`,
+      `${reviewLines('docs/prd/todos.md')}\n${reviewLines('docs/prd/todos.md', [TODO_BEHAVIOURS[0]])}`,
     ],
-    ['malformed line', '- greeting: checked'],
+    ['malformed line', '- todos: checked'],
   ])('rejects %s', (_name, lines) => {
     expect(check(section(lines)).ok).toBe(false);
   });
   it.each([
     [
       'unknown summary',
-      reviewLines('docs/prd/greeting.md', ['Invented promise.']),
-      'Unknown behaviour "Invented promise." for docs/prd/greeting.md at the PR head.',
+      reviewLines('docs/prd/todos.md', ['Invented promise.']),
+      'Unknown behaviour "Invented promise." for docs/prd/todos.md at the PR head.',
     ],
     ['uncited PRD', reviewLines('docs/prd/todo.md', ['Invented promise.']), 'names uncited PRD'],
   ])('rejects %s alongside a complete behaviour list', (_name, extraLine, error) => {
-    const result = check(section(`${reviewLines('docs/prd/greeting.md')}\n${extraLine}`));
+    const result = check(section(`${reviewLines('docs/prd/todos.md')}\n${extraLine}`));
     expect(result.ok).toBe(false);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain(error);
@@ -161,11 +159,11 @@ describe('PRD behaviours to review', () => {
     expect(
       check(
         section(reviewLines('docs/prd/unknown.md', ['Unknown promise.'])),
-        'docs/prd/greeting.md',
+        'docs/prd/todos.md',
         null,
       ),
     ).toEqual({ ok: true, errors: [] });
-    expect(check(section('- malformed'), 'docs/prd/greeting.md', null).ok).toBe(false);
+    expect(check(section('- malformed'), 'docs/prd/todos.md', null).ok).toBe(false);
   });
 });
 
@@ -417,14 +415,14 @@ describe('validatePullRequest', () => {
     it.each(['PRDs checked', 'North Star commit'])('ignores a decoy section for %s', (name) => {
       const body = withField(name, '').replace(
         '# Behavioural Proof',
-        `# Verification Summary\n- PRDs checked: docs/prd/greeting.md\n- North Star commit: abcdef1\n\n# Behavioural Proof`,
+        `# Verification Summary\n- PRDs checked: docs/prd/todos.md\n- North Star commit: abcdef1\n\n# Behavioural Proof`,
       );
       expect(check(body).errors.join('\n')).toContain(`exactly one \`- ${name}:\` line; found 0`);
     });
 
     it.each([
-      'docs/prd/greeting.md',
-      '`docs/prd/greeting.md`, docs/prd/todo.md',
+      'docs/prd/todos.md',
+      '`docs/prd/todos.md`, docs/prd/todo.md',
       'None: tooling only',
       'None: docs-only change',
     ])('accepts PRDs checked: %s', (value) => {
@@ -441,19 +439,19 @@ describe('validatePullRequest', () => {
       'None: tooling',
       'None: n/a',
       'None:\n- Commands run: pnpm verify',
-      'docs/prd/nested/greeting.md',
+      'docs/prd/nested/todos.md',
       'docs/other.md',
-      'docs/prd/greeting.txt',
-      'docs/prd/../greeting.md',
-      'docs//prd/greeting.md',
-      './docs/prd/greeting.md',
-      'docs/prd/greeting.md,',
-      ',docs/prd/greeting.md',
-      'docs/prd/greeting.md, None: tooling only',
-      'docs/prd/greeting.md docs/prd/todo.md',
-      '`docs/prd/greeting.md',
-      'docs/prd/greeting.md`',
-      'docs/prd/greeting.md (checked)',
+      'docs/prd/todos.txt',
+      'docs/prd/../todos.md',
+      'docs//prd/todos.md',
+      './docs/prd/todos.md',
+      'docs/prd/todos.md,',
+      ',docs/prd/todos.md',
+      'docs/prd/todos.md, None: tooling only',
+      'docs/prd/todos.md docs/prd/todo.md',
+      '`docs/prd/todos.md',
+      'docs/prd/todos.md`',
+      'docs/prd/todos.md (checked)',
     ])('rejects malformed PRDs checked: %s', (value) => {
       const result = check(withField('PRDs checked', `- PRDs checked: ${value}`));
       expect(result.ok).toBe(false);
@@ -470,7 +468,7 @@ describe('validatePullRequest', () => {
 
     it('requires every PRD in a list to be tracked', () => {
       const result = check(
-        withField('PRDs checked', '- PRDs checked: docs/prd/greeting.md, docs/prd/untracked.md'),
+        withField('PRDs checked', '- PRDs checked: docs/prd/todos.md, docs/prd/untracked.md'),
       );
       expect(result.ok).toBe(false);
       expect(result.errors).toHaveLength(1);
@@ -584,7 +582,7 @@ describe('validatePullRequest', () => {
         body: VALID_BODY,
         headSha: HEAD,
         ...INTENT_PORTS,
-        listPrdFiles: () => 'docs/prd/greeting.md',
+        listPrdFiles: () => 'docs/prd/todos.md',
       });
       expect(result.ok).toBe(false);
       expect(result.errors.join('\n')).toContain('must return an array of paths');
@@ -992,9 +990,9 @@ describe('validatePullRequest', () => {
 
     it.each([
       '`pnpm verify` passed; logs in `<tmp>/verify.log`',
-      '![greeting](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/blob/feat/x/docs/proof/greeting/a.png?raw=1)',
+      '![todos](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/blob/feat/x/docs/proof/todos/a.png?raw=1)',
       "bubblewrap mounts the trial's temp folder over `/tmp`",
-      '`apps/web/src/routes/greeting/GreetingPage.tsx`',
+      '`apps/web/src/routes/todos/TodosPage.tsx`',
       '`node scripts/enforcement-approval.mjs --git origin/main HEAD`',
     ])('passes published reference %s', (extra) => {
       expect(resultFor(extra)).toEqual({ ok: true, errors: [] });
@@ -1189,20 +1187,20 @@ describe('resolveHeadSha', () => {
 });
 
 describe('PRD coverage impact', () => {
-  const prd = 'docs/prd/greeting.md';
-  const route = 'apps/web/src/routes/greeting/GreetingPage.tsx';
-  const coverage = (path = prd, glob = 'apps/web/src/routes/greeting/**') => ({
+  const prd = 'docs/prd/todos.md';
+  const route = 'apps/web/src/routes/todos/TodosPage.tsx';
+  const coverage = (path = prd, glob = 'apps/web/src/routes/todos/**') => ({
     path,
-    behaviours: GREETING_BEHAVIOURS,
+    behaviours: TODO_BEHAVIOURS,
     patterns: coveredPaths(
       parseBehaviours(
         path,
         [
-          '# Greeting',
+          '# Todo',
           `- **Covers:** \`${glob}\``,
           '## Behaviours',
-          '- Greets a name.',
-          '  - Proved by [greets a name](../../apps/web/e2e/greeting.spec.ts#L10)',
+          '- Adds a to-do.',
+          '  - Proved by [adds a to-do](../../apps/web/e2e/todos.spec.ts#L10)',
         ].join('\n'),
       ),
     ),
@@ -1230,7 +1228,7 @@ describe('PRD coverage impact', () => {
 
   it.each([
     route,
-    'apps/web/e2e/greeting.spec.ts',
+    'apps/web/e2e/todos.spec.ts',
   ])('names the unchanged PRD and both fixes for %s', (path) => {
     expect(check([path])).toEqual({
       ok: false,
@@ -1257,15 +1255,15 @@ describe('PRD coverage impact', () => {
   });
   it.each([
     'None: tooling only',
-    'docs/prd/greeting-old.md',
+    'docs/prd/todos-old.md',
   ])('requires the affected PRD to be checked despite %s', (checked) => {
     expect(check([route, prd], 'None', checked).errors).toContain(
       `Changed files are covered by ${prd}. Add it to \`- PRDs checked:\`.`,
     );
   });
   it('matches native glob alternatives and zero nested folders', () => {
-    const result = check(['apps/web/src/GreetingPage.tsx'], 'None', prd, [
-      coverage(prd, '{apps,showcase/*}/web/src/**/GreetingPage.tsx'),
+    const result = check(['apps/web/src/TodosPage.tsx'], 'None', prd, [
+      coverage(prd, '{apps,showcase/*}/web/src/**/TodosPage.tsx'),
     ]);
     expect(result.ok).toBe(false);
     expect(result.errors.join('\n')).toContain(`Update ${prd}`);
@@ -1333,8 +1331,8 @@ describe('resolveBaseSha', () => {
 describe('PRD impact git and CLI', () => {
   let directory: string;
   const env = { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
-  const prd = 'docs/prd/greeting.md';
-  const covered = 'apps/web/src/routes/greeting/renamed\npage.tsx';
+  const prd = 'docs/prd/todos.md';
+  const covered = 'apps/web/src/routes/todos/renamed\npage.tsx';
   const outside = 'scripts/renamed page.tsx';
   const git = (...args: string[]) =>
     execFileSync('git', args, { cwd: directory, env, encoding: 'utf8' }).trim();
@@ -1360,12 +1358,12 @@ describe('PRD impact git and CLI', () => {
     write(
       prd,
       [
-        '# Greeting',
-        '- **Covers:** `apps/web/src/routes/greeting/**`',
+        '# Todo',
+        '- **Covers:** `apps/web/src/routes/todos/**`',
         '## Behaviours',
-        ...GREETING_BEHAVIOURS.map(
+        ...TODO_BEHAVIOURS.map(
           (summary) =>
-            `- **${summary}**\n  - Proved by [greeting spec](../../apps/web/e2e/greeting.spec.ts)`,
+            `- **${summary}**\n  - Proved by [todos spec](../../apps/web/e2e/todos.spec.ts)`,
         ),
       ].join('\n'),
     );
@@ -1420,7 +1418,7 @@ describe('PRD impact git and CLI', () => {
   });
   it('reads event-head coverage despite a different checkout and dirty PRD', () => {
     const { base, head } = prepare();
-    write(prd, '# Greeting\n- **Covers:** `scripts/**`\n');
+    write(prd, '# Todo\n- **Covers:** `scripts/**`\n');
     commit();
     write(prd, '# Invalid dirty PRD\n');
     const rejected = runCli(base, head);
@@ -1443,19 +1441,19 @@ describe('PRD impact git and CLI', () => {
         '- PRD impact: None',
         '- PRD impact: No behaviour change: comments only',
       ).replace(
-        '- `docs/prd/greeting.md`: Says so when the api fails. Evidence: unchanged greeting tests\n',
+        '- `docs/prd/todos.md`: Keeps the typed title and says so when adding fails. Evidence: unchanged todos tests\n',
         '',
       ),
     );
     expect(missingBehaviour.status).toBe(1);
     expect(missingBehaviour.output).toContain(
-      '- `docs/prd/greeting.md`: Says so when the api fails. Evidence:',
+      '- `docs/prd/todos.md`: Keeps the typed title and says so when adding fails. Evidence:',
     );
   });
   it.each([
-    ['# Greeting without coverage\n', 'has no `Covers` line'],
+    ['# Todo without coverage\n', 'has no `Covers` line'],
     [
-      '# Greeting\n- **Covers:** `apps/**`\n## Behaviours\n+ Unparsed behaviour\n',
+      '# Todo\n- **Covers:** `apps/**`\n## Behaviours\n+ Unparsed behaviour\n',
       'unread behaviour lines',
     ],
   ])('fails closed with a concise error for malformed head coverage: %s', (text, message) => {

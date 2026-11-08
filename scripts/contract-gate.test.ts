@@ -23,7 +23,7 @@ function run(args: string[]) {
   );
 }
 
-it('accepts the shipped consumer and provider, then rejects a broken greeting contract', () => {
+it('accepts the shipped consumer and provider, then rejects a broken to-do contract', () => {
   const real = spawnSync('pnpm', ['test:contract'], { env, encoding: 'utf8', timeout: 120_000 });
   if (real.status !== 0) throw new Error(real.stdout + real.stderr);
   expect(real.stdout + real.stderr).toContain('Tests:');
@@ -31,10 +31,10 @@ it('accepts the shipped consumer and provider, then rejects a broken greeting co
   expect(real.stdout + real.stderr).not.toContain('util._extend');
   const path = join(pactDirectory, 'web-api.json');
   const pact = readFileSync(path, 'utf8');
-  expect(pact).toContain('Hello, Ada!');
-  writeFileSync(path, pact.replaceAll('Hello, Ada!', 'Hello there, Ada!'));
+  expect(pact).toContain('"done": false');
+  writeFileSync(path, pact.replaceAll('"done": false', '"done": true'));
   const broken = run(['apps/api']);
   expect(broken.status).toBe(1);
-  expect(broken.stdout + broken.stderr).toContain('greeting.greet');
+  expect(broken.stdout + broken.stderr).toContain('todos.add');
   expect(broken.stdout + broken.stderr).not.toContain('DEP0060');
 }, 180_000);

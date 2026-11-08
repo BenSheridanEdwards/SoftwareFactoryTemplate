@@ -122,7 +122,7 @@ const RESULT_ROOT = {
             '!**/routes/*/index.ts',
           ],
           message:
-            'Import the module through its public surface, for example `../../features/name-input` or `./features/greeting/index.ts` in the api.',
+            'Import the module through its public surface, for example `../../features/name-input` or `./features/todos/index.ts` in the api.',
         },
       ],
     },
@@ -153,7 +153,7 @@ const RESULT_PATHS = [
   'showcase/x/web/src/App.tsx',
 ];
 const OTHER_PATHS = [
-  'apps/web/e2e/greeting.spec.ts',
+  'apps/web/e2e/todos.spec.ts',
   'scripts/x.mjs',
   'scripts/x.test.ts',
   'tooling/x.ts',
