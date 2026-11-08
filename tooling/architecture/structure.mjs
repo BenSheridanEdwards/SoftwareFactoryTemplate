@@ -142,8 +142,12 @@ function routeColocation({ results, files, readText, manifests, edges }) {
       )
       .flatMap((path) => {
         const route = path.slice(0, path.indexOf('/', `${result.web}/src/routes/`.length) + 1);
+        // A feature's rules module is shared with the web by value (ADR 0127).
         const allowed = (target) =>
-          target?.startsWith(route) || target === `${result.web}/src/api-client/index.ts`;
+          target?.startsWith(route) ||
+          target === `${result.web}/src/api-client/index.ts` ||
+          (target !== undefined && matchesGlob(target, `${result.api}/src/features/*/rules.ts`));
+        const featureRules = new RegExp(`^@${result.scope}/api/[a-z0-9-]+/rules$`);
         const references = moduleReferences(path, readText(path)).filter(({ specifier }) => {
           if (specifier.startsWith('.')) {
             const target =
@@ -153,6 +157,7 @@ function routeColocation({ results, files, readText, manifests, edges }) {
           }
           return (
             specifier !== '@repo/ui' &&
+            !featureRules.test(specifier) &&
             !external.some((name) => specifier === name || specifier.startsWith(`${name}/`))
           );
         });

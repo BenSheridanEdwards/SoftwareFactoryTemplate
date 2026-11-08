@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
+    "@repo/api": "workspace:*",
     "@repo/ui": "workspace:*",
     "@tanstack/react-query": "^5.104.3",
     "@trpc/client": "^11.19.0",
@@ -21,7 +22,6 @@
     "react-hook-form": "^7.90.0"
   },
   "devDependencies": {
-    "@repo/api": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^4.3.4",
