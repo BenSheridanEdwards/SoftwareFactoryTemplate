@@ -509,6 +509,27 @@ test.describe('Adding', () => {
     expect(lists).toHaveLength(1);
   });
 
+  test('stores one to-do when Add is pressed twice quickly', async ({ page, request }) => {
+    await openPage(page);
+    const sent = recordCalls(page, 'todos.add');
+
+    await titleField(page).fill('Clicked');
+    await addButton(page).dblclick();
+    await expectTitles(page, ['Clicked']);
+    await expect(addButton(page)).toBeEnabled();
+    await titleField(page).fill('Entered');
+    await titleField(page).press('Enter');
+    await titleField(page).press('Enter');
+    await expectTitles(page, ['Clicked', 'Entered']);
+    await expect(addButton(page)).toBeEnabled();
+
+    expect((await listThroughApi(request)).map(({ title }) => title)).toEqual([
+      'Clicked',
+      'Entered',
+    ]);
+    expect(sent).toHaveLength(2);
+  });
+
   test('keeps the typed title and says so when adding fails', async ({
     page,
     request,

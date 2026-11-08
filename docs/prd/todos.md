@@ -163,6 +163,10 @@ looks for the id. An id that names no to-do gets a `404` with the
   the to-do appears, the field empties and `Add` is enabled again. The page
   re-reads the list once.
   - Proved by [shows an add only once the api has answered and the list is re-read](../../apps/web/e2e/todos.spec.ts)
+- **Pressing Add or Enter again while an add waits sends nothing.** A double
+  click on `Add`, or `Enter` pressed twice in the field, sends one `todos.add`
+  request and stores one to-do.
+  - Proved by [stores one to-do when Add is pressed twice quickly](../../apps/web/e2e/todos.spec.ts)
 - **Keeps the typed title and says so when adding fails.** A failed
   `todos.add` shows `Could not add the to-do`, leaves the field holding the
   title exactly as typed, and leaves the list unchanged.

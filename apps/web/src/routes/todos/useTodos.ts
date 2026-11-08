@@ -55,8 +55,13 @@ export function useTodos() {
     list: toTodoList(list),
     failure,
     busy: [add, setDone, rename, remove, clearDone].some((change) => change.isPending),
-    addTodo: (title: Todo['title'], onAdded: () => void) =>
-      add.mutate({ title }, { onSuccess: onAdded }),
+    // A second submit can land before the render that disables Add; it sends nothing.
+    addTodo: (title: Todo['title'], onAdded: () => void) => {
+      if (queryClient.isMutating() > 0) {
+        return;
+      }
+      add.mutate({ title }, { onSuccess: onAdded });
+    },
     setTodoDone: (id: Todo['id'], done: Todo['done']) => setDone.mutate({ id, done }),
     renameTodo: (id: Todo['id'], title: Todo['title'], onRenamed: () => void) =>
       rename.mutate({ id, title }, { onSuccess: onRenamed }),
