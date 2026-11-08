@@ -59,7 +59,8 @@ From top to bottom, the page at `/` shows:
 
 Each to-do in the list shows a checkbox whose label is the to-do's title, so
 selecting the title also marks the to-do. The checkbox is checked when the
-to-do is done, and a done to-do's title is struck through. Beside the title
+to-do is done, and a done to-do's title is struck through: the element that
+holds the title text has `line-through`. Beside the title
 sit a button that reads `Edit` and is named `Edit <title>`, and a button that
 reads `Delete` and is named `Delete <title>`.
 
@@ -83,7 +84,8 @@ reference's tRPC transport at `/trpc`.
 | `todos.clearDone` | mutation | none | `{ ids }` of the deleted to-dos, oldest first |
 
 An invalid title gets a `400` with the `BAD_REQUEST` code and the title
-message as the error message. An id that names no to-do gets a `404` with the
+message as the error message, and `todos.rename` checks the title before it
+looks for the id. An id that names no to-do gets a `404` with the
 `NOT_FOUND` code and the message `No to-do has that id`.
 
 ## Behaviours
@@ -126,7 +128,8 @@ message as the error message. An id that names no to-do gets a `404` with the
   - Proved by [rejects a title over 100 characters and sends nothing](../../apps/web/e2e/todos.spec.ts)
 - **The api rejects an invalid title as a bad request.** A direct `todos.add`
   or `todos.rename` with a blank or 101-character title gets a `400`, the
-  `BAD_REQUEST` code and the title message.
+  `BAD_REQUEST` code and the title message, even when the rename names an
+  unknown id.
   - Proved by [the api rejects a blank or over-long title as a bad request](../../apps/web/e2e/todos.spec.ts)
 - **The api answers not found for an unknown id.** `todos.setDone`,
   `todos.rename` and `todos.delete` with an id that names no to-do get a

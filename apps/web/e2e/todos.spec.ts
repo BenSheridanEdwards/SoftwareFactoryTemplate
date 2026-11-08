@@ -251,6 +251,7 @@ test.describe('Adding', () => {
       ['todos.add', { title: TOO_LONG }, 'Use 100 characters or fewer'],
       ['todos.rename', { id, title: ' \t ' }, 'Enter a title'],
       ['todos.rename', { id, title: TOO_LONG }, 'Use 100 characters or fewer'],
+      ['todos.rename', { id: 'missing', title: '' }, 'Enter a title'],
     ] as const;
 
     const responses = await Promise.all(
@@ -260,7 +261,7 @@ test.describe('Adding', () => {
       }),
     );
 
-    expect(responses.map(({ status }) => status)).toEqual([400, 400, 400, 400]);
+    expect(responses.map(({ status }) => status)).toEqual([400, 400, 400, 400, 400]);
     expect(responses.map(({ body }) => body)).toMatchObject(
       responses.map(({ message }) => ({ error: { message, data: { code: 'BAD_REQUEST' } } })),
     );
