@@ -22,7 +22,7 @@
     "showcase/*/web/src",
     "packages/ui/src",
     "tooling/types/styles.d.ts",
-    "tooling/types/present.d.ts"
+    "tooling/types/test-globals.d.ts"
   ],
   "exclude": ["**/*.contract.test.ts"],
   "references": [{ "path": "./tsconfig.api.json" }],

@@ -606,8 +606,10 @@ export function useTodos() {
 ].map((fixture, index) => ({ ...fixture, caseRoot: `contract-${index}` }));
 const statusMessage = (hook: string, fields: string, root: string) =>
   `Return one \`status\` union from \`${hook}\` in place of ${fields} from \`${root}\`, for example \`{ status: 'loading' } | { status: 'failed' } | { status: 'loaded'; todos }\`, so the page renders exactly one state.`;
+const presentMessage = (expression: string) =>
+  `Unwrap \`${expression}\` with \`present(${expression})\`, a Jest global that an E2E spec imports from \`./fixtures\`, so a missing value fails the test here instead of standing in as \`''\`.`;
 const unwrapMessage = (expression: string) =>
-  `Unwrap \`${expression}\` with \`present(${expression})\` (a Jest global; an E2E spec imports it from \`./fixtures\`), so a missing value fails the test here instead of standing in as \`''\`.`;
+  `Unwrap \`${expression}\` with \`unwrap(${expression})\`, a Jest global, so a failure fails the test here with its problem instead of standing in as \`''\`.`;
 const subject = (caseRoot: string, path: string, source = 'export const value = 1;\n') => ({
   caseRoot,
   path,
@@ -700,7 +702,7 @@ export function useTodos() {
       'export function useFake(list: { data: string; isError: boolean }) {\n  return { todos: list.data, failed: list.isError };\n}\n',
   },
   subject('slop-status-test', 'apps/web/src/routes/todos/useTodos.ts'),
-  // policy/test-unwraps-values: the reference's api test and E2E spec, then present().
+  // policy/test-unwraps-values: the reference's api test and E2E spec, then present() and unwrap().
   {
     caseRoot: 'slop-unwrap-api',
     path: 'apps/api/src/features/todos/application.test.ts',
@@ -730,7 +732,7 @@ declare const second: { id: string } | undefined;
 export const done = setDoneThroughApi(second?.id ?? '');
 `,
     code: 'policy(test-unwraps-values)',
-    message: unwrapMessage('second?.id'),
+    message: presentMessage('second?.id'),
   },
   {
     path: 'showcase/todo-01/web/e2e/todos.spec.ts',
@@ -741,11 +743,12 @@ export const done = setDoneThroughApi(second?.id ?? '');
     caseRoot: 'slop-unwrap-valid',
     path: 'apps/api/src/features/todos/application.test.ts',
     source: `
-declare const present: <Value>(value: Value | { ok: true; value: Value } | undefined) => Value;
+declare const present: <Value>(value: Value | null | undefined) => Value;
+declare const unwrap: <Value>(outcome: { ok: true; value: Value } | { ok: false }) => Value;
 declare const added: { ok: true; value: { id: string } } | { ok: false };
 declare const ids: string[];
 declare const message: string | undefined;
-export const id = present(added).id;
+export const id = unwrap(added).id;
 export const fallback = added.ok ? added.value.id : undefined;
 export const first = present(ids[0]);
 export const shown = message ?? 'waiting';

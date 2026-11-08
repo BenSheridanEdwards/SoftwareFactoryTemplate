@@ -1207,8 +1207,10 @@ const testUnwrapsValues = {
   meta: {
     type: 'problem',
     messages: {
+      present:
+        'Unwrap `{{expression}}` with `present({{expression}})`, a Jest global that an E2E spec imports from `./fixtures`, so a missing value fails the test here instead of standing in as `{{fallback}}`.',
       unwrap:
-        'Unwrap `{{expression}}` with `present({{expression}})` (a Jest global; an E2E spec imports it from `./fixtures`), so a missing value fails the test here instead of standing in as `{{fallback}}`.',
+        'Unwrap `{{expression}}` with `unwrap({{expression}})`, a Jest global, so a failure fails the test here with its problem instead of standing in as `{{fallback}}`.',
     },
     schema: [],
   },
@@ -1217,24 +1219,29 @@ const testUnwrapsValues = {
       return {};
     }
 
-    const report = (node, expression, fallback) =>
+    const report = (node, messageId, expression, fallback) =>
       context.report({
         node,
-        messageId: 'unwrap',
+        messageId,
         data: { expression, fallback: context.sourceCode.getText(fallback) },
       });
 
     return {
       'LogicalExpression[operator="??"]'(node) {
         if (isEmptyString(node.right)) {
-          report(node, context.sourceCode.getText(node.left), node.right);
+          report(node, 'present', context.sourceCode.getText(node.left), node.right);
         }
       },
       ConditionalExpression(node) {
         const outcome = placeholderOutcome(node);
 
         if (outcome) {
-          report(node, [outcome.root, ...outcome.names.slice(0, -1)].join('.'), outcome.fallback);
+          report(
+            node,
+            'unwrap',
+            [outcome.root, ...outcome.names.slice(0, -1)].join('.'),
+            outcome.fallback,
+          );
         }
       },
     };

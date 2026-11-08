@@ -21,7 +21,7 @@
   "include": [
     "apps/api/src",
     "showcase/*/api/src",
-    "tooling/types/present.d.ts",
-    "tooling/jest/present.ts"
+    "tooling/types/test-globals.d.ts",
+    "tooling/jest/test-globals.ts"
   ]
 }
