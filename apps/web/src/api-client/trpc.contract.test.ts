@@ -1,13 +1,14 @@
+import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MatchersV3, PactV4 } from '@pact-foundation/pact';
 import { createTrpcClient } from './trpc';
 
-const pact = new PactV4({
-  consumer: 'web',
-  provider: 'api',
-  dir: process.env.PACT_DIR ?? join(tmpdir(), 'art-pact'),
-});
+const directory = process.env.PACT_DIR ?? join(tmpdir(), 'art-pact');
+const pact = new PactV4({ consumer: 'web', provider: 'api', dir: directory });
+
+// Pact merges into an existing file, so a renamed interaction would linger.
+beforeAll(() => rmSync(join(directory, 'web-api.json'), { force: true }));
 
 it('todos.add returns the batch response the web consumes', async () => {
   const { like } = MatchersV3;
