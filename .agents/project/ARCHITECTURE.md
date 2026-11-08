@@ -157,7 +157,7 @@ each check's message names the fix.
 | One React component per file. | Oxlint `policy/one-component-per-file` | `pnpm lint:policy` |
 | State, server state and form state live in `use*` hooks. | Oxlint `policy/state-and-effects-in-hooks` | `pnpm lint:policy` |
 | Forms validate with Effect Schema. | Oxlint `policy/form-uses-effect-schema` | `pnpm lint:policy` |
-| Web code has the DOM and no Node; api code has no DOM and only erasable syntax; domain code has neither. | `tsconfig.json` (web, ui), `tsconfig.api.json` and `tsconfig.domain.json` over `tsconfig.base.json` | `pnpm typecheck` |
+| Web code has the DOM and no Node; api code has no DOM and only erasable syntax; domain code has neither. Only tests see the Jest test globals. | `tsconfig.json` (web, ui), `tsconfig.api.json` and `tsconfig.domain.json` over `tsconfig.base.json`; `tsconfig.test.json` and `tsconfig.api.test.json` for tests | `pnpm typecheck` |
 | Behaviour is defined by each result's E2E specs. | Playwright, one project per result | `pnpm e2e` |
 
 Fallow loads [`contract.rules.jsonc`](../../tooling/architecture/contract.rules.jsonc)

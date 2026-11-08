@@ -11,11 +11,16 @@ import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { bunBinary } from './bun.mjs';
 
-/** Each program's `bun check` arguments. `-b` follows `tsconfig.json`'s reference to the api program. */
+/**
+ * Each program's `bun check` arguments. `-b` follows `tsconfig.json`'s reference to the api program.
+ * The two test programs come last: they alone see the Jest test globals.
+ */
 export const PROGRAMS = [
   ['-b', 'tsconfig.json'],
   ['-p', 'tsconfig.node.json'],
   ['-p', 'tsconfig.domain.json'],
+  ['-p', 'tsconfig.test.json'],
+  ['-p', 'tsconfig.api.test.json'],
 ];
 
 /** Checks one program with its errors on this terminal, and returns Bun's exit code. Throws when Bun cannot start. */

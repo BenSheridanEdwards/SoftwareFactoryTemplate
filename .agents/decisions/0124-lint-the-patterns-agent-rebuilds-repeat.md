@@ -26,8 +26,9 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   and one object it returns reads at most one of a query's `data`, `error`,
   `status`, `isPending`, `isLoading`, `isFetching`, `isError` and
   `isSuccess`, following one `const` binding.
-- `policy/test-unwraps-values`: a test unwraps a value with `present()`.
-  `?? ''` and an `x.ok ? … : <literal>` stand-in fail. The rule also runs on
+- `policy/test-unwraps-values`: a test takes a value with `present()` and an
+  outcome's value with `unwrap()`. `?? ''` and an `x.ok ? x.value… : <literal>`
+  stand-in fail. The rule also runs on
   each result's `web/e2e/**/*.ts`, in an override of its own.
 - `policy/test-imports-the-type`: a test declares no interface or type alias
   that a non-test module in its folder exports.
@@ -42,14 +43,20 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   `const` binding.
 
 Tests and specs are outside the three source rules, and inside the two test
-rules. Ship `present` in `tooling/jest/present.ts`, beside the Jest setup that
-holds the other shared test helpers. It returns a defined value or the value of
-an ok outcome, and throws otherwise. The Jest setup makes it a global, typed by
-`tooling/types/present.d.ts`, because a unit test in a package may import
-nothing from outside that package (`policy/slice-isolation`). A result is
-self-contained and a showcase copies the reference's `e2e/` folder, so each
-result's `e2e/fixtures.ts` holds its own five-line `present` for defined
-values, and each E2E spec imports it from there.
+rules. Ship `present` and `unwrap` in `tooling/jest/test-globals.ts`, beside
+the Jest setup that holds the other shared test helpers. `present(value)`
+returns a value that is neither `null` nor `undefined` and throws otherwise.
+`unwrap(outcome)` takes only an `{ ok: true, value } | { ok: false }` outcome,
+returns its value, and throws with the failure otherwise. The Jest setup makes
+both globals, because a unit test in a package may import nothing from outside
+that package (`policy/slice-isolation`). `tooling/types/test-globals.d.ts`
+types them, and only the test type programs, `tsconfig.test.json` and
+`tsconfig.api.test.json`, include it: the web and api programs exclude test
+files, so a production module that calls either fails `pnpm typecheck`. A
+result is self-contained and a showcase copies the reference's `e2e/` folder,
+so each result's `e2e/fixtures.ts` holds its own five-line `present`, which a
+unit test holds to the same behaviour as the Jest global, and each E2E spec
+imports it from there.
 
 ## Consequences
 
