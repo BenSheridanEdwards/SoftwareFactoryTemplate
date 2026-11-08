@@ -21,6 +21,7 @@
     "tooling/trial/acceptance",
     "jest.config.ts",
     "tooling/jest/jest.setup.ts",
+    "tooling/jest/serve-app-router.ts",
     "commitlint.config.ts",
     "playwright.config.ts"
   ]
