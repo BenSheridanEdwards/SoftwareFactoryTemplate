@@ -1084,12 +1084,12 @@ const unwrapChain = (node) =>
     ? unwrapChain(node.expression)
     : node;
 
-/** `{ root, names }` for a member chain such as `query.data?.message`, or null. */
+/** `{ root, node, names }` for a member chain such as `query.data?.message`, or null. */
 function memberChain(node) {
   const current = unwrapChain(node);
 
   if (current?.type === 'Identifier') {
-    return { root: current.name, names: [] };
+    return { root: current.name, node: current, names: [] };
   }
 
   if (current?.type !== 'MemberExpression' || current.computed) {
@@ -1098,36 +1098,76 @@ function memberChain(node) {
 
   const inner = memberChain(current.object);
 
-  return inner && { root: inner.root, names: [...inner.names, current.property.name] };
+  return inner && { ...inner, names: [...inner.names, current.property.name] };
 }
 
+/** The variable `name` names where `node` sits, found through the scope chain, or undefined. */
+function variableAt(context, node, name) {
+  const lookup = (scope) => (scope ? (scope.set.get(name) ?? lookup(scope.upper)) : undefined);
+
+  return lookup(context.sourceCode.getScope(node));
+}
+
+/** The initialiser of the `const` an identifier names in its own scope, or null. */
+function constInit(context, identifier) {
+  const [definition, ...others] = variableAt(context, identifier, identifier.name)?.defs ?? [];
+
+  return others.length === 0 &&
+    definition?.type === 'Variable' &&
+    definition.parent?.kind === 'const' &&
+    definition.node.id.type === 'Identifier'
+    ? definition.node.init
+    : null;
+}
+
+const QUERY_HOOKS = new Set(['useQuery', 'useSuspenseQuery', 'useInfiniteQuery']);
+
+/** `useQuery(…)`, `useSuspenseQuery(…)`, `useInfiniteQuery(…)` or a client's `x.useQuery(…)`. */
+const isQueryCall = (node) => {
+  const callee = node?.type === 'CallExpression' ? unwrapChain(node.callee) : null;
+  const name = callee?.type === 'MemberExpression' ? callee.property.name : callee?.name;
+
+  return QUERY_HOOKS.has(name);
+};
+
+// `error` and `isFetching` describe a state rather than choose one, so they stay out.
 const QUERY_STATUS_FIELDS = new Set([
   'data',
-  'error',
   'status',
   'isPending',
   'isLoading',
-  'isFetching',
   'isError',
   'isSuccess',
 ]);
 
-/** The query field a value reads first (`list.data ?? []` reads `data` of `list`), or null. */
-function statusField(node, constants) {
+/** What a value reads through: the left of `a ?? b`, or the key of a lookup such as `STATES[list.status]`. */
+const READS_THROUGH = {
+  LogicalExpression: (node) => node.left,
+  MemberExpression: (node) => (node.computed ? node.property : null),
+};
+
+/** The expression a value reads, following one `const` binding resolved in its own scope. */
+function readExpression(context, node, follow) {
   const value = unwrapChain(node);
+  const inner = READS_THROUGH[value?.type]?.(value);
 
-  if (value?.type === 'LogicalExpression') {
-    return statusField(value.left, constants);
+  if (inner) {
+    return readExpression(context, inner, follow);
   }
 
-  if (value?.type === 'Identifier' && constants.has(value.name)) {
-    return statusField(constants.get(value.name), new Map());
-  }
+  const bound = follow && value?.type === 'Identifier' ? constInit(context, value) : null;
 
-  const chain = memberChain(value);
+  return bound ? readExpression(context, bound, false) : value;
+}
+
+/** The query state a value reads (`list.data ?? []` reads `data` of `list`), or null; only a query hook's result counts. */
+function statusField(context, node) {
+  const chain = memberChain(readExpression(context, node, true));
   const field = chain?.names[0];
 
-  return field && QUERY_STATUS_FIELDS.has(field) ? { root: chain.root, field } : null;
+  return QUERY_STATUS_FIELDS.has(field) && isQueryCall(constInit(context, chain.node))
+    ? { root: chain.root, field }
+    : null;
 }
 
 /** The object a function returns: a `return { ... }` or an arrow's `({ ... })` body. */
@@ -1150,8 +1190,6 @@ const oneStatusFromHooks = {
       return {};
     }
 
-    const constants = new Map();
-
     const check = (node) => {
       const object = unwrapChain(returnedObject(node));
       const owner = context.sourceCode.getAncestors(node).findLast(isFunctionNode);
@@ -1164,7 +1202,7 @@ const oneStatusFromHooks = {
 
       const reads = object.properties
         .filter((property) => property.type === 'Property')
-        .map((property) => statusField(property.value, constants))
+        .map((property) => statusField(context, property.value))
         .filter(Boolean);
 
       [...new Set(reads.map(({ root }) => root))]
@@ -1182,13 +1220,7 @@ const oneStatusFromHooks = {
         });
     };
 
-    return {
-      'VariableDeclaration[kind="const"] > VariableDeclarator[id.type="Identifier"]'(node) {
-        if (node.init) constants.set(node.id.name, node.init);
-      },
-      ReturnStatement: check,
-      ArrowFunctionExpression: check,
-    };
+    return { ReturnStatement: check, ArrowFunctionExpression: check };
   },
 };
 
@@ -1465,31 +1497,19 @@ const keepRejections = {
       return {};
     }
 
-    const constants = new Map();
-    const handlers = [];
-
     const resolve = (node) =>
-      node?.type === 'Identifier' && constants.has(node.name) ? constants.get(node.name) : node;
+      node?.type === 'Identifier' ? (constInit(context, node) ?? node) : node;
 
     return {
-      'VariableDeclaration[kind="const"] > VariableDeclarator[id.type="Identifier"]'(node) {
-        if (node.init) constants.set(node.id.name, node.init);
-      },
       CallExpression(node) {
         const method =
           node.callee.type === 'MemberExpression' && !node.callee.computed
             ? node.callee.property.name
             : undefined;
         const handler = node.arguments[REJECTION_HANDLER.get(method) ?? node.arguments.length];
+        const value = handler && swallowedValue(resolve(handler));
 
-        if (handler) handlers.push([node, handler]);
-      },
-      'Program:exit'() {
-        handlers.forEach(([node, handler]) => {
-          const value = swallowedValue(resolve(handler));
-
-          if (value) context.report({ node, messageId: 'swallowed', data: { value } });
-        });
+        if (value) context.report({ node, messageId: 'swallowed', data: { value } });
       },
     };
   },

@@ -23,9 +23,15 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
 `showcase/*/*/src/**/*.{ts,tsx}`:
 
 - `policy/one-status-from-hooks`: a `use*` hook returns one `status` union,
-  and one object it returns reads at most one of a query's `data`, `error`,
-  `status`, `isPending`, `isLoading`, `isFetching`, `isError` and
-  `isSuccess`, following one `const` binding.
+  and one object it returns reads at most one of a query's `data`, `status`,
+  `isPending`, `isLoading`, `isError` and `isSuccess`. A query is a `const`
+  bound to the result of `useQuery`, `useSuspenseQuery` or `useInfiniteQuery`.
+  A lookup keyed by the status, such as `STATES[list.status]`, reads
+  `status`. The rule follows one `const` binding, and resolves each name in
+  its own scope. `error` and `isFetching` describe a state rather than choose
+  one, so `{ status: list.status, problem: list.error }` and
+  `{ list: list.data, refreshing: list.isFetching }` pass, as does a mutation
+  hook's `{ submitting, problem }`.
 - `policy/test-unwraps-values`: a test takes a value with `present()` and an
   outcome's value with `unwrap()`. `?? ''` and an `x.ok ? x.value… : <literal>`
   stand-in fail. The rule also runs on
@@ -40,7 +46,7 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   a source or from an import.
 - `policy/keep-rejections`: a `.catch` or second `.then` handler that ignores
   its error and returns a literal, `undefined` or nothing fails, following one
-  `const` binding.
+  `const` binding resolved in the handler's own scope.
 
 Tests and specs are outside the three source rules, and inside the two test
 rules. Ship `present` and `unwrap` in `tooling/jest/test-globals.ts`, beside

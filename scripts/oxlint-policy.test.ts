@@ -172,7 +172,7 @@ function ExtraPage() { return <p />; }`
     {
       path: `${root}/src/routes/slop/useSlop.ts`,
       source:
-        'export function useSlop(list: { data: string; isError: boolean }) {\n  return { text: list.data, failed: list.isError };\n}\n',
+        'declare const useQuery: () => { data: string; isError: boolean };\nexport function useSlop() {\n  const list = useQuery();\n  return { text: list.data, failed: list.isError };\n}\n',
       code: 'policy(one-status-from-hooks)',
     },
     {
@@ -657,6 +657,111 @@ export const useGreeting = () => {
     code: 'policy(one-status-from-hooks)',
     messageContains: 'from `useGreeting`',
   },
+  // r7 and r8 map the query's status through a lookup object.
+  {
+    path: 'apps/web/src/routes/todos/useTodos.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+const LIST_STATES = { pending: 'loading', error: 'failed', success: 'loaded' } as const;
+export function useTodos() {
+  const list = useQuery(options);
+  const todos = list.data ?? [];
+  return { todos, listState: LIST_STATES[list.status] };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useTodos', '`data`, `status`', 'list'),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useTodos.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+const LIST_STATUS = { pending: 'loading', error: 'failed', success: 'ready' } as const;
+type ListStatus = (typeof LIST_STATUS)[keyof typeof LIST_STATUS];
+export function useTodos() {
+  const list = useQuery(options);
+  const listStatus: ListStatus = LIST_STATUS[list.status];
+  return { todos: list.data ?? [], listStatus };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useTodos', '`data`, `status`', 'list'),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useSuspenseTodos.ts',
+    source: `
+import { useInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
+declare const options: never;
+declare const trpc: { todos: { list: { useQuery: () => { data: string[]; isError: boolean } } } };
+export function useSuspenseTodos() {
+  const list = useSuspenseQuery(options);
+  return { loading: list.isPending, failed: list.isError };
+}
+function usePages() {
+  const pages = useInfiniteQuery(options);
+  return { pages: pages.data, done: pages.isSuccess };
+}
+function useClassic() {
+  const list = trpc.todos.list.useQuery();
+  return { todos: list.data, failed: list.isError };
+}
+export const hooks = [usePages, useClassic];
+`,
+    codes: [
+      'policy(one-status-from-hooks)',
+      'policy(one-status-from-hooks)',
+      'policy(one-status-from-hooks)',
+    ],
+  },
+  // Reads that are not two states of one query pass.
+  {
+    path: 'apps/web/src/routes/todos/useRefreshing.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useRefreshing() {
+  const list = useQuery(options);
+  return { list: list.data, refreshing: list.isFetching };
+}
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useSave.ts',
+    source: `
+import { useMutation } from '@tanstack/react-query';
+declare const options: never;
+export function useSave() {
+  const save = useMutation(options);
+  return { submitting: save.isPending, problem: save.error, saved: save.data, failed: save.isError };
+}
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useListStatus.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useListStatus() {
+  const list = useQuery(options);
+  return { status: list.status, problem: list.error };
+}
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useFlatList.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+type View = { status: 'loading'; data: undefined } | { status: 'loaded'; data: string[] };
+declare const toView: (query: unknown) => View;
+export function useFlatList() {
+  const view = toView(useQuery(options));
+  return { status: view.status, data: view.data };
+}
+`,
+  },
   {
     path: 'apps/web/src/routes/todos/useStatus.ts',
     source: `
@@ -665,7 +770,44 @@ export const useStatus = (list: { status: string; data: string[] }) => ({
   todos: list.data,
 });
 `,
+  },
+  // Each name resolves in its own scope, not to a same-named binding elsewhere.
+  {
+    path: 'apps/web/src/routes/todos/useShadowed.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function earlier(list: { data: string[] }) {
+  const todos = list.data;
+  return todos;
+}
+export function useShadowed(todos: string[]) {
+  const list = useQuery(options);
+  return { todos, failed: list.isError };
+}
+function useSummary(list: { data: string[]; isError: boolean }) {
+  return { todos: list.data, failed: list.isError };
+}
+export const hooks = [useSummary];
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useOwnScope.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useOwnScope() {
+  const list = useQuery(options);
+  const todos = list.data;
+  return { todos, failed: list.isError };
+}
+export function later(todos: string[]) {
+  const list = { data: todos, isError: false };
+  return list;
+}
+`,
     code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useOwnScope', '`data`, `isError`', 'list'),
   },
   {
     path: 'apps/web/src/routes/todos/useTodos.ts',
@@ -927,6 +1069,43 @@ export const handled = (save: () => Promise<void>) => [
   save().then(() => true),
   save().then(() => true, (error: unknown) => report(error)),
 ];
+`,
+  },
+  // A handler resolves in its own scope, not to a same-named binding elsewhere.
+  {
+    path: 'apps/web/src/routes/todos/useScopedHandlers.ts',
+    source: `
+export function quiet(save: () => Promise<void>) {
+  const handle = () => undefined;
+  return save().catch(handle);
+}
+export function loud(save: () => Promise<void>, report: (error: unknown) => void) {
+  const handle = (error: unknown) => report(error);
+  return save().catch(handle);
+}
+`,
+    code: 'policy(keep-rejections)',
+  },
+  {
+    path: 'apps/web/src/routes/todos/useGivenHandler.ts',
+    source: `
+export function fallback() {
+  const handle = () => false;
+  return handle;
+}
+export function given(save: () => Promise<void>, handle: (error: unknown) => void) {
+  return save().catch(handle);
+}
+`,
+  },
+  // An ignored rejection that is meant: settle the promise and read the result.
+  {
+    path: 'apps/web/src/routes/todos/usePrefetch.ts',
+    source: `
+declare const prefetch: () => Promise<void>;
+declare const save: () => Promise<void>;
+export const warm = () => void Promise.allSettled([prefetch()]);
+export const saved = () => Promise.allSettled([save()]).then(([result]) => result?.status === 'fulfilled');
 `,
   },
   {
