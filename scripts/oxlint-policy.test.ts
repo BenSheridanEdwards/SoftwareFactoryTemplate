@@ -988,6 +988,53 @@ export const used = RETRIES;
 `,
   },
   {
+    path: 'apps/web/src/routes/todos/itemLimit.ts',
+    source: `
+export const MAX_ITEMS = 1000;
+export const maxTitleLength = 80;
+export const tooMany = 'Keep 1,000 items or fewer';
+export const tooLong = \`Use 80 characters, not \${maxTitleLength + 1}\`;
+`,
+    codes: ['policy(message-uses-its-limit)', 'policy(message-uses-its-limit)'],
+    message:
+      'Interpolate `MAX_ITEMS` into this text in place of 1000, so the message changes with the limit.',
+  },
+  {
+    path: 'apps/web/src/routes/todos/LimitHint.tsx',
+    source: `
+export const MAX_LENGTH = 100;
+export function LimitHint() {
+  return <p>Up to 100 characters</p>;
+}
+`,
+    code: 'policy(message-uses-its-limit)',
+  },
+  // A number that is not a limit, or not a count of words, passes.
+  {
+    path: 'apps/web/src/routes/todos/Layout.tsx',
+    source: `
+import { readings } from './100 readings';
+export const COLUMNS = 10;
+export const ICON_SIZE = 24;
+export const MAX_PERCENT = 100;
+export const PORT = 3000;
+export const PAGE_SIZE = 20;
+export const MAX_LENGTH = 50;
+export const done = '100% done';
+export const url = 'http://localhost:3000/api';
+export const audience = 'Ages 20 and over';
+export const hint = 'gap-10 p-4';
+export function Layout() {
+  return (
+    <div className="grid gap-10 p-4" title={readings}>
+      <svg viewBox="0 0 24 24" aria-label="An icon" />
+      <span title="Up to 50 characters" />
+    </div>
+  );
+}
+`,
+  },
+  {
     caseRoot: 'slop-limit-test',
     path: 'apps/api/src/features/todos/domain.test.ts',
     source: "const LIMIT = 100;\nexport const expected = ['Use 100 characters or fewer', LIMIT];\n",

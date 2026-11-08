@@ -38,9 +38,15 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   each result's `web/e2e/**/*.ts`, in an override of its own.
 - `policy/test-imports-the-type`: a test declares no interface or type alias
   that a non-test module in its folder exports.
-- `policy/message-uses-its-limit`: a string or JSX text holds no number that a
-  module-scope `const` of 10 or more in the same file names. Smaller numbers
-  appear in ordinary prose too often to tie to one constant.
+- `policy/message-uses-its-limit`: a string, template or JSX text writes no
+  limit as a count. A limit is a module-scope `const` of 10 or more in the
+  same file whose name holds `MAX`, `MIN`, `MAXIMUM`, `MINIMUM`, `LIMIT`,
+  `LENGTH` or `LEN` (`TITLE_MAX_LENGTH`, `maxTitleLength`). A count is the
+  number, or its grouped form such as `1,000`, followed by a word
+  (`100 characters`), so `100%`, `gap-10` and a port in a URL pass. JSX
+  attribute values and import sources hold no message and are skipped.
+  Smaller numbers appear in ordinary prose too often to tie to one
+  constant.
 - `policy/import-types-from-their-owner`: a module under `src/routes/<slice>/`
   or `src/features/<slice>/`, other than `index.ts`, re-exports nothing, from
   a source or from an import.

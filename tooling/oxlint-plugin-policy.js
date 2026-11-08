@@ -1330,6 +1330,29 @@ const testImportsTheType = {
 
 // A limit below ten is too common in prose ("3 times") to tie to one constant.
 const SMALLEST_LIMIT = 10;
+const LIMIT_WORDS = new Set(['MAX', 'MAXIMUM', 'MIN', 'MINIMUM', 'LIMIT', 'LENGTH', 'LEN']);
+
+/** `TITLE_MAX_LENGTH` or `maxTitleLength`: a name with a limit word in it. */
+const isLimitName = (name) =>
+  name
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toUpperCase()
+    .split('_')
+    .some((word) => LIMIT_WORDS.has(word));
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The limit written as a count of something: `100 characters`, `1,000 items`. */
+const countPattern = (value) =>
+  new RegExp(
+    `(?<![\\w.,])(?:${[...new Set([String(value), value.toLocaleString('en-GB')])].map(escapeRegExp).join('|')})\\s+[A-Za-z]`,
+  );
+
+/** An import or export source, or text inside a JSX attribute, holds no message. */
+const isMessageText = (context, node) =>
+  !context.sourceCode
+    .getAncestors(node)
+    .some((ancestor) => ancestor.type === 'JSXAttribute' || ancestor.source === node);
 
 const messageUsesItsLimit = {
   meta: {
@@ -1345,8 +1368,11 @@ const messageUsesItsLimit = {
       return {};
     }
 
-    const limits = new Map();
+    const limits = [];
     const texts = [];
+    const addText = (node, text) => {
+      if (isMessageText(context, node)) texts.push([node, text]);
+    };
 
     return {
       'Program > VariableDeclaration[kind="const"] > VariableDeclarator, Program > ExportNamedDeclaration > VariableDeclaration[kind="const"] > VariableDeclarator'(
@@ -1354,25 +1380,30 @@ const messageUsesItsLimit = {
       ) {
         const value = node.init?.type === 'Literal' ? node.init.value : undefined;
 
-        if (node.id.type === 'Identifier' && typeof value === 'number' && value >= SMALLEST_LIMIT) {
-          limits.set(String(value), node.id.name);
+        if (
+          node.id.type === 'Identifier' &&
+          isLimitName(node.id.name) &&
+          typeof value === 'number' &&
+          value >= SMALLEST_LIMIT
+        ) {
+          limits.push({ name: node.id.name, value, pattern: countPattern(value) });
         }
       },
       Literal(node) {
-        if (isStringLiteral(node)) texts.push([node, node.value]);
+        if (isStringLiteral(node)) addText(node, node.value);
       },
       TemplateElement(node) {
-        texts.push([node, node.value.cooked ?? '']);
+        addText(node, node.value.cooked ?? '');
       },
       JSXText(node) {
-        texts.push([node, node.value]);
+        addText(node, node.value);
       },
       'Program:exit'() {
         texts.forEach(([node, text]) => {
-          [...limits]
-            .filter(([value]) => new RegExp(`(?<![\\w.])${value}(?!\\w|\\.\\d)`).test(text))
-            .forEach(([value, name]) => {
-              context.report({ node, messageId: 'limit', data: { name, value } });
+          limits
+            .filter(({ pattern }) => pattern.test(text))
+            .forEach(({ name, value }) => {
+              context.report({ node, messageId: 'limit', data: { name, value: String(value) } });
             });
         });
       },
