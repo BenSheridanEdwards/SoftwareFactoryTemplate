@@ -1,10 +1,8 @@
-import { greetingRouter } from './features/greeting/index.ts';
-import { recentGreetingsRouter } from './features/recent-greetings/index.ts';
+import { todosRouter } from './features/todos/index.ts';
 import { router } from './trpc.ts';
 
 export const appRouter = router({
-  greeting: greetingRouter,
-  recentGreetings: recentGreetingsRouter,
+  todos: todosRouter,
 });
 
 export type AppRouter = typeof appRouter;

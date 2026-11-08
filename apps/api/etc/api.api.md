@@ -20,36 +20,54 @@ meta: object;
 errorShape: TRPCDefaultErrorShape;
 transformer: false;
 }, TRPCDecorateCreateRouterOptions<    {
-greeting: TRPCBuiltRouter<    {
+todos: TRPCBuiltRouter<    {
 ctx: object;
 meta: object;
 errorShape: TRPCDefaultErrorShape;
 transformer: false;
 }, TRPCDecorateCreateRouterOptions<    {
-greet: TRPCQueryProcedure<    {
-input: {
-readonly name: string;
-};
-output: Greeting;
-meta: object;
-}>;
-}>>;
-recentGreetings: TRPCBuiltRouter<    {
-ctx: object;
-meta: object;
-errorShape: TRPCDefaultErrorShape;
-transformer: false;
-}, TRPCDecorateCreateRouterOptions<    {
-record: TRPCMutationProcedure<    {
-input: {
-readonly name: string;
-};
-output: RecentGreetings;
-meta: object;
-}>;
 list: TRPCQueryProcedure<    {
 input: void;
-output: RecentGreetings;
+output: readonly Todo[];
+meta: object;
+}>;
+add: TRPCMutationProcedure<    {
+input: {
+readonly title: string;
+};
+output: Todo;
+meta: object;
+}>;
+setDone: TRPCMutationProcedure<    {
+input: {
+readonly id: string;
+readonly done: boolean;
+};
+output: Todo;
+meta: object;
+}>;
+rename: TRPCMutationProcedure<    {
+input: {
+readonly id: string;
+readonly title: string;
+};
+output: Todo;
+meta: object;
+}>;
+delete: TRPCMutationProcedure<    {
+input: {
+readonly id: string;
+};
+output: {
+readonly id: string;
+};
+meta: object;
+}>;
+clearDone: TRPCMutationProcedure<    {
+input: void;
+output: {
+ids: readonly string[];
+};
 meta: object;
 }>;
 }>>;

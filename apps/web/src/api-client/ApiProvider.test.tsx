@@ -3,10 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { ApiProvider } from './ApiProvider';
 import { useTrpc } from './trpc';
 
-function GreetingProbe() {
+function TodosProbe() {
   const trpc = useTrpc();
-  const query = useQuery(trpc.greeting.greet.queryOptions({ name: 'Ada' }));
-  return <p>{query.data?.message ?? 'waiting'}</p>;
+  const query = useQuery(trpc.todos.list.queryOptions());
+  return <p>{query.data?.map(({ title }) => title).join(', ') ?? 'waiting'}</p>;
 }
 
 const realFetch = globalThis.fetch;
@@ -19,19 +19,24 @@ it('sends procedure calls to /trpc on the same origin and reads the answer', asy
   const NodeResponse: typeof Response = jest.requireActual('node:vm').runInThisContext('Response');
   const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>(
     async () =>
-      new NodeResponse(JSON.stringify([{ result: { data: { message: 'Hello, Ada!' } } }]), {
-        headers: { 'content-type': 'application/json' },
-      }),
+      new NodeResponse(
+        JSON.stringify([
+          { result: { data: [{ id: '1', title: 'Read the review', done: false }] } },
+        ]),
+        {
+          headers: { 'content-type': 'application/json' },
+        },
+      ),
   );
   globalThis.fetch = fetchMock;
 
   render(
     <ApiProvider>
-      <GreetingProbe />
+      <TodosProbe />
     </ApiProvider>,
   );
 
-  expect(await screen.findByText('Hello, Ada!')).toBeInTheDocument();
+  expect(await screen.findByText('Read the review')).toBeInTheDocument();
   const [url] = fetchMock.mock.calls[0] ?? [''];
-  expect(String(url)).toMatch(/^\/trpc\/greeting\.greet\?batch=1&input=/);
+  expect(String(url)).toMatch(/^\/trpc\/todos\.list\?batch=1&input=/);
 });

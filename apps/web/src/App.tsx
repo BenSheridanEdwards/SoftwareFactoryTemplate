@@ -1,11 +1,5 @@
-import { GreetingPage } from './routes/greeting';
-import { RecentGreetingsPage } from './routes/recent-greetings';
+import { TodosPage } from './routes/todos';
 
 export function App() {
-  return (
-    <>
-      <GreetingPage />
-      <RecentGreetingsPage />
-    </>
-  );
+  return <TodosPage />;
 }

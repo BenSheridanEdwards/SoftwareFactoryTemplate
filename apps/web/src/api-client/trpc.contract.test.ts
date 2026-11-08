@@ -9,42 +9,45 @@ const pact = new PactV4({
   dir: process.env.PACT_DIR ?? join(tmpdir(), 'art-pact'),
 });
 
-it('greeting.greet returns the batch response the web consumes', async () => {
-  await pact
-    .addInteraction()
-    .uponReceiving('greeting.greet for Ada')
-    .withRequest('GET', '/trpc/greeting.greet', (request) => {
-      request.query({ batch: '1', input: JSON.stringify({ 0: { name: 'Ada' } }) });
-    })
-    .willRespondWith(200, (response) => {
-      response.jsonBody([{ result: { data: { message: 'Hello, Ada!' } } }]);
-    })
-    .executeTest(async (server) => {
-      await expect(
-        createTrpcClient(`${server.url}/trpc`).greeting.greet.query({ name: 'Ada' }),
-      ).resolves.toEqual({ message: 'Hello, Ada!' });
-    });
-});
-
-it('greeting.greet rejects blank names with the tRPC error envelope', async () => {
+it('todos.add returns the batch response the web consumes', async () => {
   const { like } = MatchersV3;
   await pact
     .addInteraction()
-    .uponReceiving('greeting.greet with a blank name')
-    .withRequest('GET', '/trpc/greeting.greet', (request) => {
-      request.query({ batch: '1', input: JSON.stringify({ 0: { name: '   ' } }) });
+    .uponReceiving('todos.add for Read the review')
+    .withRequest('POST', '/trpc/todos.add', (request) => {
+      request.query({ batch: '1' }).jsonBody({ 0: { title: 'Read the review' } });
+    })
+    .willRespondWith(200, (response) => {
+      response.jsonBody([
+        { result: { data: { id: like('a-to-do-id'), title: 'Read the review', done: false } } },
+      ]);
+    })
+    .executeTest(async (server) => {
+      await expect(
+        createTrpcClient(`${server.url}/trpc`).todos.add.mutate({ title: 'Read the review' }),
+      ).resolves.toEqual({ id: 'a-to-do-id', title: 'Read the review', done: false });
+    });
+});
+
+it('todos.add rejects a blank title with the tRPC error envelope', async () => {
+  const { like } = MatchersV3;
+  await pact
+    .addInteraction()
+    .uponReceiving('todos.add with a blank title')
+    .withRequest('POST', '/trpc/todos.add', (request) => {
+      request.query({ batch: '1' }).jsonBody({ 0: { title: '   ' } });
     })
     .willRespondWith(400, (response) => {
       response.jsonBody([
         {
           error: {
-            message: like('Invalid name'),
+            message: 'Enter a title',
             code: -32600,
             data: {
               code: 'BAD_REQUEST',
               httpStatus: 400,
               stack: like('Error'),
-              path: like('greeting.greet'),
+              path: 'todos.add',
             },
           },
         },
@@ -52,7 +55,7 @@ it('greeting.greet rejects blank names with the tRPC error envelope', async () =
     })
     .executeTest(async (server) => {
       await expect(
-        createTrpcClient(`${server.url}/trpc`).greeting.greet.query({ name: '   ' }),
-      ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
+        createTrpcClient(`${server.url}/trpc`).todos.add.mutate({ title: '   ' }),
+      ).rejects.toMatchObject({ message: 'Enter a title', data: { code: 'BAD_REQUEST' } });
     });
 });

@@ -94,37 +94,58 @@ afterEach(async () => {
 });
 
 describe('the API over real HTTP', () => {
+  interface MutationInput {
+    readonly title?: string;
+    readonly id?: string;
+  }
+  const post = (input: MutationInput) => ({ method: 'POST', body: JSON.stringify(input) });
+
   it.each([
     [
-      'trims the name',
-      'greeting.greet',
-      { name: '  Ada  ' },
+      'lists no to-dos on a fresh start',
+      'todos.list',
+      { method: 'GET' },
       200,
-      { result: { data: { message: 'Hello, Ada!' } } },
+      { result: { data: [] } },
     ],
     [
-      'rejects a blank name',
-      'greeting.greet',
-      { name: '   ' },
+      'adds a to-do with a normalised title',
+      'todos.add',
+      post({ title: '  Read   the review ' }),
+      200,
+      { result: { data: { title: 'Read the review', done: false } } },
+    ],
+    [
+      'rejects a blank title',
+      'todos.add',
+      post({ title: '   ' }),
       400,
-      { error: { data: { code: 'BAD_REQUEST' } } },
+      { error: { message: 'Enter a title', data: { code: 'BAD_REQUEST' } } },
+    ],
+    [
+      'answers not found for an unknown to-do',
+      'todos.delete',
+      post({ id: 'missing' }),
+      404,
+      { error: { message: 'No to-do has that id', data: { code: 'NOT_FOUND' } } },
     ],
     [
       'rejects an unknown procedure',
       'unknown',
-      { name: 'Ada' },
+      { method: 'GET' },
       404,
       { error: { data: { code: 'NOT_FOUND' } } },
     ],
-  ])('%s', async (_description, procedure, input, status, body) => {
+  ])('%s', async (_description, procedure, request, status, body) => {
     const port = await freePort();
     const { child, output } = startApi(String(port));
     await waitForListening(child, output);
     await waitForSocket(port);
-    const response = await fetch(
-      `http://127.0.0.1:${port}/trpc/${procedure}?input=${encodeURIComponent(JSON.stringify(input))}`,
-      { signal: AbortSignal.timeout(5_000) },
-    );
+    const response = await fetch(`http://127.0.0.1:${port}/trpc/${procedure}`, {
+      ...request,
+      headers: { 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(5_000),
+    });
     expect(response.status).toBe(status);
     await expect(response.json()).resolves.toMatchObject(body);
   });

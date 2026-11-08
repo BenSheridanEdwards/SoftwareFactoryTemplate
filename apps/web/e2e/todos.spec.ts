@@ -690,6 +690,9 @@ test.describe('Failures and refreshing', () => {
       window.dispatchEvent(new Event('offline'));
       window.dispatchEvent(new Event('online'));
     });
+    // A read the events start would go out at once; a second is ample time to see one.
+    await page.waitForTimeout(1_000);
+    expect(lists).toHaveLength(1);
     await failCalls(page, 'todos.delete');
     await page.getByRole('button', { name: 'Delete First' }).click();
     await expect(page.getByRole('alert')).toHaveText('Could not delete the to-do');

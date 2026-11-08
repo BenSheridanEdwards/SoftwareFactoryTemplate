@@ -1,1 +1,0 @@
-export { RecentGreetingsPage } from './RecentGreetingsPage';

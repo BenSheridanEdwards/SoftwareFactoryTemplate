@@ -3,30 +3,34 @@ import { render, screen } from '@testing-library/react';
 import { TestApiProvider } from './TestApiProvider';
 import { useTrpc } from './trpc';
 
-function GreetingProbe() {
+function TodosProbe() {
   const trpc = useTrpc();
-  const query = useQuery(trpc.greeting.greet.queryOptions({ name: 'Ada' }));
-  return <p>{query.error?.message ?? query.data?.message ?? 'waiting'}</p>;
+  const query = useQuery(trpc.todos.list.queryOptions());
+  return (
+    <p>{query.error?.message ?? query.data?.map(({ title }) => title).join(', ') ?? 'waiting'}</p>
+  );
 }
 
 it('answers a procedure from its handler', async () => {
   render(
-    <TestApiProvider handlers={{ 'greeting.greet': ({ name }) => ({ message: `Hi ${name}` }) }}>
-      <GreetingProbe />
+    <TestApiProvider
+      handlers={{ 'todos.list': () => [{ id: '1', title: 'Read the review', done: false }] }}
+    >
+      <TodosProbe />
     </TestApiProvider>,
   );
 
-  expect(await screen.findByText('Hi Ada')).toBeInTheDocument();
+  expect(await screen.findByText('Read the review')).toBeInTheDocument();
 });
 
 it('fails a procedure that the test gave no handler, naming it', async () => {
   render(
     <TestApiProvider handlers={{}}>
-      <GreetingProbe />
+      <TodosProbe />
     </TestApiProvider>,
   );
 
   expect(
-    await screen.findByText('TestApiProvider has no handler for greeting.greet'),
+    await screen.findByText('TestApiProvider has no handler for todos.list'),
   ).toBeInTheDocument();
 });
