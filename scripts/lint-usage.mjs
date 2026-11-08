@@ -29,9 +29,9 @@ export function parseBiome(json) {
   );
 }
 
-export function parseOxlint(json) {
+export function parseOxlint(json, tool = 'oxlint') {
   return summarize(
-    'oxlint',
+    tool,
     json.diagnostics
       .filter((entry) => ['error', 'warning'].includes(entry.severity))
       .map((entry) => ({ rule: entry.code || 'unknown', file: entry.filename })),
@@ -55,7 +55,11 @@ export function record({ exitCode, env, git, run, append, now }) {
       : env.CURSOR_AGENT
         ? 'cursor'
         : null;
-  const tools = [parseBiome(JSON.parse(run('biome'))), parseOxlint(JSON.parse(run('oxlint')))];
+  const tools = [
+    parseBiome(JSON.parse(run('biome'))),
+    parseOxlint(JSON.parse(run('oxlint-policy')), 'oxlint-policy'),
+    parseOxlint(JSON.parse(run('oxlint'))),
+  ];
   const value = {
     schema: 1,
     timestamp: now().toISOString(),
@@ -103,7 +107,7 @@ function run(tool) {
           'oxlint',
           '--no-ignore',
           '--config',
-          '.oxlintrc.json',
+          tool === 'oxlint-policy' ? 'oxlint.config.ts' : '.oxlintrc.json',
           '--deny-warnings',
           '--format=json',
         ];

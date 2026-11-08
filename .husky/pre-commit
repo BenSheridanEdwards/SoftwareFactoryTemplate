@@ -2,18 +2,31 @@
 set -e
 trap 'status=$?; node scripts/lint-usage.mjs --hook-exit "$status" || true; exit "$status"' EXIT
 
-# Pre-commit = the FAST gates; each step finishes in under 30 seconds (ADR 0062).
-# The up-to-date-with-main check runs on pre-push with the slower suite. See
-# `.agents/decisions/0002-quality-gates-as-code.md`.
+# Pre-commit = every lint, style and architecture gate, so an agent hears about a
+# rule break seconds after making it. Each step finishes in under 30 seconds
+# (ADR 0062, ADR 0125). The up-to-date-with-main check runs on pre-push with the
+# slower suite. See `.agents/decisions/0002-quality-gates-as-code.md`.
 
 echo "› typecheck"
 pnpm typecheck
 
-echo "› biome (lint + format + imports, staged only)"
+echo "› biome (format, import order, JSON and CSS lint, staged only)"
 pnpm exec biome check --error-on-warnings --staged --no-errors-on-unmatched .
+
+echo "› oxlint (all lint: general, policy, naming, React, Tailwind and React Doctor rules)"
+pnpm lint:policy
+
+echo "› style tokens (CSS and index.html on the @repo/ui design tokens)"
+pnpm lint:styles
 
 echo "› anti-slop (vendored Oxlint rules)"
 pnpm lint:anti-slop
+
+echo "› suppression ban (no inline lint or coverage suppressions)"
+pnpm check:suppressions
+
+echo "› architecture gate (fallow zones, folder structure, role diagram)"
+pnpm arch:gate
 
 echo "› fallow (code intelligence: dead code, cycles, complexity)"
 pnpm fallow:audit
