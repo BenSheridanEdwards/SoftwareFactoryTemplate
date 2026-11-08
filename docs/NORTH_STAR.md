@@ -164,8 +164,8 @@ allowlist ([ADR 0084](../.agents/decisions/0084-reject-every-inline-suppression.
 Label standards without gates as targets. Close aliases, re-exports, inline disables and config edits around
 a rule before calling it finished. Changes that loosen or rewrite enforcement need the approver's sign-off on the
 exact commit ([ADR 0024](../.agents/decisions/0024-sign-off-only-loosening-enforcement-changes.md)). Biome
-owns formatting and import order; Oxlint owns every lint rule, including general, policy, hooks, Compiler and React
-Doctor rules; the React Doctor CLI owns project checks.
+owns formatting, import order and JSON and CSS lint; Oxlint owns every other lint rule, including general, policy,
+hooks, Compiler and React Doctor rules; the React Doctor CLI owns project checks.
 
 ### 2. Layers import downward, slices stand alone, decisions live in ADRs
 

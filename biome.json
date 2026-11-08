@@ -45,5 +45,16 @@
   },
   "linter": {
     "enabled": false
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.json", "**/*.jsonc", "**/*.css"],
+      "linter": {
+        "enabled": true,
+        "rules": {
+          "preset": "recommended"
+        }
+      }
+    }
+  ]
 }

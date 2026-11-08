@@ -2,13 +2,14 @@
  * @jest-environment node
  */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REPOSITORY_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const OXLINT_BIN = resolve(REPOSITORY_ROOT, 'node_modules/.bin/oxlint');
+const BIOME_BIN = resolve(REPOSITORY_ROOT, 'node_modules/.bin/biome');
 
 /**
  * Lints one seeded file with the real Oxlint CLI and the repo's own
@@ -171,4 +172,65 @@ it.each([
   ],
 ])('rejects %s in any test file', (_name, source, rule) => {
   expect(lintSeed('scripts/example.test.ts', source).rules).toContain(rule);
+});
+
+/**
+ * Runs `biome check` with the repo's own `biome.json` on seeded files and
+ * returns the lint rules it reports.
+ */
+function biomeSeed(files: Record<string, string>) {
+  const directory = mkdtempSync(join(tmpdir(), 'biome-lint-'));
+  try {
+    copyFileSync(join(REPOSITORY_ROOT, 'biome.json'), join(directory, 'biome.json'));
+    Object.entries(files).forEach(([path, source]) => {
+      mkdirSync(dirname(join(directory, path)), { recursive: true });
+      writeFileSync(join(directory, path), source);
+    });
+    const run = spawnSync(
+      BIOME_BIN,
+      ['check', '--vcs-enabled=false', '--error-on-warnings', '--reporter=json', '.'],
+      { cwd: directory, encoding: 'utf8' },
+    );
+    const report: { diagnostics: { category: string }[] } = JSON.parse(run.stdout);
+    return {
+      status: run.status,
+      rules: report.diagnostics.map(({ category }) => category),
+    };
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+describe('Biome lints JSON and CSS only', () => {
+  it.each([
+    [
+      'a duplicate JSON key',
+      'config.json',
+      '{ "a": 1, "a": 2 }\n',
+      'lint/suspicious/noDuplicateObjectKeys',
+    ],
+    [
+      'a duplicate JSONC key',
+      'config.jsonc',
+      '{ "a": 1, "a": 2 }\n',
+      'lint/suspicious/noDuplicateObjectKeys',
+    ],
+    [
+      'a duplicate CSS property',
+      'styles.css',
+      '.box {\n  color: red;\n  color: blue;\n}\n',
+      'lint/suspicious/noDuplicateProperties',
+    ],
+  ])('rejects %s', (_name, path, source, rule) => {
+    const result = biomeSeed({ [path]: source });
+    expect(result.status).toBe(1);
+    expect(result.rules).toContain(rule);
+  });
+
+  it('leaves TypeScript lint to Oxlint', () => {
+    expect(biomeSeed({ 'value.ts': 'debugger;\nexport var value: any = 1;\n' })).toEqual({
+      status: 0,
+      rules: [],
+    });
+  });
 });

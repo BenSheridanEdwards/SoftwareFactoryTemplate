@@ -1,4 +1,4 @@
-# 126. Oxlint owns all lint; Biome only formats
+# 126. Oxlint owns all code lint; Biome formats and lints JSON and CSS
 
 - **Status:** Proposed (the maintainer accepts it by approving the PR)
 - **Date:** 2026-11-08
@@ -81,7 +81,8 @@ still wins.
 
 ## Decision
 
-- Oxlint owns every lint rule. `pnpm lint:policy` runs `oxlint.config.ts`,
+- Oxlint owns every lint rule for JavaScript and TypeScript.
+  `pnpm lint:policy` runs `oxlint.config.ts`,
   which spreads `tooling/oxlint-general-rules.ts` into its root rules: 170
   native rules, each naming the Biome rule it replaces, including the React
   and test domain rules. They run in every linted file, not only where Biome's
@@ -98,19 +99,28 @@ still wins.
   `unicorn/filename-case`, the ports of Biome's naming override.
 - The 47 React Doctor rules that Biome owned stay excluded; each now names
   the native Oxlint rule that owns its check.
-- `biome.json` sets `linter.enabled` to `false`. Biome formats and orders
-  imports through `pnpm check` and the staged pre-commit step.
+- `biome.json` sets `linter.enabled` to `false`, then turns Biome's
+  recommended rules back on for `.json`, `.jsonc` and `.css` files only,
+  through one override. Oxlint cannot parse JSON or CSS, so Biome keeps the
+  checks for those files: duplicate JSON keys (`noDuplicateObjectKeys`) and
+  the 25 CSS rules, such as duplicate, unknown or overridden properties and
+  unknown units. Biome formats every file and orders imports. The staged
+  pre-commit step (`biome check --staged`) and `pnpm check` in `pnpm verify`
+  and CI run both. No JavaScript or TypeScript file gets a Biome lint rule.
 - `scripts/lint-usage.mjs` records `pnpm lint:policy` findings at each
   pre-commit attempt as well as Biome and anti-slop findings
   ([ADR 0100](0100-record-per-rule-lint-failures-on-every-pre-commit.md)).
 
 ## Consequences
 
-An agent reads every lint finding from one engine and one config. The rules
-listed above as having no equivalent stop running. Some of them are
-correctness checks, such as `noStringCaseMismatch` and the CSS rules that
-reject unknown properties or units; tests, `tsc`, `pnpm lint:styles` and
-review are the remaining defence. Turning Biome's linter off is a loosening
+An agent reads every finding in JavaScript and TypeScript from one engine and
+one config, and every finding in JSON and CSS from Biome. Of the 33 rules with
+no Oxlint equivalent, the 25 CSS rules keep running in Biome. The other eight
+stop running: the seven JavaScript rules listed above and
+`noDuplicateAttributes`, the one HTML rule, which applies to
+`apps/web/index.html` only. Some are correctness checks, such as
+`noStringCaseMismatch`; tests, `tsc`, `pnpm lint:styles` and review are the
+remaining defence. Turning Biome's linter off is a loosening
 that the enforcement gate reports, so this change needs the approver's
 sign-off.
 
@@ -121,23 +131,19 @@ This is an accepted loss: scripts and tooling hold no classes with static
 members, `tsc` strict mode reports most implicit `any` from an untyped `let`,
 and `flatMap((x) => x)` is a style slip, not a fault.
 
-### Open question for the maintainer: duplicate JSON keys and CSS properties
+### JSON and CSS stay with Biome
 
-Biome's linter also read the 30 tracked JSON and JSONC files and the two CSS
-files. With it off, nothing reports a duplicate JSON key
-(`noDuplicateObjectKeys`) or a duplicate CSS property
-(`noDuplicateProperties`); a probe with one of each passes `biome check`,
-`pnpm lint:policy` and `pnpm lint:styles` on this branch. A duplicate key in
-`package.json`, a `tsconfig` or a lint config silently keeps the last value.
-This record does not decide the fix. The options are:
+With Biome's linter fully off, nothing reported a duplicate JSON key or a
+duplicate CSS property: a probe with one of each passed `biome check`,
+`pnpm lint:policy` and `pnpm lint:styles`. A duplicate key in `package.json`,
+a `tsconfig` or a lint config silently keeps the last value. The maintainer
+chose to keep Biome's linter for the 30 tracked JSON and JSONC files and the
+two CSS files over writing a duplicate-key script, because Oxlint cannot
+parse either format and Biome already ships the checks. This is the one
+exception to Oxlint owning lint. `scripts/general-lint.test.ts` holds it:
+Biome rejects a duplicate JSON, JSONC and CSS key, and reports nothing on a
+TypeScript file. The current tree has no finding under the override.
 
-1. Keep Biome's linter for `.json`, `.jsonc` and `.css` files only, through a
-   `biome.json` override that enables those rules and nothing else. This keeps
-   Biome's own checks but brings back a second lint engine for two file types.
-2. Add a small duplicate-key check script that parses each tracked JSON and CSS
-   file and fails on a repeated key or property, run by pre-commit and CI.
-   This keeps one lint engine but adds a script to maintain.
-
-To revert, set `linter.enabled` back to `true` in `biome.json`, restore its
-rule blocks and naming override, and remove the general rules spread and the
-naming plugin from `oxlint.config.ts`.
+To revert, set `linter.enabled` back to `true` in `biome.json`, replace the
+JSON and CSS override with the previous rule blocks and naming override, and
+remove the general rules spread and the naming plugin from `oxlint.config.ts`.

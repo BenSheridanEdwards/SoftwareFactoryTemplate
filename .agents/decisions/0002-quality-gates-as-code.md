@@ -26,8 +26,8 @@ earliest point it can fail:
   security audit.
 
 Amended by [ADR 0126](0126-oxlint-owns-all-lint-biome-only-formats.md): the
-pre-commit Biome step now formats and orders imports only, and Oxlint
-(`pnpm lint:policy`) owns lint.
+pre-commit Biome step now formats, orders imports and lints JSON and CSS
+only, and Oxlint (`pnpm lint:policy`) owns the rest of lint.
 
 The local hooks and CI run the *same* checks, so "passes on my machine" and
 "passes in CI" converge. `pnpm verify` is the single local command that mirrors

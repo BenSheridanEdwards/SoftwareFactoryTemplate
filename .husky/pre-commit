@@ -10,7 +10,7 @@ trap 'status=$?; node scripts/lint-usage.mjs --hook-exit "$status" || true; exit
 echo "› typecheck"
 pnpm typecheck
 
-echo "› biome (format + import order, staged only)"
+echo "› biome (format, import order, JSON and CSS lint, staged only)"
 pnpm exec biome check --error-on-warnings --staged --no-errors-on-unmatched .
 
 echo "› oxlint (all lint: general, policy, naming, React, Tailwind and React Doctor rules)"
