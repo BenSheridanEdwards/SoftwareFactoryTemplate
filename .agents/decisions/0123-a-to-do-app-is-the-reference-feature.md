@@ -110,8 +110,9 @@ lingered and failed the provider check; it now starts from a fresh file.
   build a to-do app beside a reference that is now a to-do app. The brief and
   its recorded runs stay as they are; whether the research project keeps
   that brief is a separate decision.
-- `.agents/templates/list-route.md` still points trial agents at
-  `routes/greeting/`. It belongs to the trial brief, so it changes with that
-  decision.
+- `.agents/templates/list-route.md` now points trial agents at
+  `routes/todos/` for Button, TextField, token and test patterns. The trial
+  prompts that name the greeting stay as they are: they are recorded
+  evidence.
 - The bundle, Lighthouse and coverage budgets stay where they are. The JS
   bundle grows from 107.67 kB to about 108.7 kB of its 110 kB limit.
