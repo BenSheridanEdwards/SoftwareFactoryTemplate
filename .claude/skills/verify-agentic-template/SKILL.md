@@ -1,12 +1,13 @@
 ---
 name: verify-agentic-template
-description: Launch, drive, and prove the Agentic Project Template web app (Vite + React greeting page backed by the tRPC api) the way a user does, in real Chromium, from a dev server or a CI-built dist artifact. Use to capture screenshots, ARIA snapshots, and video of a running instance as PR proof, or to check that an instance is worth driving. For the Playwright behaviour map that CI runs, use run-e2e-tests.
+description: Launch, drive, and prove the Agentic Project Template web app (Vite + React to-do page backed by the tRPC api) the way a user does, in real Chromium, from a dev server or a CI-built dist artifact. Use to capture screenshots, ARIA snapshots, and video of a running instance as PR proof, or to check that an instance is worth driving. For the Playwright behaviour map that CI runs, use run-e2e-tests.
 ---
 
 # Verify the Agentic Project Template app
 
-At `/`, a user enters a `Name` and presses `Greet`. The `Greeting` page calls `GET /trpc/greeting.greet`;
-Vite proxies `/trpc` to `apps/api/src/server.ts` in dev and preview. Use real data without mocks.
+At `/`, a user types a `Title` and presses `Add`. The `To-dos` page reads `GET /trpc/todos.list` and
+changes the list through `todos.*` mutations; Vite proxies `/trpc` to `apps/api/src/server.ts` in dev
+and preview. Use real data without mocks.
 The browser is the only user surface.
 
 `scripts/verify.mjs` owns the loop. Runs live in gitignored `.verify/<run-id>/`:
@@ -51,8 +52,8 @@ outside the repo: `pnpm verify` runs react-doctor, which flags minified bundles 
 
 `launch` chooses two free `127.0.0.1` ports. It starts `node apps/api/src/server.ts` with `PORT`,
 then Vite from `apps/web` (`apps/web/node_modules/.bin/vite`) with `--strictPort` and `API_ORIGIN`
-pointing `/trpc` to that api. It waits for page status 200, `Hello, Ada!` from `/trpc/greeting.greet`
-through the proxy, and the `Greeting` heading and `Name` field in Chromium, then prints
+pointing `/trpc` to that api. It waits for page status 200, a list from `/trpc/todos.list`
+through the proxy, and the `To-dos` heading and `Title` field in Chromium, then prints
 `READY run=<id> mode=<dev|preview> url=<url> pid=<pid> api=<port> apiPid=<pid>`.
 Omit `--run` for a timestamped id; different ids can run side by side.
 
@@ -77,7 +78,7 @@ node $V doctor --run pr-123
 ```
 
 This read-only command exits 1 on any `FAIL`. It checks both pids are alive: Vite belongs to this run
-and port; the api runs this checkout's `apps/api/src/server.ts`. It checks the page and greeting api
+and port; the api runs this checkout's `apps/api/src/server.ts`. It checks the page and to-do api
 answer and Chromium renders the app. The served build must match `HEAD`: launch commit in dev, `--sha` in preview.
 
 ## Drive
@@ -90,9 +91,9 @@ Built-in journeys have recipes in [`features/`](features/README.md):
 
 | Journey | Proves |
 | --- | --- |
-| `greeting` | A blank name shows `Enter a name` and sends nothing; `Ada` shows `Hello, Ada!` from one api call. |
-| `greeting-validation` | A whitespace name shows `Enter a name`, marks the field invalid, and sends nothing. |
-| `greeting-error` | A 500 from `/trpc` shows `Could not load the greeting`. |
+| `todos` | A blank title shows `Enter a title` and sends nothing; a spaced title is added normalised from one api call, marked done and deleted. |
+| `todos-validation` | A whitespace title shows `Enter a title` and a 101-character title `Use 100 characters or fewer`; neither sends a request. |
+| `todos-error` | A 500 from `todos.add` shows `Could not add the to-do` and keeps the typed title. |
 | `accessibility` | axe finds no WCAG A or AA violations, with and without the error; Tab reaches the field, then the button. |
 
 For new behaviour, pass a journey module's path. Default-export `{ id, feature, run }`;
@@ -100,14 +101,14 @@ For new behaviour, pass a journey module's path. Default-export `{ id, feature, 
 
 ```js
 export default {
-  id: 'greeting-grace',
-  feature: 'greeting',
+  id: 'todos-grace',
+  feature: 'todos',
   async run({ page, step, expect }) {
-    await step('greet Grace', async () => {
+    await step('add a to-do for Grace', async () => {
       await page.goto('/');
-      await page.getByRole('textbox', { name: 'Name' }).fill('Grace');
-      await page.getByRole('button', { name: 'Greet' }).click();
-      await expect(page.getByRole('status')).toHaveText('Hello, Grace!');
+      await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Call Grace');
+      await page.getByRole('button', { name: 'Add', exact: true }).click();
+      await expect(page.getByRole('checkbox', { name: 'Call Grace' })).toBeVisible();
     });
   },
 };
@@ -117,7 +118,7 @@ export default {
 node $V drive ./path/to/journey.mjs --run pr-123
 ```
 
-Locate by role and accessible name: labelled `textbox` and `button`, `status` for the greeting, `alert` for errors.
+Locate by role and accessible name: labelled `textbox` and `button`, checkboxes named by title, `status` while loading, `alert` for errors.
 
 ## Evidence
 

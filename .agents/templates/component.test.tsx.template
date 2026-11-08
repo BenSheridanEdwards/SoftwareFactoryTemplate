@@ -1,6 +1,6 @@
 // TEMPLATE — copy next to the component as __Name__.test.tsx, for example
 // <result>/web/src/routes/<route-name>/__Name__Page.test.tsx.
-// Model: apps/web/src/routes/greeting/GreetingPage.test.tsx.
+// Model: apps/web/src/routes/todos/TodosPage.test.tsx.
 //
 // Render through TestApiProvider from the api client whenever the component
 // (or a hook it calls) reaches the api. Give one typed handler per procedure

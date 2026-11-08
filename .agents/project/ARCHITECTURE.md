@@ -8,8 +8,9 @@ Each result pairs `web/` and `api/` packages. Root configs include all results
 by glob; a new result needs no gate config entry.
 
 `tooling/results.mjs` (`listResults`) discovers the reference first, then
-showcase folders with both package manifests, sorted by id. Copy the greeting
-feature's shape ([ADR 0032](../decisions/0032-api-ui-greeting-and-contract.md)).
+showcase folders with both package manifests, sorted by id. Copy the to-do
+feature's shape ([ADR 0032](../decisions/0032-api-ui-greeting-and-contract.md),
+[ADR 0123](../decisions/0123-a-to-do-app-is-the-reference-feature.md)).
 
 ## Roles
 
@@ -90,26 +91,26 @@ included ([ADR 0033](../decisions/0033-result-diagrams-and-structure-validation.
 
 ## The api file roles
 
-| File | Holds | Shape in the greeting feature |
+| File | Holds | Shape in the to-do feature |
 | --- | --- | --- |
-| `procedures.ts` | The feature's tRPC router. Each procedure validates its input with `.input(Schema.toStandardSchemaV1(schema))`, with `Schema` from `effect`, and delegates to application. It maps application errors to `TRPCError`. | `greetingRouter = router({ greet: procedure.input(Schema.toStandardSchemaV1(greetInputSchema)).query(({ input }) => greet(input)) })` |
-| `application.ts` | The use cases. It calls domain rules and integrations and knows no transport. | `greet(request)` returns `{ message: formatGreeting(request.name) }` |
-| `domain.ts` | Pure types and rules. It imports nothing by value: no tRPC, no Effect, no Node. | `Greeting`, `formatGreeting(name)` |
-| `integrations.ts` | Storage, including in-memory storage, and every effect: `fetch`, Node IO, `Effect.runPromise`, `Effect.runSync`, `Effect.runFork`. It imports domain types only; application calls domain rules and integrations. | The greeting needs none, so the file is absent. |
-| `index.ts` | The public surface: the feature's router. | `export { greetingRouter } from './procedures.ts';` |
+| `procedures.ts` | The feature's tRPC router. Each procedure validates its input with `.input(Schema.toStandardSchemaV1(schema))`, with `Schema` from `effect`, and delegates to application. It maps application errors to `TRPCError`. | `todosRouter = router({ add: procedure.input(Schema.toStandardSchemaV1(addInputSchema)).mutation(({ input }) => answer(addTodo(input))), ... })`; `answer` maps an `invalid-title` problem to `BAD_REQUEST` and `not-found` to `NOT_FOUND` |
+| `application.ts` | The use cases. It calls domain rules and integrations and knows no transport. | `addTodo(request)` checks the title with `checkTitle`, makes the to-do with `newTodo` and writes the longer list to the store |
+| `domain.ts` | Pure types and rules. It imports nothing by value: no tRPC, no Effect, no Node. | `Todo`, `normaliseTitle`, `checkTitle`, `withDone`, `withTitle`, `replaceTodo`, `removeTodo` |
+| `integrations.ts` | Storage, including in-memory storage, and every effect: `fetch`, Node IO, `Effect.runPromise`, `Effect.runSync`, `Effect.runFork`. It imports domain types only; application calls domain rules and integrations. | `createInMemoryTodos()` closes over the list and makes ids with `randomUUID`. |
+| `index.ts` | The public surface: the feature's router. | `export { todosRouter } from './procedures.ts';` |
 
 Mount each feature router through its `index.ts` in `api/src/router.ts`.
 
 Every relative import in the api names its `.ts` extension, because Node runs
 the source directly (`node src/server.ts`) and `tsconfig.api.json` resolves
-with `NodeNext`. Web code imports without extensions (`./routes/greeting`),
+with `NodeNext`. Web code imports without extensions (`./routes/todos`),
 because Vite resolves it.
 
 ## The web state model
 
 | State | Owner | Where |
 | --- | --- | --- |
-| Server state | TanStack Query through `useTrpc()` with `trpc.<router>.<procedure>.queryOptions(input)` or `.mutationOptions(options)` | a `use*` hook in the route folder, such as `useGreeting.ts` |
+| Server state | TanStack Query through `useTrpc()` with `trpc.<router>.<procedure>.queryOptions(input)` or `.mutationOptions(options)` | a `use*` hook in the route folder, such as `useTodos.ts` |
 | Form state | React Hook Form: `useForm({ resolver: standardSchemaResolver(Schema.toStandardSchemaV1(schema)), defaultValues })` | `use<Name>Form.ts`, with the schema in `<name>FormSchema.ts` in Effect Schema |
 | Local UI state | `useState` or `useReducer` | a `use*` hook |
 
@@ -125,7 +126,7 @@ After a mutation, invalidate the queries it changes in `onSuccess` with
 `queryClient.invalidateQueries({ queryKey: trpc.<router>.<procedure>.queryKey() })`.
 
 Route and hook tests use `TestApiProvider` with a typed handler per procedure
-path and exercise real hooks and providers. Copy the greeting page test;
+path and exercise real hooks and providers. Copy the to-do page test;
 a missing handler fails with `TestApiProvider has no handler for <path>`.
 
 ## The rules
@@ -205,7 +206,7 @@ in [`../decisions/`](../decisions) and give it a role in `.fallowrc.jsonc`.
 
 ## How to extend
 
-Use the greeting feature as the model at every step. Paths are shown for the
+Use the to-do feature as the model at every step. Paths are shown for the
 reference result; a trial result uses `showcase/<id>/` in place of `apps/`.
 
 ### Add an api feature
@@ -215,7 +216,7 @@ reference result; a trial result uses `showcase/<id>/` in place of `apps/`.
    storage or any effect.
 2. Write the domain and application tests first, then a procedures test through
    `createCallerFactory(<name>Router)({})`, as in
-   `apps/api/src/features/greeting/procedures.test.ts`.
+   `apps/api/src/features/todos/procedures.test.ts`.
 3. Mount the router in `apps/api/src/router.ts`: import
    `./features/<name>/index.ts` and add it to `router({ ... })`.
 
@@ -230,14 +231,14 @@ reference result; a trial result uses `showcase/<id>/` in place of `apps/`.
 
 ### Add a route
 
-1. Create `apps/web/src/routes/<route-name>/`, such as `greeting` or
-   `recent-greetings`, with `<Name>Page.tsx` and an
+1. Create `apps/web/src/routes/<route-name>/`, such as `todos`, with
+   `<Name>Page.tsx` and an
    `index.ts` that exports the page. For Todo and Notes, copy the exact
    [list-route inventory and signatures](../templates/list-route.md).
 2. Put server state in `use<Name>.ts` through `useTrpc()`, form state in
    `use<Name>Form.ts` and `<name>FormSchema.ts`, and each component in its own
    file built from `@repo/ui` primitives. Style it with Tailwind classes on the
-   theme scale and the `@repo/ui` tokens, as `routes/greeting/` does.
+   theme scale and the `@repo/ui` tokens, as `routes/todos/` does.
 3. Test the page and hooks through `TestApiProvider`.
 4. Mount the page in `apps/web/src/App.tsx`.
 5. Specify the behaviour in `apps/web/e2e/<route-name>.spec.ts`. Playwright

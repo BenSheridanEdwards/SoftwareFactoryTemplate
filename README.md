@@ -7,7 +7,7 @@
 A template for building software with coding agents. It gives agents the
 context, patterns and checks they need to work in the same codebase.
 Executable standards beat written promises. Consistency is infrastructure.
-The TypeScript, React and tRPC greeting app gives every gate real code to check.
+The TypeScript, React and tRPC to-do app gives every gate real code to check.
 A person owns the change, reviews the proof, merges and deploys.
 
 ## Take the fifteen-minute tour
@@ -32,7 +32,8 @@ pnpm verify           # the full local gate suite
 pnpm e2e              # every result's behaviour map and accessibility scans
 ```
 
-The greeting is deliberately small: enter a name and the api greets it back.
+The to-do app is the reference feature: add, mark done, edit, delete, filter and
+clear to-dos, with every visible detail in [its PRD](docs/prd/todos.md).
 Follow that slice when adding a feature.
 
 ## What's inside
@@ -44,7 +45,7 @@ Follow that slice when adding a feature.
 | [Fifteen-minute software factory tour](docs/software-factory-tour.md) | Seven readable stops with illustrated examples, source links and a clear path through the repository. |
 | [Definition of Done and PR contract](.agents/project/PR_QUALITY.md) | Completion criteria and the proof a reviewer needs. |
 | [Architecture](.agents/project/ARCHITECTURE.md) and [conventions](.agents/project/CONVENTIONS.md) | Module roles, allowed imports and code patterns; [templates](.agents/templates/) to copy. |
-| [Product intent](docs/prd/greeting.md) and [North Star](docs/NORTH_STAR.md) | The greeting's promises and the template's direction; [ADRs](.agents/decisions/) record decisions. |
+| [Product intent](docs/prd/todos.md) and [North Star](docs/NORTH_STAR.md) | The to-do app's promises and the template's direction; [ADRs](.agents/decisions/) record decisions. |
 | [Visual regression](apps/web/e2e/__screenshots__/README.md) | How the reference app's Playwright baselines are captured and updated. |
 | [Skills](.agents/skills/) | Workflows for adoption, tests, browser verification and PR proof. |
 | [Trials](.agents/TRIALS.md) | Running the Todo and Notes trials and reading their evidence. |

@@ -13,7 +13,7 @@ post-feature check before Done.
 ## Process
 
 1. Read `<result>/web/e2e/*.spec.ts`. The reference journeys are in
-   `apps/web/e2e/greeting.spec.ts`; the axe scan is in
+   `apps/web/e2e/todos.spec.ts`; the axe scan is in
    `apps/web/e2e/accessibility.spec.ts`. Read `.agents/project/ARCHITECTURE.md`
    for where behaviour belongs.
 2. Copy `.agents/templates/e2e-flow.spec.ts.template` to
@@ -33,7 +33,11 @@ post-feature check before Done.
 5. Exercise the result's real api through Vite's `/trpc` proxy. Wait for the
    procedure response (`page.waitForResponse` on `/trpc/<router>.<procedure>`),
    prove server validation with the `request` fixture, and prove the error
-   state with `page.route('**/trpc/**', ...)`. Follow `apps/web/e2e/greeting.spec.ts`.
+   state with `page.route(...)` on the failing procedure. Follow `apps/web/e2e/todos.spec.ts`.
+   Specs run in parallel against one api process. A spec that changes stored
+   data runs its tests in order (`test.describe.configure({ mode: 'default' })`)
+   and resets that data before each test; a spec that only reads serves its own
+   answer with `page.route`, as `serveTodos.ts` does.
 6. Update an existing feature PRD in `docs/prd/` in the same change, with each
    behaviour's `- Proved by [<test title>](<path to the spec>)` link. Renamed,
    skipped, or commented-out tests fail `pnpm check:docs` until the PRD links
@@ -46,7 +50,7 @@ pnpm e2e            # playwright test: every spec in each result's web/e2e/
 pnpm e2e:console-guard # real-browser fixture proof with captured child failures
 pnpm e2e:install    # one-time: install the Chromium browser
 pnpm exec playwright test --project reference                      # only the apps/ result
-pnpm exec playwright test apps/web/e2e/greeting.spec.ts --headed   # watch one spec run
+pnpm exec playwright test apps/web/e2e/todos.spec.ts --headed      # watch one spec run
 pnpm exec playwright show-report                                   # open the last HTML report
 ```
 

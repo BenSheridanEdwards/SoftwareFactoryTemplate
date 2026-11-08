@@ -7,7 +7,7 @@ A change is done when every checklist item holds and deterministic evidence veri
 ## The checklist
 
 - [ ] Installs stay stable. `pnpm check:lockfile` passes fresh installation and addition of two showcase importers without unrelated lockfile drift.
-- [ ] Behaviour is specified. New or changed behaviour is covered by a spec in the result's `web/e2e/` folder (the behaviour map), such as `apps/web/e2e/greeting.spec.ts`. The product's contract is explicit.
+- [ ] Behaviour is specified. New or changed behaviour is covered by a spec in the result's `web/e2e/` folder (the behaviour map), such as `apps/web/e2e/todos.spec.ts`. The product's contract is explicit.
 - [ ] Logic is unit-tested. Domain, application and procedures have `api` Jest tests; hooks and pages have `web` Jest tests that render through `TestApiProvider`. Coverage stays at/above the threshold in `jest.config.ts` (80%).
 - [ ] Types check. `pnpm typecheck` passes its four programs, `tsconfig.json` (web and ui), `tsconfig.node.json` (configs and e2e), `tsconfig.api.json` (api) and `tsconfig.domain.json` (api domain, no Node), with no `any` and no weakened config.
 - [ ] Lint + format clean. `pnpm check` (Biome), `pnpm lint:policy` (Oxlint), `pnpm lint:anti-slop` (Oxlint anti-slop rules), and `pnpm react-doctor` pass; every disabled rule carries a written reason.

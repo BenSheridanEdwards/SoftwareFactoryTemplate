@@ -8,7 +8,7 @@
       "attributes": {
         "label": "Which PRD does this conflict with or supersede?",
         "description": "Give a docs/prd/<feature>.md path, or write None: new PRD for <feature>.",
-        "placeholder": "docs/prd/greeting.md"
+        "placeholder": "docs/prd/todos.md"
       },
       "validations": { "required": true }
     },
@@ -38,7 +38,7 @@
       "attributes": {
         "label": "E2E tests that would change",
         "description": "Optionally list the spec paths and test titles that would change to prove the proposed behaviour.",
-        "placeholder": "apps/web/e2e/greeting.spec.ts — test title and proposed change"
+        "placeholder": "apps/web/e2e/todos.spec.ts — test title and proposed change"
       },
       "validations": { "required": false }
     }

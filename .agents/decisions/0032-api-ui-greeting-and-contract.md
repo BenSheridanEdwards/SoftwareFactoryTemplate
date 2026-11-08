@@ -2,8 +2,9 @@
 
 - **Status:** Accepted (merged in #90), amended by
   [0036](0036-effect-4.md), [0037](0037-type-only-edges-and-flagged-re-exports.md),
-  [0046](0046-fail-lint-on-warnings.md) and
-  [0054](0054-domain-rules-in-application-and-a-fixed-api-client-surface.md)
+  [0046](0046-fail-lint-on-warnings.md),
+  [0054](0054-domain-rules-in-application-and-a-fixed-api-client-surface.md) and
+  [0123](0123-a-to-do-app-is-the-reference-feature.md)
 - **Date:** 2026-10-17
 - **Implements:** [0008](0008-convert-template-into-the-monorepo.md),
   [0011](0011-effect-schema-everywhere.md),

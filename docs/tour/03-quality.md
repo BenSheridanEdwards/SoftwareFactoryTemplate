@@ -4,12 +4,12 @@ Check the unwanted consequence as well as the visible result.
 
 ![Checking the warning alone can miss an unwanted API request. The existing browser test checks the warning and verifies the recorded request list is empty.](assets/03-quality.svg)
 
-The requirement makes two promises for a blank name: show `Enter a name` and send zero API requests. An implementation could display the right warning while still sending the request. That is the illustrated fault above.
+The requirement makes two promises for a blank title: show `Enter a title` and send zero `todos.add` requests. An implementation could display the right warning while still sending the request. That is the illustrated fault above.
 
-A test that checks only the warning could pass that faulty implementation. The existing [browser test](../../apps/web/e2e/greeting.spec.ts#L33-L50) also records requests to `/trpc` and checks the list:
+A test that checks only the warning could pass that faulty implementation. The existing [browser test](../../apps/web/e2e/todos.spec.ts#L201-L211) also records `todos.add` requests and checks the list:
 
 ```ts
-expect(apiCalls).toEqual([]);
+expect(sent).toEqual([]);
 ```
 
 That assertion matters because it checks a consequence that stays invisible to the visitor. A visible warning is evidence about the message; the request assertion checks whether the invalid action was stopped.
@@ -18,7 +18,7 @@ To test the test itself, deliberately introduce the unwanted request in a test c
 
 The same discipline applies to source rules: exercise an allowed example as well as a violation, and choose rules that prevent a mistake the team cares about.
 
-**Follow the source:** [Requirement](../prd/greeting.md) · [Complete browser test](../../apps/web/e2e/greeting.spec.ts#L33-L50) · [Optional: rejected and accepted type-rule examples](../../scripts/anti-slop-lint.test.ts#L66-L84)
+**Follow the source:** [Requirement](../prd/todos.md) · [Complete browser test](../../apps/web/e2e/todos.spec.ts#L201-L211) · [Optional: rejected and accepted type-rule examples](../../scripts/anti-slop-lint.test.ts#L66-L84)
 
 ---
 

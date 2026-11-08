@@ -5,83 +5,107 @@
  */
 import AxeBuilder from '@axe-core/playwright';
 
-/** Counts the requests the page sends to the api, so a step can prove none left. */
-function watchApiCalls(page) {
+/** Records the requests the page sends to one procedure, so a step can prove none left. */
+function watchCalls(page, procedure) {
   const calls = [];
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname.startsWith('/trpc/')) {
+    if (new URL(request.url()).pathname.replace('/trpc/', '').split(',').includes(procedure)) {
       calls.push(request.url());
     }
   });
   return calls;
 }
 
-async function submitName(page, name) {
-  const field = page.getByRole('textbox', { name: 'Name' });
-  await field.fill(name);
-  await page.getByRole('button', { name: 'Greet' }).click();
+async function openTodos(page, expect) {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: 'To-dos' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Filter' })).toBeVisible();
 }
 
-const greeting = {
-  id: 'greeting',
-  feature: 'greeting',
-  async run({ page, step, expect }) {
-    const calls = watchApiCalls(page);
+async function addTitle(page, title) {
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill(title);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+}
 
-    await step('open the greeting page', async () => {
-      await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1, name: 'Greeting' })).toBeVisible();
-      await expect(page.getByRole('status')).toHaveText('');
-    });
-    await step('a blank name asks for a name and sends nothing', async () => {
-      await submitName(page, '');
-      await expect(page.getByRole('alert')).toHaveText('Enter a name');
-      expect(calls).toEqual([]);
-    });
-    await step('a name gets its greeting from the api', async () => {
-      const answered = page.waitForResponse((response) =>
-        response.url().includes('/trpc/greeting.greet'),
+const todos = {
+  id: 'todos',
+  feature: 'todos',
+  async run({ page, step, expect }) {
+    const adds = watchCalls(page, 'todos.add');
+    const title = `Buy milk ${Date.now()}`;
+
+    await step('open the to-do page', async () => {
+      await openTodos(page, expect);
+      await expect(page.getByRole('button', { name: 'All', exact: true })).toHaveAttribute(
+        'aria-pressed',
+        'true',
       );
-      await submitName(page, 'Ada');
+    });
+    await step('a blank title asks for a title and sends nothing', async () => {
+      await addTitle(page, '');
+      await expect(page.getByRole('alert')).toHaveText('Enter a title');
+      expect(adds).toEqual([]);
+    });
+    await step('a title is added through the api', async () => {
+      const answered = page.waitForResponse((response) =>
+        response.url().includes('/trpc/todos.add'),
+      );
+      await addTitle(page, `  ${title.replace(' ', '   ')} `);
       expect((await answered).status()).toBe(200);
-      await expect(page.getByRole('status')).toHaveText('Hello, Ada!');
-      await expect(page.getByRole('alert')).toHaveCount(0);
-      expect(calls).toHaveLength(1);
+      await expect(page.getByRole('checkbox', { name: title, exact: true })).not.toBeChecked();
+      await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('');
+      expect(adds).toHaveLength(1);
+    });
+    await step('the to-do is marked done', async () => {
+      await page.getByRole('checkbox', { name: title, exact: true }).click();
+      await expect(page.getByRole('checkbox', { name: title, exact: true })).toBeChecked();
+    });
+    await step('the to-do is deleted', async () => {
+      await page.getByRole('button', { name: `Delete ${title}`, exact: true }).click();
+      await expect(page.getByRole('checkbox', { name: title, exact: true })).toHaveCount(0);
     });
   },
 };
 
-const greetingValidation = {
-  id: 'greeting-validation',
-  feature: 'greeting',
+const todosValidation = {
+  id: 'todos-validation',
+  feature: 'todos',
   async run({ page, step, expect }) {
-    const calls = watchApiCalls(page);
+    const adds = watchCalls(page, 'todos.add');
 
-    await step('a whitespace name asks for a name and sends nothing', async () => {
-      await page.goto('/');
-      await submitName(page, '   ');
-      await expect(page.getByRole('alert')).toHaveText('Enter a name');
-      await expect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute(
+    await step('a whitespace title asks for a title and sends nothing', async () => {
+      await openTodos(page, expect);
+      await addTitle(page, '   ');
+      await expect(page.getByRole('alert')).toHaveText('Enter a title');
+      await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveAttribute(
         'aria-invalid',
         'true',
       );
-      expect(calls).toEqual([]);
+      expect(adds).toEqual([]);
+    });
+    await step('a 101-character title is too long and sends nothing', async () => {
+      await addTitle(page, 'a'.repeat(101));
+      await expect(page.getByRole('alert')).toHaveText('Use 100 characters or fewer');
+      expect(adds).toEqual([]);
     });
   },
 };
 
-const greetingError = {
-  id: 'greeting-error',
-  feature: 'greeting',
+const todosError = {
+  id: 'todos-error',
+  feature: 'todos',
   async run({ page, step, expect }) {
-    await page.route('**/trpc/**', (route) =>
+    await page.route('**/trpc/todos.add**', (route) =>
       route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
     );
 
-    await step('a failing api shows the error', async () => {
-      await page.goto('/');
-      await submitName(page, 'Ada');
-      await expect(page.getByRole('alert')).toHaveText('Could not load the greeting');
+    await step('a failing add shows the error and keeps the typed title', async () => {
+      await openTodos(page, expect);
+      await addTitle(page, 'Call Ada');
+      await expect(page.getByRole('alert')).toHaveText('Could not add the to-do');
+      await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
+        'Call Ada',
+      );
     });
   },
 };
@@ -97,30 +121,25 @@ const accessibility = {
       expect(results.violations.map(({ id, help }) => `${id}: ${help}`)).toEqual([]);
     };
 
-    await step('the greeting page has no WCAG A or AA violations', async () => {
-      await page.goto('/');
-      await expect(page.getByRole('button', { name: 'Greet' })).toBeVisible();
+    await step('the to-do page has no WCAG A or AA violations', async () => {
+      await openTodos(page, expect);
       await scan();
     });
     await step('the validation error has no WCAG A or AA violations', async () => {
-      await submitName(page, '');
-      await expect(page.getByRole('alert')).toHaveText('Enter a name');
+      await addTitle(page, '');
+      await expect(page.getByRole('alert')).toHaveText('Enter a title');
       await scan();
     });
     await step('keyboard tab order reaches the field, then the button', async () => {
-      await page.goto('/');
-      await expect(page.getByRole('button', { name: 'Greet' })).toBeVisible();
+      await openTodos(page, expect);
       await page.keyboard.press('Tab');
-      await expect(page.getByRole('textbox', { name: 'Name' })).toBeFocused();
+      await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeFocused();
       await page.keyboard.press('Tab');
-      await expect(page.getByRole('button', { name: 'Greet' })).toBeFocused();
+      await expect(page.getByRole('button', { name: 'Add', exact: true })).toBeFocused();
     });
   },
 };
 
 export const JOURNEYS = Object.fromEntries(
-  [greeting, greetingValidation, greetingError, accessibility].map((journey) => [
-    journey.id,
-    journey,
-  ]),
+  [todos, todosValidation, todosError, accessibility].map((journey) => [journey.id, journey]),
 );

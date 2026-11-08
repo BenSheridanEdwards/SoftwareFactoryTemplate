@@ -1,7 +1,7 @@
 // TEMPLATE — copy to <result>/web/e2e/<route-name>.spec.ts, for example
 // apps/web/e2e/<route-name>.spec.ts. Playwright (`pnpm e2e`) runs every spec in
 // each result's web/e2e/ against that result's real api and Vite servers.
-// Model: apps/web/e2e/greeting.spec.ts.
+// Model: apps/web/e2e/todos.spec.ts.
 //
 // This is the BEHAVIOUR MAP: the product's contract from the user's point of
 // view. Drive the real UI; assert via the accessibility tree. Keep it about

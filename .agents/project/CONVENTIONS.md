@@ -12,10 +12,10 @@ The Oxlint rules and Biome naming override run on `{apps,packages}/*/src/**` and
 | Parse a boundary value with Effect Schema before branching on it. | Oxlint `anti-slop/no-runtime-typeof` in package sources (`pnpm lint:anti-slop`) rejects runtime `typeof`; review checks the boundary parser. |
 | Folders under a package `src/` are kebab-case (`name-input`). | Oxlint `policy/folder-names` |
 | Each folder under a package `src/` is named for its role (`name-input`, `api-client`). Code in a catch-all folder (`utils`, `helpers`, `lib`, `common`, `shared`, `misc`) moves into the slice that uses it, or into `@repo/ui` when it is a shared UI primitive. | Oxlint `policy/role-named-folders` |
-| Each test sits beside its subject as `<Name>.test.ts(x)` or `<Name>.<kind>.test.ts(x)` (`GreetingPage.a11y.test.tsx` beside `GreetingPage.tsx`), outside any `__tests__/` folder. A source file with no test is fine; coverage thresholds decide what is tested. | Oxlint `policy/test-beside-subject` |
+| Each test sits beside its subject as `<Name>.test.ts(x)` or `<Name>.<kind>.test.ts(x)` (`TodosPage.a11y.test.tsx` beside `TodosPage.tsx`), outside any `__tests__/` folder. A source file with no test is fine; coverage thresholds decide what is tested. | Oxlint `policy/test-beside-subject` |
 | Identifiers: `camelCase` functions and variables, `PascalCase` types and components, `SCREAMING_SNAKE_CASE` for true configuration constants. | Biome `style/useNamingConvention` |
 | File names are camelCase, PascalCase, or the name of their export. | Biome `style/useFilenamingConvention` |
-| A component or hook lives in the file of the same name (`GreetingForm.tsx`, `useGreeting.ts`). | Oxlint `policy/file-matches-export` |
+| A component or hook lives in the file of the same name (`TodoForm.tsx`, `useTodos.ts`). | Oxlint `policy/file-matches-export` |
 | Keep block nesting to four levels. | Oxlint `max-depth` |
 | Return early without else, including else if. | Oxlint `no-else-return` in every file |
 | Flatten lonely if and nested conditional expressions in result roots. | Oxlint `no-lonely-if`, `no-nested-ternary` |
@@ -34,12 +34,12 @@ The Oxlint rules and Biome naming override run on `{apps,packages}/*/src/**` and
 | `useForm` takes `resolver: standardSchemaResolver(Schema.toStandardSchemaV1(schema))`, with `standardSchemaResolver` from `@hookform/resolvers/standard-schema` and `Schema` from `effect`. | Oxlint `policy/form-uses-effect-schema` |
 | Every api procedure input is `.input(Schema.toStandardSchemaV1(schema))` with `Schema` from `effect`. | Oxlint `policy/procedure-input-schema` |
 | Derived values are computed during render instead of copied into state by an effect. | Oxlint `react/set-state-in-effect`, `react-doctor/no-derived-state`, `react-doctor/no-mirror-prop-effect` |
-| Functions defined inside a component start with `handle` (`handleGreet`). | Oxlint `policy/handler-names` |
-| Callback props start with `on` (`onGreet`). | Oxlint `policy/callback-prop-names` |
+| Functions defined inside a component start with `handle` (`handleAdd`). | Oxlint `policy/handler-names` |
+| Callback props start with `on` (`onAdd`). | Oxlint `policy/callback-prop-names` |
 | Page components (`<Name>Page`) live in `src/routes/<route-name>/`. | Oxlint `policy/pages-in-routes`, Fallow `web-routes` zone |
 | Each file under `src/routes/` or `src/features/` sits in a slice folder, and a slice imports no sibling slice. | Oxlint `policy/slice-isolation` for static relative module references; Fallow child zones for `apps/web` routes. Computed specifiers and non-relative aliases remain a gap in the Oxlint rule. |
 | A relative import stays inside its package; other packages are imported by name (`@repo/ui`). | Oxlint `policy/slice-isolation` |
-| Another module imports a route, feature or api feature only through its `index.ts`: `./routes/greeting` in the web, `./features/greeting/index.ts` in the api. | Oxlint `no-restricted-imports` |
+| Another module imports a route, feature or api feature only through its `index.ts`: `./routes/todos` in the web, `./features/todos/index.ts` in the api. | Oxlint `no-restricted-imports` |
 | Every relative import in an api package names its `.ts` extension (`./application.ts`). | `pnpm typecheck` (`tsconfig.api.json`, `NodeNext`) and Node at runtime |
 | Api code uses only erasable TypeScript syntax and sees no DOM; web code has the DOM and no Node globals. | `pnpm typecheck` (`tsconfig.api.json` with `erasableSyntaxOnly`; `tsconfig.json` with the DOM libs and no Node types) |
 | Banned imports, calls and effects per role. | Fallow rule pack, reported as `contract/<id>` (`pnpm arch:gate`, `pnpm fallow:audit`) |
@@ -77,9 +77,9 @@ The [Fallow rule pack](../../tooling/architecture/contract.rules.jsonc) reports 
 
 | State | Owner | File |
 | --- | --- | --- |
-| Server state | TanStack Query through `useTrpc()` from the api client, with `queryOptions` or `mutationOptions` | `use<Name>.ts` in the route folder (`useGreeting.ts`) |
-| Form state | React Hook Form with `standardSchemaResolver(Schema.toStandardSchemaV1(schema))` and `defaultValues` | `use<Name>Form.ts` (`useGreetingForm.ts`) |
-| Form schema | Effect Schema | `<name>FormSchema.ts` (`greetingFormSchema.ts`) |
+| Server state | TanStack Query through `useTrpc()` from the api client, with `queryOptions` or `mutationOptions` | `use<Name>.ts` in the route folder (`useTodos.ts`) |
+| Form state | React Hook Form with `standardSchemaResolver(Schema.toStandardSchemaV1(schema))` and `defaultValues` | `use<Name>Form.ts` (`useTodoForm.ts`) |
+| Form schema | Effect Schema | `<name>FormSchema.ts` (`todoFormSchema.ts`) |
 | Local UI state | `useState` or `useReducer` | a `use*` hook |
 
 After a mutation, refresh the queries it changes in `onSuccess` with `queryClient.invalidateQueries({ queryKey: trpc.<router>.<procedure>.queryKey() })`.
@@ -94,7 +94,7 @@ After a mutation, refresh the queries it changes in `onSuccess` with `queryClien
 | `features/<name>/integrations.ts` | Storage, including in-memory storage, and every effect. |
 | `features/<name>/index.ts` | The public surface: the feature router. |
 
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full role table and greeting reference.
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full role table and to-do reference.
 
 ## Judgment calls
 
@@ -108,5 +108,5 @@ See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full role table and greeting re
 
 ## Enforced commit and branch conventions
 
-Use Conventional Commits, `type(scope): subject`, lower case with no trailing period (commitlint on `commit-msg`). Branches are `<type>/<short-kebab-summary>`, such as `feat/greeting-trim-name` (`PR quality`, `scripts/validate-pr-body.mjs`).
+Use Conventional Commits, `type(scope): subject`, lower case with no trailing period (commitlint on `commit-msg`). Branches are `<type>/<short-kebab-summary>`, such as `feat/todos-trim-title` (`PR quality`, `scripts/validate-pr-body.mjs`).
 Write subjects in the imperative mood and keep one logical change per commit.

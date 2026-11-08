@@ -1,6 +1,7 @@
 # 107. A second api feature proves feature isolation on the real tree
 
-- **Status:** Accepted (merged in #289)
+- **Status:** Accepted (merged in #289); amended by
+  [0123](0123-a-to-do-app-is-the-reference-feature.md), which removes recent greetings
 - **Date:** 2026-11-02
 
 ## Context

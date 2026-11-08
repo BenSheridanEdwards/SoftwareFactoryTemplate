@@ -1,6 +1,6 @@
 // TEMPLATE — copy to <result>/web/src/routes/<route-name>/__Name__.tsx (for example
 // apps/web/src/routes/<route-name>/) and replace the __PLACEHOLDERS__.
-// Model: apps/web/src/routes/greeting/GreetingForm.tsx and GreetingPage.tsx.
+// Model: apps/web/src/routes/todos/TodoForm.tsx and TodosPage.tsx.
 //
 // One component per file, named like the file. A component only renders: it
 // takes state from its use* hook (server state through useTrpc(), form state

@@ -2,20 +2,20 @@
 
 Follow one small promise from the product requirement to its assertions.
 
-![For a blank name, the page shows Enter a name and the test also checks that zero API requests are sent.](assets/02-intent.svg)
+![For a blank title, the page shows Enter a title and the test also checks that zero add requests are sent.](assets/02-intent.svg)
 
-The [greeting requirement](../prd/greeting.md) says a blank name must show `Enter a name`, mark the field invalid and send the API zero requests.
+The [to-do requirement](../prd/todos.md) says a blank title must show `Enter a title`, mark the field invalid and send the API zero `todos.add` requests.
 
-The [browser test](../../apps/web/e2e/greeting.spec.ts#L33-L50) observes both the page and outgoing requests:
+The [browser test](../../apps/web/e2e/todos.spec.ts#L201-L211) observes both the page and outgoing requests:
 
 ```ts
-await expect(page.getByRole('alert')).toHaveText('Enter a name');
-expect(apiCalls).toEqual([]);
+await expect(page.getByRole('alert')).toHaveText('Enter a title');
+expect(sent).toEqual([]);
 ```
 
-These are two assertions from a larger test. The second assertion checks the unwanted side effect that the visible error alone would miss. The full test starts observing requests before submitting the blank name.
+These are two assertions from a larger test. The second assertion checks the unwanted side effect that the visible error alone would miss. The full test starts recording `todos.add` requests before submitting the blank title.
 
-**Follow the source:** [Product requirement](../prd/greeting.md) · [Complete browser test](../../apps/web/e2e/greeting.spec.ts#L33-L50)
+**Follow the source:** [Product requirement](../prd/todos.md) · [Complete browser test](../../apps/web/e2e/todos.spec.ts#L201-L211)
 
 ---
 
