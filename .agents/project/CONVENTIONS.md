@@ -13,7 +13,7 @@ The Oxlint policy and naming rules run on `{apps,packages}/*/src/**` and `showca
 | Folders under a package `src/` are kebab-case (`name-input`). | Oxlint `policy/folder-names` |
 | Each folder under a package `src/` is named for its role (`name-input`, `api-client`). Code in a catch-all folder (`utils`, `helpers`, `lib`, `common`, `shared`, `misc`) moves into the slice that uses it, or into `@repo/ui` when it is a shared UI primitive. | Oxlint `policy/role-named-folders` |
 | Each test sits beside its subject as `<Name>.test.ts(x)` or `<Name>.<kind>.test.ts(x)` (`GreetingPage.a11y.test.tsx` beside `GreetingPage.tsx`), outside any `__tests__/` folder. A source file with no test is fine; coverage thresholds decide what is tested. | Oxlint `policy/test-beside-subject` |
-| Identifiers: `camelCase` functions and variables, `PascalCase` types and components, `SCREAMING_SNAKE_CASE` for true configuration constants. | Oxlint `naming/naming-convention` |
+| Identifiers in package sources: `camelCase` variables, parameters, functions, object, class and type members, and import or export aliases; `PascalCase` components, types, type parameters and enum members; `CONSTANT_CASE` only for top-level constants, static class properties and getters, and readonly type members; a top-level function may be `UPPERCASE` (`GET`); catch parameters are `camelCase`. Destructured, defaulted and rest bindings and namespaces follow the same rules. A leading or trailing `_` or `$` is ignored. Quoted keys that are not identifiers (`'Content-Type'`), shorthand destructured properties, named imports kept under their own name, `override` members and names declared in `declare module` or `declare global` are exempt. | Oxlint `naming/naming-convention` |
 | File names are camelCase, PascalCase, or the name of their export. | Oxlint `unicorn/filename-case` and `policy/file-matches-export` |
 | A component or hook lives in the file of the same name (`GreetingForm.tsx`, `useGreeting.ts`). | Oxlint `policy/file-matches-export` |
 | Keep block nesting to four levels. | Oxlint `max-depth` |
@@ -48,7 +48,7 @@ The Oxlint policy and naming rules run on `{apps,packages}/*/src/**` and `showca
 | `import type` for type-only imports. | Oxlint `typescript/consistent-type-imports`, `verbatimModuleSyntax` |
 | `interface` for object shapes, `type` for unions and aliases. | Oxlint `typescript/consistent-type-definitions` |
 | Import order. | Biome `organizeImports` |
-| Every block has a body; a handled error does something observable. | Oxlint `eslint/no-empty` |
+| Every block and function has a body; a caught error is used or named with a leading `_`. | Oxlint `eslint/no-empty`, `eslint/no-empty-function`, `eslint/no-unused-vars` (`caughtErrors: 'all'`) |
 | Use no `fallow-ignore` comment. | `pnpm check:suppressions`; the structure check also rejects this directive in result roots. |
 | Accessible, labelled controls and status regions. | Oxlint `jsx-a11y/*`, jest-axe, `@axe-core/playwright`, Lighthouse |
 | Bind with const. | Oxlint `policy/no-let` in result roots |

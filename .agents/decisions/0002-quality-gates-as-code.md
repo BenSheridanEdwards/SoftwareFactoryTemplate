@@ -1,6 +1,6 @@
 # 2. Quality gates are code, enforced locally and in CI
 
-- **Status:** Accepted, amended by [0028](0028-pre-push-runs-the-full-local-gate-suite.md) and [0062](0062-pre-commit-steps-stay-under-30-seconds.md)
+- **Status:** Accepted, amended by [0028](0028-pre-push-runs-the-full-local-gate-suite.md), [0062](0062-pre-commit-steps-stay-under-30-seconds.md) and [0126](0126-oxlint-owns-all-lint-biome-only-formats.md)
 - **Date:** 2026-06-17
 - **Superseded in part by:** [ADR 0073](0073-adopt-the-typescript-toolchain-standard.md)
   for Biome lint ownership; implementation follows in separate PRs.
@@ -24,6 +24,10 @@ earliest point it can fail:
   build smoke, and the end-to-end behaviour map.
 - **CI:** all of the above re-run on a clean checkout, plus dependency + secret
   security audit.
+
+Amended by [ADR 0126](0126-oxlint-owns-all-lint-biome-only-formats.md): the
+pre-commit Biome step now formats and orders imports only, and Oxlint
+(`pnpm lint:policy`) owns lint.
 
 The local hooks and CI run the *same* checks, so "passes on my machine" and
 "passes in CI" converge. `pnpm verify` is the single local command that mirrors

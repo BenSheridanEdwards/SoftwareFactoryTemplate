@@ -94,9 +94,10 @@ See [ADR 0028](../decisions/0028-pre-push-runs-the-full-local-gate-suite.md).
 
 - Biome owns formatting and import ordering; its linter is off
   ([ADR 0126](../decisions/0126-oxlint-owns-all-lint-biome-only-formats.md)).
-- Oxlint owns every lint rule. `pnpm lint:policy` runs the general rules in
-  `tooling/oxlint-general-rules.ts` (one native rule per Biome rule it
-  replaced), naming rules in package sources through
+- Oxlint owns every lint rule. `pnpm lint:policy` runs the 170 general rules
+  in `tooling/oxlint-general-rules.ts` in every linted file (the native
+  replacements for Biome's rules, including its React and test domain rules),
+  naming rules in package sources through
   `tooling/oxlint-plugin-naming.js`, and core and repository policy through
   `tooling/oxlint-plugin-policy.js`, native hooks and Compiler rules (`react/*`),
   and 349 React Doctor rules through `oxlint-plugin-react-doctor` with curated
