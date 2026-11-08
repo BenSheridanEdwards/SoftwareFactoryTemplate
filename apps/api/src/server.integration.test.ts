@@ -20,9 +20,10 @@ async function freePort() {
 }
 
 // A loaded machine can take several seconds to start Node; a healthy start takes
-// well under one. The test timeout leaves room for the startup and the request.
+// well under one. The test timeout exceeds the worst case: the log wait, the
+// socket wait (each STARTUP_TIMEOUT) and the 5-second request.
 const STARTUP_TIMEOUT = 15_000;
-const TEST_TIMEOUT = 30_000;
+const TEST_TIMEOUT = 40_000;
 
 function startApi(port: string) {
   const env = { ...process.env };
