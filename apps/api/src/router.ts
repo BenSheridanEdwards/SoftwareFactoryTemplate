@@ -1,8 +1,13 @@
-import { todosRouter } from './features/todos/index.ts';
+import { createTodosRouter } from './features/todos/index.ts';
 import { router } from './trpc.ts';
 
-export const appRouter = router({
-  todos: todosRouter,
-});
+/** The app router, each feature over its own new in-memory store. */
+export function createAppRouter() {
+  return router({
+    todos: createTodosRouter(),
+  });
+}
+
+export const appRouter = createAppRouter();
 
 export type AppRouter = typeof appRouter;

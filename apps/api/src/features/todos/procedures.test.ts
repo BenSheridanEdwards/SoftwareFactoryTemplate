@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server';
 import { createCallerFactory } from '../../trpc.ts';
-import { todosRouter } from './procedures.ts';
+import { createTodosRouter } from './procedures.ts';
 
-const caller = createCallerFactory(todosRouter)({});
+const caller = createCallerFactory(createTodosRouter())({});
 
 it('adds a to-do with a normalised title and lists it', async () => {
   const added = await caller.add({ title: '  Buy   milk ' });

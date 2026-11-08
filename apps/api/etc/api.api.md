@@ -71,6 +71,64 @@ meta: object;
 }>>;
 }>>;
 
+// @public
+export function createAppRouter(): TRPCBuiltRouter<    {
+ctx: object;
+meta: object;
+errorShape: TRPCDefaultErrorShape;
+transformer: false;
+}, TRPCDecorateCreateRouterOptions<    {
+todos: TRPCBuiltRouter<    {
+ctx: object;
+meta: object;
+errorShape: TRPCDefaultErrorShape;
+transformer: false;
+}, TRPCDecorateCreateRouterOptions<    {
+list: TRPCQueryProcedure<    {
+input: void;
+output: readonly Todo[];
+meta: object;
+}>;
+add: TRPCMutationProcedure<    {
+input: {
+readonly title: string;
+};
+output: Todo;
+meta: object;
+}>;
+setDone: TRPCMutationProcedure<    {
+input: {
+readonly id: string;
+readonly done: boolean;
+};
+output: Todo;
+meta: object;
+}>;
+rename: TRPCMutationProcedure<    {
+input: {
+readonly id: string;
+readonly title: string;
+};
+output: Todo;
+meta: object;
+}>;
+delete: TRPCMutationProcedure<    {
+input: {
+readonly id: string;
+};
+output: {
+readonly id: string;
+};
+meta: object;
+}>;
+clearDone: TRPCMutationProcedure<    {
+input: void;
+output: ClearedTodos;
+meta: object;
+}>;
+}>>;
+}>>;
+
 // (No @packageDocumentation comment for this package)
 
 ```

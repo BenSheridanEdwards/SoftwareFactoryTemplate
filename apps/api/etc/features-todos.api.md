@@ -9,8 +9,8 @@ import { TRPCMutationProcedure } from '@trpc/server';
 import { TRPCQueryProcedure } from '@trpc/server';
 import { TRPCRouterBuilder } from '@trpc/server';
 
-// @public (undocumented)
-export const todosRouter: ReturnType<typeof router<typeof todosProcedures>>;
+// @public
+export function createTodosRouter(): ReturnType<typeof router<ReturnType<typeof todosProcedures>>>;
 
 // (No @packageDocumentation comment for this package)
 

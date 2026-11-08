@@ -1,14 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { Schema } from 'effect';
 import { procedure, router } from '../../trpc.ts';
-import {
-  addTodo,
-  clearDoneTodos,
-  deleteTodo,
-  listTodos,
-  renameTodo,
-  setTodoDone,
-} from './application.ts';
+import { createTodoUseCases } from './application.ts';
 import type { Outcome, TodoProblem } from './domain.ts';
 
 const addInputSchema = Schema.Struct({ title: Schema.String });
@@ -32,22 +25,27 @@ function unwrapOrThrow<Value>(outcome: Outcome<Value>): Value {
   return outcome.value;
 }
 
-const todosProcedures = {
-  list: procedure.query(() => listTodos()),
-  add: procedure
-    .input(Schema.toStandardSchemaV1(addInputSchema))
-    .mutation(({ input }) => unwrapOrThrow(addTodo(input))),
-  setDone: procedure
-    .input(Schema.toStandardSchemaV1(setDoneInputSchema))
-    .mutation(({ input }) => unwrapOrThrow(setTodoDone(input))),
-  rename: procedure
-    .input(Schema.toStandardSchemaV1(renameInputSchema))
-    .mutation(({ input }) => unwrapOrThrow(renameTodo(input))),
-  delete: procedure
-    .input(Schema.toStandardSchemaV1(deleteInputSchema))
-    .mutation(({ input }) => unwrapOrThrow(deleteTodo(input))),
-  clearDone: procedure.mutation(() => clearDoneTodos()),
-};
+function todosProcedures() {
+  const todos = createTodoUseCases();
+  return {
+    list: procedure.query(() => todos.listTodos()),
+    add: procedure
+      .input(Schema.toStandardSchemaV1(addInputSchema))
+      .mutation(({ input }) => unwrapOrThrow(todos.addTodo(input))),
+    setDone: procedure
+      .input(Schema.toStandardSchemaV1(setDoneInputSchema))
+      .mutation(({ input }) => unwrapOrThrow(todos.setTodoDone(input))),
+    rename: procedure
+      .input(Schema.toStandardSchemaV1(renameInputSchema))
+      .mutation(({ input }) => unwrapOrThrow(todos.renameTodo(input))),
+    delete: procedure
+      .input(Schema.toStandardSchemaV1(deleteInputSchema))
+      .mutation(({ input }) => unwrapOrThrow(todos.deleteTodo(input))),
+    clearDone: procedure.mutation(() => todos.clearDoneTodos()),
+  };
+}
 
-export const todosRouter: ReturnType<typeof router<typeof todosProcedures>> =
-  router(todosProcedures);
+/** The to-do router over a new, empty to-do list. */
+export function createTodosRouter(): ReturnType<typeof router<ReturnType<typeof todosProcedures>>> {
+  return router(todosProcedures());
+}
