@@ -1253,7 +1253,7 @@ const testUnwrapsValues = {
       present:
         'Unwrap `{{expression}}` with `present({{expression}})`, a Jest global that an E2E spec imports from `./fixtures`, so a missing value fails the test here instead of standing in as `{{fallback}}`.',
       unwrap:
-        'Unwrap `{{expression}}` with `unwrap({{expression}})`, a Jest global, so a failure fails the test here with its problem instead of standing in as `{{fallback}}`.',
+        'Unwrap `{{expression}}` with `unwrap({{expression}})`, a Jest global that an E2E spec imports from `./fixtures`, so a failure fails the test here with its problem instead of standing in as `{{fallback}}`.',
     },
     schema: [],
   },
@@ -1291,9 +1291,10 @@ const testUnwrapsValues = {
   },
 };
 
-// A declaration starts its line, so `export type` inside a string or a comment does not count.
+// A declaration starts its line, so `export type` inside a string or comment that does not start a line does not count.
 const EXPORTED_TYPE = /^export\s+(?:declare\s+)?(?:interface|type)\s+([A-Za-z_$][\w$]*)/gm;
-const siblingScans = new Map();
+/** Each folder and extension mode's latest scan, replaced when its modules change. */
+export const siblingScans = new Map();
 
 /** A folder's non-test modules, sorted, each with its modification time. */
 const siblingModules = (directory) =>
@@ -1305,16 +1306,17 @@ const siblingModules = (directory) =>
 /**
  * Each type name a module in `directory` exports by declaration, mapped to its
  * module specifier. One scan serves every test in the folder until a module
- * in it is added, removed or changed.
+ * in it is added, removed or changed, and then replaces the earlier scan.
  */
 export function siblingTypes(directory, keepExtension) {
   const modules = siblingModules(directory);
-  const key = `${directory}\0${keepExtension}\0${JSON.stringify(modules)}`;
+  const key = `${directory}\0${keepExtension}`;
+  const signature = JSON.stringify(modules);
 
-  if (!siblingScans.has(key)) {
-    siblingScans.set(
-      key,
-      new Map(
+  if (siblingScans.get(key)?.signature !== signature) {
+    siblingScans.set(key, {
+      signature,
+      types: new Map(
         modules.flatMap(([file]) =>
           [...readFileSync(join(directory, file), 'utf8').matchAll(EXPORTED_TYPE)].map((match) => [
             match[1],
@@ -1322,10 +1324,10 @@ export function siblingTypes(directory, keepExtension) {
           ]),
         ),
       ),
-    );
+    });
   }
 
-  return siblingScans.get(key);
+  return siblingScans.get(key).types;
 }
 
 const testImportsTheType = {

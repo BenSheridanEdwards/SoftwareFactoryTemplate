@@ -40,9 +40,10 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   result's `web/e2e/**/*.ts`, in an override of its own.
 - `policy/test-imports-the-type`: a test declares no interface or type alias
   that a non-test module in its folder exports with a declaration at the
-  start of a line, so `export type` inside a string or comment does not
-  count. One scan of a folder serves all its tests until a module in it
-  changes.
+  start of a line, so `export type` inside a string or comment that does
+  not start a line does not count. One scan of a folder serves all its tests
+  until a module in it changes, and then replaces the earlier scan, so the
+  cache holds one scan per folder and extension mode.
 - `policy/message-uses-its-limit`: a string, template or JSX text writes no
   limit as a count. A limit is a module-scope `const` of 10 or more in the
   same file whose name holds `MAX`, `MIN`, `MAXIMUM`, `MINIMUM`, `LIMIT`,
@@ -81,9 +82,9 @@ types them, and only the test type programs, `tsconfig.test.json` and
 `tsconfig.api.test.json`, include it: the web and api programs exclude test
 files, so a production module that calls either fails `pnpm typecheck`. A
 result is self-contained and a showcase copies the reference's `e2e/` folder,
-so each result's `e2e/fixtures.ts` holds its own five-line `present`, which a
-unit test holds to the same behaviour as the Jest global, and each E2E spec
-imports it from there.
+so each result's `e2e/fixtures.ts` holds its own five-line `present` and
+`unwrap`, which a unit test holds to the same behaviour as the Jest globals,
+and each E2E spec imports them from there.
 
 ## Consequences
 
@@ -98,7 +99,8 @@ object, so a hook that splits the flags across helper functions passes, and it
 leaves `data` beside `error` to review. `policy/test-unwraps-values` leaves
 other fallback strings such as `?? 'waiting'` to review, because a test may
 render one on purpose. `policy/message-uses-its-limit` skips JSX attributes, so
-a `placeholder` that restates a limit passes. The first version of these rules
+a `placeholder` that restates a limit passes; a limit not followed by a word,
+such as `at most 100.` or `100-character`, passes. The first version of these rules
 reported five shapes that were not the pattern, found in review: a query's
 `isFetching`, a mutation's state, a status beside its error, a flattened local
 union and an `ok` check that never reads `value`. Each is now a passing

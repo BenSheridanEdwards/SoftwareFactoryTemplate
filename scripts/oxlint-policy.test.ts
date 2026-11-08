@@ -1,10 +1,14 @@
 /** @jest-environment node */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, matchesGlob, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import policy, { colourLiterals, siblingTypes } from '../tooling/oxlint-plugin-policy.js';
+import policy, {
+  colourLiterals,
+  siblingScans,
+  siblingTypes,
+} from '../tooling/oxlint-plugin-policy.js';
 import { findNegativePhrasing, findSlop } from './check-doc-phrasing.mjs';
 
 const ROOT = resolve(__dirname, '..');
@@ -609,7 +613,7 @@ const statusMessage = (hook: string, fields: string, root: string) =>
 const presentMessage = (expression: string) =>
   `Unwrap \`${expression}\` with \`present(${expression})\`, a Jest global that an E2E spec imports from \`./fixtures\`, so a missing value fails the test here instead of standing in as \`''\`.`;
 const unwrapMessage = (expression: string) =>
-  `Unwrap \`${expression}\` with \`unwrap(${expression})\`, a Jest global, so a failure fails the test here with its problem instead of standing in as \`''\`.`;
+  `Unwrap \`${expression}\` with \`unwrap(${expression})\`, a Jest global that an E2E spec imports from \`./fixtures\`, so a failure fails the test here with its problem instead of standing in as \`''\`.`;
 const subject = (caseRoot: string, path: string, source = 'export const value = 1;\n') => ({
   caseRoot,
   path,
@@ -1825,6 +1829,28 @@ it('turns on every policy rule at error in result roots', () => {
       );
     });
   });
+});
+it('keeps one type scan per folder and extension mode, replacing it when a file changes', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'sibling-scans-'));
+  const file = join(folder, 'useTodos.ts');
+  const touch = (source: string, seconds: number) => {
+    writeFileSync(file, source);
+    utimesSync(file, seconds, seconds);
+  };
+  try {
+    const before = siblingScans.size;
+    touch('export type Todo = { id: string };\n', 1);
+    siblingTypes(folder, false);
+    touch('export type Item = { id: string };\n', 2);
+    expect([...siblingTypes(folder, false)]).toEqual([['Item', './useTodos']]);
+    expect(siblingScans.size).toBe(before + 1);
+    siblingTypes(folder, true);
+    touch('export type Entry = { id: string };\n', 3);
+    expect([...siblingTypes(folder, true)]).toEqual([['Entry', './useTodos.ts']]);
+    expect(siblingScans.size).toBe(before + 2);
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
 });
 it('scans the type exports of a folder once until a file in it changes', () => {
   const folder = mkdtempSync(join(tmpdir(), 'sibling-types-'));

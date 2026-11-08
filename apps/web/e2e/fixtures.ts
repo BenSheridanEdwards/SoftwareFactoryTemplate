@@ -48,3 +48,11 @@ export function present<Value>(value: Value | null | undefined): Value {
   }
   return value;
 }
+
+/** The value of a success; a failure fails the test where the value is read. */
+export function unwrap<Value>(outcome: { ok: true; value: Value } | { ok: false }): Value {
+  if (!outcome.ok) {
+    throw new Error(`Expected a success, received ${JSON.stringify(outcome)}`);
+  }
+  return outcome.value;
+}
