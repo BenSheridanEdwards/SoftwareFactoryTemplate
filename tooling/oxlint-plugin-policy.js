@@ -1446,18 +1446,16 @@ const messageUsesItsLimit = {
   },
 };
 
+/** A module in a slice other than the slice's own `index.ts`; a nested `components/index.ts` counts. */
 const isSliceModule = (path) => {
-  const source = PACKAGE_SOURCE.exec(path);
+  const rest = sliceOf(PACKAGE_SOURCE.exec(path)?.[2] ?? '')?.rest ?? [];
 
-  return (
-    Boolean(source && sliceOf(source[2])?.rest.length) &&
-    !/^index\.[cm]?[jt]sx?$/.test(basename(path))
-  );
+  return rest.length > 0 && !(rest.length === 1 && /^index\.[cm]?[jt]sx?$/.test(rest[0]));
 };
 
 const exportedName = (specifier) => specifier.local.name ?? specifier.local.value;
 
-const importTypesFromTheirOwner = {
+const reexportOnlyFromIndex = {
   meta: {
     type: 'problem',
     messages: {
@@ -1741,7 +1739,7 @@ export default {
     'test-unwraps-values': testUnwrapsValues,
     'test-imports-the-type': testImportsTheType,
     'message-uses-its-limit': messageUsesItsLimit,
-    'import-types-from-their-owner': importTypesFromTheirOwner,
+    'reexport-only-from-index': reexportOnlyFromIndex,
     'keep-rejections': keepRejections,
   },
 };

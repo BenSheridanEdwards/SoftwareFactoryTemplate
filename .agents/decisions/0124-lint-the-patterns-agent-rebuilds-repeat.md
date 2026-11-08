@@ -51,9 +51,13 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   attribute values and import sources hold no message and are skipped.
   Smaller numbers appear in ordinary prose too often to tie to one
   constant.
-- `policy/import-types-from-their-owner`: a module under `src/routes/<slice>/`
-  or `src/features/<slice>/`, other than `index.ts`, re-exports nothing, from
-  a source or from an import.
+- `policy/reexport-only-from-index`: a module under `src/routes/<slice>/` or
+  `src/features/<slice>/`, other than the slice's own `index.ts`, re-exports
+  nothing, from a source or from an import, so its siblings import each name
+  from the module that declares it. A nested barrel such as
+  `src/routes/todos/components/index.ts` is not the slice's public surface
+  and fails too: `no-restricted-imports` already admits only
+  `routes/*/index.ts` and `features/*/index.ts` as entry points.
 - `policy/keep-rejections`: a `.catch` or second `.then` handler that ignores
   its error and returns a literal, `undefined` or nothing fails, following one
   `const` binding resolved in the handler's own scope.

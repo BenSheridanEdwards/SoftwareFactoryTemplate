@@ -184,7 +184,7 @@ function ExtraPage() { return <p />; }`
     {
       path: `${root}/src/routes/slop/reexport.ts`,
       source: "export type { Slop } from './slop';\n",
-      code: 'policy(import-types-from-their-owner)',
+      code: 'policy(reexport-only-from-index)',
     },
     {
       path: `${root}/src/routes/slop/keep.ts`,
@@ -402,7 +402,7 @@ const contractFixtures: Fixture[] = [
   ].map(([_label, source]) => ({
     path: 'apps/web/src/routes/todos/hooks.ts',
     source: source,
-    codes: ['policy(state-and-effects-in-hooks)', 'policy(import-types-from-their-owner)'],
+    codes: ['policy(state-and-effects-in-hooks)', 'policy(reexport-only-from-index)'],
   })),
   ...[
     ['a route imports another route', 'apps/web/src/routes/a/A.tsx', "import { B } from '../b';"],
@@ -1077,30 +1077,36 @@ export function Layout() {
     source: "const LIMIT = 100;\nexport const expected = ['Use 100 characters or fewer', LIMIT];\n",
   },
   subject('slop-limit-test', 'apps/api/src/features/todos/domain.ts'),
-  // policy/import-types-from-their-owner: r6's application, then the slice's index.ts.
+  // policy/reexport-only-from-index: r6's application, a nested barrel, then the slice's index.ts.
   {
     path: 'apps/api/src/features/todos/application.ts',
     source: "export type { Outcome, Problem } from './domain.ts';\nexport const value = 1;\n",
-    code: 'policy(import-types-from-their-owner)',
+    code: 'policy(reexport-only-from-index)',
     message:
       'Import `Outcome, Problem` straight from `./domain.ts` and remove this re-export; a slice re-exports only from its `index.ts`.',
   },
   {
     path: 'apps/web/src/routes/todos/types.ts',
     source: "export * from './useTodos';\n",
-    code: 'policy(import-types-from-their-owner)',
+    code: 'policy(reexport-only-from-index)',
     messageContains: 'Import each name you need straight from `./useTodos`',
   },
   {
     path: 'apps/api/src/features/todos/procedures.ts',
     source:
       "import type { Todo } from './domain.ts';\nconst local = 1;\nexport type { Todo };\nexport { local };\n",
-    code: 'policy(import-types-from-their-owner)',
+    code: 'policy(reexport-only-from-index)',
     messageContains: 'Import `Todo` straight from `./domain.ts`',
   },
   {
     path: 'apps/api/src/features/todos/index.ts',
     source: "export { todosRouter } from './procedures.ts';\n",
+  },
+  {
+    path: 'apps/web/src/routes/todos/components/index.ts',
+    source: "export { TodoItem } from './TodoItem';\n",
+    code: 'policy(reexport-only-from-index)',
+    messageContains: 'a slice re-exports only from its `index.ts`',
   },
   {
     path: 'apps/web/src/api-client/trpc.ts',
@@ -1836,7 +1842,7 @@ const minedRules = [
   'test-unwraps-values',
   'test-imports-the-type',
   'message-uses-its-limit',
-  'import-types-from-their-owner',
+  'reexport-only-from-index',
   'keep-rejections',
 ];
 const mined = Object.entries(policy.rules).filter(([name]) => minedRules.includes(name));
