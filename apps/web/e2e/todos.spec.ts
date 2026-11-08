@@ -144,6 +144,11 @@ test.describe('Loading and empty states', () => {
     await expect(filterButton(page, 'All')).toHaveAttribute('aria-pressed', 'true');
     await expect(filterButton(page, 'Active')).toHaveAttribute('aria-pressed', 'false');
     await expect(filterButton(page, 'Done')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('group', { name: 'Filter' })).toHaveAttribute(
+      'aria-label',
+      'Filter',
+    );
+    await expect(page.getByRole('group', { name: 'Filter' })).toHaveText(/^All\s*Active\s*Done$/);
     await expect(clearDone(page)).toBeDisabled();
   });
 

@@ -53,7 +53,8 @@ From top to bottom, the page at `/` shows:
    the page shows none of the parts below.
 5. Once the list has loaded, a group named `Filter` with three buttons, `All`,
    `Active` and `Done`, each with `aria-pressed` set to show which one is
-   selected, and a button `Clear done`.
+   selected, and a button `Clear done`. The group's name comes from its
+   `aria-label`; it holds no text besides the three button labels.
 6. The to-dos the selected filter matches, as a list named `To-dos`. When the
    filter matches none, the text `No to-dos to show` replaces the list.
 
@@ -95,7 +96,8 @@ looks for the id. An id that names no to-do gets a `404` with the
   - Proved by [shows a loading message until the list arrives](../../apps/web/e2e/todos.spec.ts)
 - **Starts on the All filter, with an empty message and a disabled Clear done when there are no to-dos.**
   With an empty list, the page shows `No to-dos to show` and no list, `All`
-  is pressed, `Active` and `Done` are not, and `Clear done` is disabled.
+  is pressed, `Active` and `Done` are not, and `Clear done` is disabled. The
+  `Filter` group holds only its three buttons' text.
   - Proved by [starts on the All filter with an empty message when there are no to-dos](../../apps/web/e2e/todos.spec.ts)
 - **Says so when the list fails to load.** A failed `todos.list` shows the alert
   `Could not load the to-dos`, and the page shows no filters, no Clear done
