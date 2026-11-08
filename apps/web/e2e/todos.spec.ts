@@ -15,6 +15,12 @@ interface Todo {
   readonly done: boolean;
 }
 
+interface ChangeInput {
+  readonly id?: string;
+  readonly done?: boolean;
+  readonly title?: string;
+}
+
 const TOO_LONG = 'a'.repeat(101);
 
 /** True when a tRPC request URL calls `procedure`, alone or in a batch. */
@@ -152,6 +158,17 @@ test.describe('Loading and empty states', () => {
     await expect(clearDone(page)).toBeDisabled();
   });
 
+  test('returns to the All filter when the page reloads', async ({ page, request }) => {
+    await addThroughApi(request, 'First');
+    await openPage(page);
+    await filterButton(page, 'Done').click();
+
+    await page.reload();
+
+    await expect(filterButton(page, 'All')).toHaveAttribute('aria-pressed', 'true');
+    await expectTitles(page, ['First']);
+  });
+
   test('says so when the list fails to load', async ({ page, expectConsole }) => {
     expectConsole(/Failed to load resource: .*500/);
     await failCalls(page, 'todos.list');
@@ -249,6 +266,62 @@ test.describe('The page', () => {
             - text: Book the room
             - button "Edit Book the room": Edit
             - button "Delete Book the room": Delete
+    `);
+  });
+
+  test('shows a title message and a failure where the PRD puts them', async ({
+    page,
+    request,
+    expectConsole,
+  }) => {
+    expectConsole(/Failed to load resource: .*500/);
+    await addThroughApi(request, 'Buy milk');
+    await openPage(page);
+
+    await addOnPage(page, '   ');
+    await expect(page.getByRole('main')).toMatchAriaSnapshot(`
+      - main:
+        - /children: deep-equal
+        - heading "To-dos" [level=1]
+        - text: Title
+        - textbox "Title" [invalid]
+        - alert: Enter a title
+        - button "Add"
+        - group "Filter":
+          - button "All" [pressed]
+          - button "Active"
+          - button "Done"
+        - button "Clear done" [disabled]
+        - list "To-dos":
+          - listitem:
+            - checkbox "Buy milk"
+            - text: Buy milk
+            - button "Edit Buy milk": Edit
+            - button "Delete Buy milk": Delete
+    `);
+
+    await openPage(page);
+    await failCalls(page, 'todos.delete');
+    await page.getByRole('button', { name: 'Delete Buy milk', exact: true }).click();
+    await expect(page.getByRole('main')).toMatchAriaSnapshot(`
+      - main:
+        - /children: deep-equal
+        - heading "To-dos" [level=1]
+        - text: Title
+        - textbox "Title"
+        - button "Add"
+        - alert: Could not delete the to-do
+        - group "Filter":
+          - button "All" [pressed]
+          - button "Active"
+          - button "Done"
+        - button "Clear done" [disabled]
+        - list "To-dos":
+          - listitem:
+            - checkbox "Buy milk"
+            - text: Buy milk
+            - button "Edit Buy milk": Edit
+            - button "Delete Buy milk": Delete
     `);
   });
 });
@@ -377,6 +450,33 @@ test.describe('Adding', () => {
         }),
       ),
     );
+  });
+
+  test('the api answers each change with its result', async ({ request }) => {
+    const first = await addThroughApi(request, 'First');
+    const second = await addThroughApi(request, 'Second');
+    const third = await addThroughApi(request, 'Third');
+    const change = async (procedure: string, data: ChangeInput = {}) => {
+      const response = await request.post(`/trpc/${procedure}`, { data });
+      expect(response.status()).toBe(200);
+      return (await response.json()).result.data;
+    };
+
+    expect(await change('todos.setDone', { id: third.id, done: true })).toEqual({
+      ...third,
+      done: true,
+    });
+    expect(await change('todos.rename', { id: second.id, title: '  Second   draft ' })).toEqual({
+      ...second,
+      title: 'Second draft',
+    });
+    expect(await change('todos.setDone', { id: first.id, done: true })).toEqual({
+      ...first,
+      done: true,
+    });
+    expect(await change('todos.delete', { id: second.id })).toEqual({ id: second.id });
+    expect(await change('todos.clearDone')).toEqual({ ids: [first.id, third.id] });
+    expect(await listThroughApi(request)).toEqual([]);
   });
 
   test('the api lists to-dos oldest first', async ({ request }) => {
@@ -577,6 +677,8 @@ test.describe('Editing', () => {
     await expect(newTitleField(page)).toHaveCount(1);
     await expect(newTitleField(page)).toHaveValue('Second');
     await expect(checkbox(page, 'First')).toBeVisible();
+    await page.getByRole('button', { name: 'Edit First' }).click();
+    await expect(newTitleField(page)).toHaveValue('First');
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expectTitles(page, ['First', 'Second']);
   });
@@ -655,6 +757,26 @@ test.describe('Filtering', () => {
     await expect(filterButton(page, 'Done')).toHaveAttribute('aria-pressed', 'false');
   });
 
+  test('shows the selected filter in the focus colour', async ({ page }) => {
+    await openPage(page);
+    const focus = await page.evaluate(() => {
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--color-focus)';
+      document.body.append(probe);
+      const { color } = getComputedStyle(probe);
+      probe.remove();
+      return color;
+    });
+
+    await filterButton(page, 'Done').click();
+    await page.mouse.move(0, 0);
+
+    await expect(filterButton(page, 'Done')).toHaveCSS('color', focus);
+    await expect(filterButton(page, 'Done')).toHaveCSS('border-top-color', focus);
+    await expect(filterButton(page, 'All')).not.toHaveCSS('color', focus);
+    await expect(filterButton(page, 'All')).not.toHaveCSS('border-top-color', focus);
+  });
+
   test('hides a to-do from the Active filter once it is marked done', async ({ page, request }) => {
     await addAllThroughApi(request, ['First', 'Second']);
     await openPage(page);
@@ -674,17 +796,6 @@ test.describe('Filtering', () => {
 
     await expect(page.getByText('No to-dos to show', { exact: true })).toBeVisible();
     await expect(page.getByRole('list')).toHaveCount(0);
-  });
-
-  test('returns to the All filter when the page reloads', async ({ page, request }) => {
-    await addThroughApi(request, 'First');
-    await openPage(page);
-    await filterButton(page, 'Done').click();
-
-    await page.reload();
-
-    await expect(filterButton(page, 'All')).toHaveAttribute('aria-pressed', 'true');
-    await expectTitles(page, ['First']);
   });
 });
 
@@ -763,6 +874,26 @@ test.describe('Failures and refreshing', () => {
     release();
     await expectTitles(page, ['First', 'Second']);
     await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+
+  test('says so when the list fails to load after a change', async ({
+    page,
+    request,
+    expectConsole,
+  }) => {
+    expectConsole(/Failed to load resource: .*500/);
+    await addThroughApi(request, 'First');
+    await openPage(page);
+    await failCalls(page, 'todos.list');
+
+    await addOnPage(page, 'Second');
+
+    await expect(page.getByRole('alert')).toHaveText('Could not load the to-dos');
+    await expect(page.getByRole('group', { name: 'Filter' })).toHaveCount(0);
+    await expect(page.getByRole('list')).toHaveCount(0);
+    await expect(titleField(page)).toHaveValue('');
+    await expect(addButton(page)).toBeEnabled();
+    expect((await listThroughApi(request)).map(({ title }) => title)).toEqual(['First', 'Second']);
   });
 
   test('reads the list only when the page opens and after a successful change', async ({
