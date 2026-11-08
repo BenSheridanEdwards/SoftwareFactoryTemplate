@@ -292,8 +292,10 @@ it('adds no rule through a category, a preset or a warning', () => {
     undefined,
     undefined,
     undefined,
+    undefined,
   ]);
   expect(config.overrides.map((value) => [value.plugins, value.jsPlugins])).toEqual([
+    [undefined, undefined],
     [undefined, undefined],
     [undefined, undefined],
     [undefined, undefined],
