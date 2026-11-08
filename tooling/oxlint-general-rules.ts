@@ -1,12 +1,14 @@
 // General lint rules, owned by Oxlint since ADR 0126 retired Biome's linter.
-// Each native rule names the Biome rule it replaces. `oxlint.config.ts`
-// spreads this table into its root rules, so every linted file gets it.
+// Each native rule names the Biome rule it replaces; React and test entries
+// replace Biome domain rules. `oxlint.config.ts` spreads this table into its
+// root rules, so every linted file gets it.
 export const generalRules = {
   'eslint/array-callback-return': 'error', // Biome suspicious/useIterableCallbackReturn
   'eslint/constructor-super': 'error', // Biome correctness/noInvalidConstructorSuper
   'eslint/default-case-last': 'error', // Biome suspicious/useDefaultSwitchClauseLast
   'eslint/eqeqeq': ['error', 'always', { null: 'ignore' }], // Biome suspicious/noDoubleEquals
   'eslint/for-direction': 'error', // Biome correctness/useValidForDirection
+  'eslint/func-style': ['error', 'declaration', { allowArrowFunctions: true }], // Biome complexity/useArrowFunction (function expressions bound to a name)
   'eslint/getter-return': 'error', // Biome suspicious/useGetterReturn
   'eslint/no-array-constructor': 'error', // Biome style/useArrayLiterals
   'eslint/no-async-promise-executor': 'error', // Biome suspicious/noAsyncPromiseExecutor
@@ -25,6 +27,7 @@ export const generalRules = {
   'eslint/no-duplicate-case': 'error', // Biome suspicious/noDuplicateCase
   'eslint/no-empty': 'error', // Biome suspicious/noEmptyBlockStatements
   'eslint/no-empty-character-class': 'error', // Biome correctness/noEmptyCharacterClassInRegex
+  'eslint/no-empty-function': 'error', // Biome suspicious/noEmptyBlockStatements (function bodies)
   'eslint/no-empty-pattern': 'error', // Biome correctness/noEmptyPattern
   'eslint/no-eval': 'error', // Biome security/noGlobalEval
   'eslint/no-ex-assign': 'error', // Biome suspicious/noCatchAssign
@@ -41,6 +44,7 @@ export const generalRules = {
   'eslint/no-lone-blocks': 'error', // Biome complexity/noUselessLoneBlockStatements
   'eslint/no-loss-of-precision': 'error', // Biome correctness/noPrecisionLoss
   'eslint/no-misleading-character-class': 'error', // Biome suspicious/noMisleadingCharacterClass
+  'eslint/no-multi-assign': 'error', // Biome suspicious/noAssignInExpressions (chained assignment)
   'eslint/no-new-native-nonconstructor': 'error', // Biome correctness/noInvalidBuiltinInstantiation
   'eslint/no-nonoctal-decimal-escape': 'error', // Biome correctness/noNonoctalDecimalEscape
   'eslint/no-obj-calls': 'error', // Biome correctness/noGlobalObjectCalls
@@ -51,7 +55,7 @@ export const generalRules = {
   'eslint/no-regex-spaces': 'error', // Biome complexity/noAdjacentSpacesInRegex
   'eslint/no-self-assign': 'error', // Biome correctness/noSelfAssign
   'eslint/no-self-compare': 'error', // Biome suspicious/noSelfCompare
-  'eslint/no-sequences': 'error', // Biome complexity/noCommaOperator
+  'eslint/no-sequences': ['error', { allowInParentheses: false }], // Biome complexity/noCommaOperator
   'eslint/no-setter-return': 'error', // Biome correctness/noSetterReturn
   'eslint/no-shadow-restricted-names': 'error', // Biome suspicious/noShadowRestrictedNames
   'eslint/no-sparse-arrays': 'error', // Biome suspicious/noSparseArray
@@ -67,10 +71,11 @@ export const generalRules = {
   'eslint/no-unused-vars': [
     'error',
     {
-      args: 'after-used',
+      args: 'all',
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
-      caughtErrors: 'none',
+      caughtErrors: 'all',
+      caughtErrorsIgnorePattern: '^_',
       ignoreRestSiblings: true,
     },
   ], // Biome correctness/noUnusedFunctionParameters, correctness/noUnusedImports, correctness/noUnusedVariables
@@ -102,6 +107,9 @@ export const generalRules = {
   'eslint/require-yield': 'error', // Biome correctness/useYield
   'eslint/use-isnan': 'error', // Biome correctness/useIsNan
   'eslint/valid-typeof': 'error', // Biome correctness/useValidTypeof
+  'jest/no-duplicate-hooks': 'error', // Biome suspicious/noDuplicateTestHooks (test domain)
+  'jest/no-export': 'error', // Biome suspicious/noExportsInTest (test domain)
+  'jest/no-focused-tests': 'error', // Biome suspicious/noFocusedTests (test domain)
   'jsx-a11y/alt-text': 'error', // Biome a11y/useAltText
   'jsx-a11y/anchor-ambiguous-text': 'error', // Biome a11y/noAmbiguousAnchorText
   'jsx-a11y/anchor-has-content': 'error', // Biome a11y/useAnchorContent
@@ -136,15 +144,23 @@ export const generalRules = {
   'jsx-a11y/role-supports-aria-props': 'error', // Biome a11y/useAriaPropsSupportedByRole
   'jsx-a11y/scope': 'error', // Biome a11y/noHeaderScope
   'jsx-a11y/tabindex-no-positive': 'error', // Biome a11y/noPositiveTabindex
-  'nextjs/google-font-display': 'error', // Biome suspicious/useGoogleFontDisplay
+  'oxc/approx-constant': 'error', // Biome suspicious/noApproximativeNumericConstant
+  'oxc/bad-min-max-func': 'error', // Biome correctness/noConstantMathMinMaxClamp
+  'oxc/misrefactored-assign-op': 'error', // Biome suspicious/noMisrefactoredShorthandAssign
   'oxc/no-accumulating-spread': 'error', // Biome performance/noAccumulatingSpread
   'oxc/no-const-enum': 'error', // Biome suspicious/noConstEnum
   'react/button-has-type': 'error', // Biome a11y/useButtonType
+  'react/jsx-key': 'error', // Biome correctness/useJsxKeyInIterable (React domain)
   'react/jsx-no-comment-textnodes': 'error', // Biome suspicious/noCommentText
   'react/jsx-no-duplicate-props': 'error', // Biome suspicious/noDuplicateJsxProps
   'react/jsx-no-script-url': 'error', // Biome security/noScriptUrl
   'react/jsx-no-target-blank': 'error', // Biome security/noBlankTarget
   'react/jsx-no-useless-fragment': 'error', // Biome complexity/noUselessFragments
+  'react/no-array-index-key': 'error', // Biome suspicious/noArrayIndexKey (React domain)
+  'react/no-children-prop': 'error', // Biome correctness/noChildrenProp (React domain)
+  'react/no-danger': 'error', // Biome security/noDangerouslySetInnerHtml (React domain)
+  'react/no-danger-with-children': 'error', // Biome security/noDangerouslySetInnerHtmlWithChildren (React domain)
+  'react/no-render-return-value': 'error', // Biome correctness/noRenderReturnValue (React domain)
   'react/void-dom-elements-no-children': 'error', // Biome correctness/noVoidElementsWithChildren
   'typescript/adjacent-overload-signatures': 'error', // Biome suspicious/useAdjacentOverloadSignatures
   'typescript/ban-ts-comment': 'error', // Biome suspicious/noTsIgnore
@@ -178,9 +194,5 @@ export const generalRules = {
   'unicorn/prefer-array-index-of': 'error', // Biome complexity/useIndexOf
   'unicorn/prefer-date-now': 'error', // Biome complexity/useDateNow
   'unicorn/prefer-node-protocol': 'error', // Biome style/useNodejsImportProtocol
-  'unicorn/prefer-number-properties': 'error', // Biome suspicious/noGlobalIsFinite, suspicious/noGlobalIsNan  // React rules Biome's React domain never ran here (no root React dependency).
-  'react/jsx-key': 'error',
-  'react/no-array-index-key': 'error',
-  'react/no-danger-with-children': 'error',
-  'react/no-render-return-value': 'error',
+  'unicorn/prefer-number-properties': 'error', // Biome suspicious/noGlobalIsFinite, suspicious/noGlobalIsNan
 };

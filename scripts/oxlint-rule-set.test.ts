@@ -142,7 +142,7 @@ const REACT_DOCTOR = {
   count: 349,
   sha256: '4de76157f37662452af5ffbcfe299d7009423e84e89aa55eb33cf8fcd5adeef3',
 };
-const PLUGINS = ['react', 'unicorn', 'typescript', 'jsx-a11y', 'import', 'oxc'];
+const PLUGINS = ['react', 'unicorn', 'typescript', 'jsx-a11y', 'oxc', 'jest'];
 const JS_PLUGINS = [
   {
     name: 'better-tailwindcss',

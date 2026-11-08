@@ -112,7 +112,7 @@ export default {
     restriction: 'off',
     nursery: 'off',
   },
-  plugins: ['react', 'unicorn', 'typescript', 'jsx-a11y', 'import', 'oxc'],
+  plugins: ['react', 'unicorn', 'typescript', 'jsx-a11y', 'oxc', 'jest'],
   options: { respectEslintDisableDirectives: false },
   jsPlugins: [
     {

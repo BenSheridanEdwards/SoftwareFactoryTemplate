@@ -100,6 +100,75 @@ it.each([
     'typescript(consistent-type-imports)',
   ],
   ['loose equality', 'export const value = (a: number) => a == 1;\n', 'eslint(eqeqeq)'],
+  [
+    'an unused leading parameter',
+    'export const value = (a: number, b: number) => b;\n',
+    'eslint(no-unused-vars)',
+  ],
+  [
+    'an unused catch binding',
+    'try { JSON.parse("x"); } catch (error) { JSON.parse("y"); }\n',
+    'eslint(no-unused-vars)',
+  ],
+  ['an empty function', 'export const value = () => {};\n', 'eslint(no-empty-function)'],
+  [
+    'a comma operator in parentheses',
+    'export const value = (a: number) => (a, 1);\n',
+    'eslint(no-sequences)',
+  ],
+  [
+    'a function expression bound to a name',
+    'export const value = function () { return 1; };\n',
+    'eslint(func-style)',
+  ],
+  [
+    'a chained assignment',
+    'let a = 0; let b = 0; a = b = 1; export { a, b };\n',
+    'eslint(no-multi-assign)',
+  ],
+  ['an approximate constant', 'export const value = 3.141;\n', 'oxc(approx-constant)'],
+  [
+    'a constant min-max clamp',
+    'export const value = (a: number) => Math.min(Math.max(a, 10), 5);\n',
+    'oxc(bad-min-max-func)',
+  ],
+  [
+    'a misrefactored shorthand assignment',
+    'let a = 1; const b = 2; a += a + b; export { a };\n',
+    'oxc(misrefactored-assign-op)',
+  ],
 ])('rejects %s in any linted file', (_name, source, rule) => {
   expect(lintSeed('scripts/example.ts', source).rules).toContain(rule);
+});
+
+it.each([
+  [
+    'raw HTML',
+    'export const value = <div dangerouslySetInnerHTML={{ __html: "x" }} />;\n',
+    'react(no-danger)',
+  ],
+  ['a children prop', 'export const value = <div children="x" />;\n', 'react(no-children-prop)'],
+  [
+    'a list item without a key',
+    'export const value = [1].map((n) => <b>{n}</b>);\n',
+    'react(jsx-key)',
+  ],
+])('rejects %s in any linted React file', (_name, source, rule) => {
+  expect(lintSeed('scripts/example.tsx', source).rules).toContain(rule);
+});
+
+it.each([
+  ['a focused test', "it.only('runs', () => { expect(1).toBe(1); });\n", 'jest(no-focused-tests)'],
+  [
+    'an export from a test file',
+    "it('runs', () => { expect(1).toBe(1); });\nexport const value = 1;\n",
+    'jest(no-export)',
+  ],
+  [
+    'a duplicate hook',
+    "describe('x', () => {\n  beforeEach(() => { expect(1).toBe(1); });\n  beforeEach(() => { expect(2).toBe(2); });\n  it('runs', () => { expect(1).toBe(1); });\n});\n",
+    'jest(no-duplicate-hooks)',
+  ],
+])('rejects %s in any test file', (_name, source, rule) => {
+  expect(lintSeed('scripts/example.test.ts', source).rules).toContain(rule);
 });
