@@ -767,14 +767,20 @@ test.describe('Filtering', () => {
       probe.remove();
       return color;
     });
+    // All is pressed on load but not focused, so its colour comes from the press alone.
+    await expect(filterButton(page, 'All')).toHaveCSS('color', focus);
+    await expect(filterButton(page, 'All')).toHaveCSS('border-top-color', focus);
 
     await filterButton(page, 'Done').click();
     await page.mouse.move(0, 0);
+    await titleField(page).focus();
 
     await expect(filterButton(page, 'Done')).toHaveCSS('color', focus);
     await expect(filterButton(page, 'Done')).toHaveCSS('border-top-color', focus);
     await expect(filterButton(page, 'All')).not.toHaveCSS('color', focus);
     await expect(filterButton(page, 'All')).not.toHaveCSS('border-top-color', focus);
+    await expect(filterButton(page, 'Active')).not.toHaveCSS('color', focus);
+    await expect(filterButton(page, 'Active')).not.toHaveCSS('border-top-color', focus);
   });
 
   test('hides a to-do from the Active filter once it is marked done', async ({ page, request }) => {
