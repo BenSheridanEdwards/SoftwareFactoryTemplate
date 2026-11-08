@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { matchesGlob, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { generalRules } from '../tooling/oxlint-general-rules.ts';
 import { isGuidanceDoc } from './check-doc-phrasing.mjs';
 
 const ROOT = resolve(__dirname, '..');
@@ -44,7 +45,14 @@ it('no guidance doc names a retired ESLint file or package', () => {
       .filter((path) => retired.test(readFileSync(resolve(ROOT, path), 'utf8'))),
   ).toEqual([]);
 });
+const GENERAL = Object.fromEntries(
+  Object.entries(generalRules).map(([name, value]) => [
+    name,
+    Array.isArray(value) ? value : [value],
+  ]),
+);
 const EVERY_FILE = {
+  ...GENERAL,
   'no-else-return': ['error', { allowElseIf: false }],
   'no-param-reassign': ['error', { props: true }],
   'policy/no-loops': ['error'],
@@ -107,6 +115,8 @@ const RESULT_ROOT = {
       'unsupported-syntax',
     ].map((name) => [`react/${name}`, ['error']]),
   ),
+  'naming/naming-convention': ['error'],
+  'unicorn/filename-case': ['error', { cases: { camelCase: true, pascalCase: true } }],
   'max-depth': ['error', 4],
   'no-restricted-imports': [
     'error',
@@ -132,13 +142,14 @@ const REACT_DOCTOR = {
   count: 349,
   sha256: '4de76157f37662452af5ffbcfe299d7009423e84e89aa55eb33cf8fcd5adeef3',
 };
-const PLUGINS = ['react', 'unicorn'];
+const PLUGINS = ['react', 'unicorn', 'typescript', 'jsx-a11y', 'import', 'oxc'];
 const JS_PLUGINS = [
   {
     name: 'better-tailwindcss',
     specifier: pathToFileURL(require.resolve('eslint-plugin-better-tailwindcss')).href,
   },
   resolve(ROOT, 'tooling/oxlint-plugin-policy.js'),
+  resolve(ROOT, 'tooling/oxlint-plugin-naming.js'),
   {
     name: 'react-doctor',
     specifier: resolve(ROOT, 'tooling/oxlint-plugin-react-doctor.js'),
@@ -271,8 +282,10 @@ it('adds no rule through a category, a preset or a warning', () => {
     undefined,
     undefined,
     undefined,
+    undefined,
   ]);
   expect(config.overrides.map((value) => [value.plugins, value.jsPlugins])).toEqual([
+    [undefined, undefined],
     [undefined, undefined],
     [undefined, undefined],
     [undefined, undefined],

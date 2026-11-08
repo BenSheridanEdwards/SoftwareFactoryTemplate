@@ -4,7 +4,7 @@ Use [AGENTS.md's rule table](../../AGENTS.md#rules-and-what-enforces-them) for s
 
 ## Enforced conventions
 
-The Oxlint rules and Biome naming override run on `{apps,packages}/*/src/**` and `showcase/*/*/src/**`; package Oxlint policy and React rules cover `.ts` and `.tsx`.
+The Oxlint policy and naming rules run on `{apps,packages}/*/src/**` and `showcase/*/*/src/**`; package Oxlint policy and React rules cover `.ts` and `.tsx`.
 
 | Convention | Enforced by |
 | --- | --- |
@@ -13,8 +13,8 @@ The Oxlint rules and Biome naming override run on `{apps,packages}/*/src/**` and
 | Folders under a package `src/` are kebab-case (`name-input`). | Oxlint `policy/folder-names` |
 | Each folder under a package `src/` is named for its role (`name-input`, `api-client`). Code in a catch-all folder (`utils`, `helpers`, `lib`, `common`, `shared`, `misc`) moves into the slice that uses it, or into `@repo/ui` when it is a shared UI primitive. | Oxlint `policy/role-named-folders` |
 | Each test sits beside its subject as `<Name>.test.ts(x)` or `<Name>.<kind>.test.ts(x)` (`GreetingPage.a11y.test.tsx` beside `GreetingPage.tsx`), outside any `__tests__/` folder. A source file with no test is fine; coverage thresholds decide what is tested. | Oxlint `policy/test-beside-subject` |
-| Identifiers: `camelCase` functions and variables, `PascalCase` types and components, `SCREAMING_SNAKE_CASE` for true configuration constants. | Biome `style/useNamingConvention` |
-| File names are camelCase, PascalCase, or the name of their export. | Biome `style/useFilenamingConvention` |
+| Identifiers: `camelCase` functions and variables, `PascalCase` types and components, `SCREAMING_SNAKE_CASE` for true configuration constants. | Oxlint `naming/naming-convention` |
+| File names are camelCase, PascalCase, or the name of their export. | Oxlint `unicorn/filename-case` and `policy/file-matches-export` |
 | A component or hook lives in the file of the same name (`GreetingForm.tsx`, `useGreeting.ts`). | Oxlint `policy/file-matches-export` |
 | Keep block nesting to four levels. | Oxlint `max-depth` |
 | Return early without else, including else if. | Oxlint `no-else-return` in every file |
@@ -22,7 +22,7 @@ The Oxlint rules and Biome naming override run on `{apps,packages}/*/src/**` and
 | Transform collections without array forEach, sort or reverse in result roots. | Oxlint `unicorn/no-array-for-each`, `unicorn/no-array-sort`, `unicorn/no-array-reverse` |
 | Use find, some, flat and Object.fromEntries for matching collection transforms in result roots. | Oxlint `unicorn/prefer-array-find`, `unicorn/prefer-array-some`, `unicorn/prefer-array-flat`, `unicorn/prefer-object-from-entries` |
 | Access document and window only in web src/main.tsx. | Oxlint `no-restricted-globals` in result roots |
-| Bind with `const` unless the name is reassigned. | Biome `style/useConst` |
+| Bind with `const` unless the name is reassigned. | Oxlint `eslint/prefer-const` |
 | Components and hooks leave props, state, hook values and globals unchanged during render. | Oxlint `react/immutability`, `react/globals`, `react/purity` |
 | Use `@repo/ui` Button and TextField for native buttons and inputs; checkbox/radio inputs use native elements until dedicated primitives exist. UI definitions and test harnesses may use native controls. | Oxlint `policy/use-ui-primitives` |
 | Style with Tailwind utility classes on the theme scale and the `@repo/ui` tokens (`bg-surface`, `text-ink`, `border-line`, `rounded-lg`, `p-6`, `max-w-160`). Use no arbitrary value, property or variant (`w-[13px]`, `bg-[#fff]`, `[mask:none]`, `w-(--x)`), no inline `style` prop and no hex or `rgb()` colour literal in a `className` value or a const it names. | Oxlint `policy/no-arbitrary-styles` in web and `@repo/ui` sources ([ADR 0114](../decisions/0114-tailwind-on-the-ui-design-tokens.md)) |
@@ -44,13 +44,13 @@ The Oxlint rules and Biome naming override run on `{apps,packages}/*/src/**` and
 | Api code uses only erasable TypeScript syntax and sees no DOM; web code has the DOM and no Node globals. | `pnpm typecheck` (`tsconfig.api.json` with `erasableSyntaxOnly`; `tsconfig.json` with the DOM libs and no Node types) |
 | Banned imports, calls and effects per role. | Fallow rule pack, reported as `contract/<id>` (`pnpm arch:gate`, `pnpm fallow:audit`) |
 | `strict` TypeScript with `noUncheckedIndexedAccess` and `noUnusedLocals`. | `pnpm typecheck`; review of the diff catches a loosened `tsconfig.base.json` ([ADR 0023](../decisions/0023-protect-only-the-files-that-run-the-gates.md)) |
-| `unknown` and narrowing in place of `any`. | Biome `suspicious/noExplicitAny` |
-| `import type` for type-only imports. | Biome `style/useImportType`, `verbatimModuleSyntax` |
-| `interface` for object shapes, `type` for unions and aliases. | Biome `style/useConsistentTypeDefinitions` |
+| `unknown` and narrowing in place of `any`. | Oxlint `typescript/no-explicit-any` |
+| `import type` for type-only imports. | Oxlint `typescript/consistent-type-imports`, `verbatimModuleSyntax` |
+| `interface` for object shapes, `type` for unions and aliases. | Oxlint `typescript/consistent-type-definitions` |
 | Import order. | Biome `organizeImports` |
-| Every block has a body; a handled error does something observable. | Biome `suspicious/noEmptyBlockStatements` |
+| Every block has a body; a handled error does something observable. | Oxlint `eslint/no-empty` |
 | Use no `fallow-ignore` comment. | `pnpm check:suppressions`; the structure check also rejects this directive in result roots. |
-| Accessible, labelled controls and status regions. | Biome `a11y/*`, jest-axe, `@axe-core/playwright`, Lighthouse |
+| Accessible, labelled controls and status regions. | Oxlint `jsx-a11y/*`, jest-axe, `@axe-core/playwright`, Lighthouse |
 | Bind with const. | Oxlint `policy/no-let` in result roots |
 | Build new values; keep mutable state in integrations. | Oxlint `policy/no-mutation` in result roots |
 | Use functions; subclass a framework base when needed. | Oxlint `policy/no-classes` in result roots |

@@ -1,0 +1,9 @@
+{
+  "diagnostics": [
+    {
+      "code": "eslint(no-debugger)",
+      "severity": "error",
+      "filename": "scripts/example.ts"
+    }
+  ]
+}

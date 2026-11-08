@@ -39,16 +39,19 @@ Action pins are read from the workflows and composite actions, so a Dependabot b
 | `package.json verify` | `pnpm test:integration` | `ci.yml` `integration` | `pnpm test:integration` |
 | `package.json verify` | `pnpm check:lockfile` | `ci.yml` `quality` | `pnpm check:lockfile` |
 | `package.json verify` | `pnpm check:context` | `ci.yml` `quality` | `pnpm check:context` |
-| `package.json verify` | `pnpm check:suppressions` | `ci.yml` `quality` | `pnpm check:suppressions` |
 | `package.json verify` | `pnpm check:docs` | `ci.yml` `quality` | `pnpm check:docs` |
 | `package.json verify` | `pnpm check:adr` | `ci.yml` `quality` | `pnpm check:adr` |
-| `package.json verify` | `pnpm lint:policy` | `ci.yml` `quality` | `pnpm lint:policy` |
-| `package.json verify` | `pnpm lint:styles` | `ci.yml` `quality` | `pnpm lint:styles` |
 | `package.json verify` | `pnpm react-doctor` | `ci.yml` `quality` | `pnpm react-doctor` |
 | `.husky/pre-commit` | `pnpm typecheck` | `ci.yml` `quality` | `pnpm typecheck` |
 | `package.json verify` | `pnpm typecheck` | `ci.yml` `quality` | `pnpm typecheck` |
+| `.husky/pre-commit` | `pnpm lint:policy` | `ci.yml` `quality` | `pnpm lint:policy` |
+| `package.json verify` | `pnpm lint:policy` | `ci.yml` `quality` | `pnpm lint:policy` |
+| `.husky/pre-commit` | `pnpm lint:styles` | `ci.yml` `quality` | `pnpm lint:styles` |
+| `package.json verify` | `pnpm lint:styles` | `ci.yml` `quality` | `pnpm lint:styles` |
 | `.husky/pre-commit` | `pnpm lint:anti-slop` | `ci.yml` `quality` | `pnpm lint:anti-slop` |
 | `package.json verify` | `pnpm lint:anti-slop` | `ci.yml` `quality` | `pnpm lint:anti-slop` |
+| `.husky/pre-commit` | `pnpm check:suppressions` | `ci.yml` `quality` | `pnpm check:suppressions` |
+| `package.json verify` | `pnpm check:suppressions` | `ci.yml` `quality` | `pnpm check:suppressions` |
 | `.husky/pre-commit` | `pnpm exec biome check --error-on-warnings --staged --no-errors-on-unmatched .` | `ci.yml` `quality` | `pnpm check` |
 | `package.json verify` | `pnpm check` | `ci.yml` `quality` | `pnpm check` |
 | `.husky/pre-commit` | `pnpm fallow:audit` | `ci.yml` `fallow` | `fallow-rs/fallow with.command: audit` |
@@ -59,6 +62,7 @@ Action pins are read from the workflows and composite actions, so a Dependabot b
 | `.husky/pre-push` | `pnpm e2e` | `ci.yml` `e2e` | `pnpm e2e` |
 | `.husky/commit-msg` | `pnpm exec commitlint --edit "$1"` | `pr-quality.yml` `pr-body` | `node scripts/validate-pr-body.mjs` |
 | `package.json verify` | `pnpm gates:check` | `ci.yml` `required-gates` | `node scripts/required-gates.mjs --check` |
+| `.husky/pre-commit` | `pnpm arch:gate` | `ci.yml` `fallow` | `pnpm arch:gate` |
 | `package.json verify` | `pnpm arch:check` | `ci.yml` `fallow` | `pnpm arch:gate`<br>`pnpm arch:diagram && git diff --exit-code docs/architecture/roles.mmd`<br>`pnpm api:check` |
 | `package.json verify` | `pnpm coverage:changed` | `ci.yml` `coverage` | `changed="$(git -c core.quotePath=false diff --name-only HEAD^1..."$HEAD_SHA")" && CHANGED="$changed" node scripts/confidence-label.mjs --coverage-gate` |
 | `package.json verify` | `pnpm test:coverage` | `ci.yml` `test` | `pnpm test:coverage:app` |

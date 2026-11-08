@@ -1107,9 +1107,14 @@ function lintTree(cases: Fixture[]) {
   });
   write(
     'oxlint.config.ts',
+    // General and naming rules have their own tests (general-lint.test.ts); leave them out here.
     `import config from ${JSON.stringify(pathToFileURL(join(ROOT, 'oxlint.config.ts')).href)};
-export default { ...config, overrides: config.overrides.map(override => ({
-  ...override, files: override.files.flatMap(pattern => [pattern, "contract-*/" + pattern, "component-*/" + pattern])
+import { generalRules } from ${JSON.stringify(pathToFileURL(join(ROOT, 'tooling/oxlint-general-rules.ts')).href)};
+const policyOnly = (rules = {}) => Object.fromEntries(Object.entries(rules).filter(([rule]) =>
+  !Object.hasOwn(generalRules, rule) && !['naming/naming-convention', 'unicorn/filename-case'].includes(rule)));
+export default { ...config, rules: policyOnly(config.rules), overrides: config.overrides.map(override => ({
+  ...override, rules: policyOnly(override.rules),
+  files: override.files.flatMap(pattern => [pattern, "contract-*/" + pattern, "component-*/" + pattern])
 })) };`,
   );
   write('apps/web/.oxlintrc.json', '{"rules":{"no-param-reassign":"off"}}');

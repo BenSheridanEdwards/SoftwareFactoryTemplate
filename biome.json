@@ -44,53 +44,6 @@
     }
   },
   "linter": {
-    "enabled": true,
-    "rules": {
-      "preset": "recommended",
-      "correctness": {
-        "noUnusedImports": "error",
-        "noUnusedVariables": "error",
-        "useExhaustiveDependencies": "off",
-        "useHookAtTopLevel": "off"
-      },
-      "style": {
-        "useImportType": "error",
-        "useConst": "error",
-        "noNonNullAssertion": "error",
-        "noIncrementDecrement": "error",
-        "useConsistentTypeDefinitions": "error"
-      },
-      "suspicious": {
-        "noExplicitAny": "error",
-        "noVar": "error",
-        "noEmptyBlockStatements": "error"
-      }
-    }
-  },
-  "overrides": [
-    {
-      "includes": ["apps/*/src/**", "packages/*/src/**", "showcase/*/*/src/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "useNamingConvention": {
-              "level": "error",
-              "options": {
-                "strictCase": true,
-                "requireAscii": true
-              }
-            },
-            "useFilenamingConvention": {
-              "level": "error",
-              "options": {
-                "strictCase": true,
-                "requireAscii": true,
-                "filenameCases": ["camelCase", "PascalCase", "export"]
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
+    "enabled": false
+  }
 }

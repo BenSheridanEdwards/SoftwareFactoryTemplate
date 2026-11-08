@@ -214,8 +214,8 @@ merges and deploys.
 
 Write transforms over `const` with `map`, `filter`, `flatMap`, `some`, `every`, `find`, `reduce` and
 `Object.fromEntries` instead of loops, `let` accumulators, `push` or in-place mutation. Use `reduce` for one
-value; build arrays and objects with `map`, `flatMap` and `Object.fromEntries`. Biome rejects accumulating
-spread. Biome `style/useConst` and React Hooks immutability, globals and purity rules cover single-assignment
+value; build arrays and objects with `map`, `flatMap` and `Object.fromEntries`. Oxlint rejects accumulating
+spread. Oxlint `eslint/prefer-const` and React Hooks immutability, globals and purity rules cover single-assignment
 bindings and mutation during render in package TypeScript. Oxlint rejects loops (`policy/no-loops`) and parameter reassignment, including parameter property mutation
 ([ADR 0079](../.agents/decisions/0079-no-advisory-lint.md)). Oxlint also rejects redundant else after return
 everywhere; result roots reject nested ternaries, lonely if, array forEach, sort and reverse,

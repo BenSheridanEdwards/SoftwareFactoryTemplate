@@ -42,8 +42,9 @@ Reuse the target's tools with one owner per concern, following
 [`.agents/project/QUALITY_GATES.md`](../../../.agents/project/QUALITY_GATES.md). Justify new tools for owned concerns in an ADR.
 
 - Commit message: enforce Conventional Commits.
-- Pre-commit: typecheck, staged Biome, anti-slop, Fallow audit including
-  complexity, and staged gitleaks. Measure each step against the 30-second
+- Pre-commit: typecheck, staged Biome formatting, Oxlint lint, the style
+  check, anti-slop, the suppression ban, the architecture gate, Fallow audit
+  including complexity, and staged gitleaks. Measure each step against the 30-second
   budget; review slower steps for pre-push.
 - Pre-push: check the branch contains current main, then run the full local
   suite, production build, and E2E map. This catches clean merges, where Git skips pre-commit.
