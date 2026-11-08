@@ -1124,7 +1124,7 @@ export function Layout() {
       'export const succeeded = (change: Promise<unknown>) => change.then(() => true, () => false);\n',
     code: 'policy(keep-rejections)',
     message:
-      'Handle the failure where it shows (`onError`, a `failure` state) and let the promise reject; returning `false` hides the error from callers and tests.',
+      'Handle the failure where it shows (`onError`, a `failure` state) and let the promise reject; returning `false` hides the error from callers and tests. To ignore a failure on purpose, settle the promise with `Promise.allSettled` and read its result.',
   },
   {
     path: 'apps/web/src/routes/todos/useCreate.ts',

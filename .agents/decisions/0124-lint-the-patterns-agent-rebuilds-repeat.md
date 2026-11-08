@@ -10,8 +10,9 @@
 Nine agents rebuilt a reference feature from its PRD: six to-do rebuilds and
 three greeting rebuilds. Every rebuild passed every gate, and each still
 carried patterns a reviewer would reject. Six of them recurred, can be found in
-one file with no type information, and had no false positive in the
-reference. Several are what agents reach for in place of a banned form: with
+one file with no type information, and leave the fixed reference with no
+finding. Two later to-do rebuilds, r7 and r8, repeated them and added one
+variant, a status read through a lookup object. Several are what agents reach for in place of a banned form: with
 `noUncheckedIndexedAccess` on and the non-null assertion banned, a test that
 needs a value writes `?? ''`, because the repository offered no sanctioned way
 to unwrap one.
@@ -60,7 +61,13 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   `routes/*/index.ts` and `features/*/index.ts` as entry points.
 - `policy/keep-rejections`: a `.catch` or second `.then` handler that ignores
   its error and returns a literal, `undefined` or nothing fails, following one
-  `const` binding resolved in the handler's own scope.
+  `const` binding resolved in the handler's own scope. When a caller means to
+  ignore a failure, settle the promise and read the result:
+  `void Promise.allSettled([prefetch()])` for a fire-and-forget call, or
+  `Promise.allSettled([save()]).then(([result]) => result?.status === 'fulfilled')`
+  for a yes or no. Both keep the rejection in the settled result and pass
+  `pnpm lint:policy`, `pnpm lint:anti-slop` and Biome. A handler that uses its
+  error, such as `.catch(report)`, also passes.
 
 Tests and specs are outside the three source rules, and inside the two test
 rules. Ship `present` and `unwrap` in `tooling/jest/test-globals.ts`, beside
@@ -83,10 +90,16 @@ imports it from there.
 The reference fixes its own hits in the same change: four in
 `application.test.ts`, five in `e2e/todos.spec.ts` and the restated `Todo` in
 `TodosPage.test.tsx`. Each rule fires on the rebuild samples it was mined
-from. Until the pre-commit hook runs `pnpm lint:policy`, these rules fail at
-pre-push and in CI rather than at commit.
+from, and r7 and r8 confirm them.
 
-`policy/one-status-from-hooks` reads only the returned object, so a hook that
-splits the flags across helper functions passes. `policy/test-unwraps-values`
-leaves other fallback strings such as `?? 'waiting'` to review, because a test
-may render one on purpose. Both are trade-offs for a zero false-positive rate.
+Each rule trades recall for precision, and its fixtures, valid and invalid,
+mark the boundary. `policy/one-status-from-hooks` reads only the returned
+object, so a hook that splits the flags across helper functions passes, and it
+leaves `data` beside `error` to review. `policy/test-unwraps-values` leaves
+other fallback strings such as `?? 'waiting'` to review, because a test may
+render one on purpose. `policy/message-uses-its-limit` skips JSX attributes, so
+a `placeholder` that restates a limit passes. The first version of these rules
+reported five shapes that were not the pattern, found in review: a query's
+`isFetching`, a mutation's state, a status beside its error, a flattened local
+union and an `ok` check that never reads `value`. Each is now a passing
+fixture.

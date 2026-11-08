@@ -1552,7 +1552,7 @@ const keepRejections = {
     type: 'problem',
     messages: {
       swallowed:
-        'Handle the failure where it shows (`onError`, a `failure` state) and let the promise reject; returning `{{value}}` hides the error from callers and tests.',
+        'Handle the failure where it shows (`onError`, a `failure` state) and let the promise reject; returning `{{value}}` hides the error from callers and tests. To ignore a failure on purpose, settle the promise with `Promise.allSettled` and read its result.',
     },
     schema: [],
   },
