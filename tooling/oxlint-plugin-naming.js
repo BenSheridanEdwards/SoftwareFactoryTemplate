@@ -1,5 +1,5 @@
 // Identifier naming, ported from Biome `style/useNamingConvention` with
-// `strictCase` and `requireAscii` when Oxlint took over general lint (ADR 0124).
+// `strictCase` and `requireAscii` when Oxlint took over general lint (ADR 0126).
 // Leading and trailing underscores are ignored, as in Biome.
 const CAMEL = /^[a-z][a-zA-Z0-9]*$/;
 const PASCAL = /^[A-Z][a-zA-Z0-9]*$/;

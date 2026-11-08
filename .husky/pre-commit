@@ -4,7 +4,7 @@ trap 'status=$?; node scripts/lint-usage.mjs --hook-exit "$status" || true; exit
 
 # Pre-commit = every lint, style and architecture gate, so an agent hears about a
 # rule break seconds after making it. Each step finishes in under 30 seconds
-# (ADR 0062, ADR 0123). The up-to-date-with-main check runs on pre-push with the
+# (ADR 0062, ADR 0125). The up-to-date-with-main check runs on pre-push with the
 # slower suite. See `.agents/decisions/0002-quality-gates-as-code.md`.
 
 echo "› typecheck"

@@ -1,4 +1,4 @@
-# 123. Pre-commit runs every lint, style and architecture gate
+# 125. Pre-commit runs every lint, style and architecture gate
 
 - **Status:** Proposed (the maintainer accepts it by approving the PR)
 - **Date:** 2026-11-08
@@ -14,7 +14,7 @@ ran typecheck, staged Biome, `pnpm lint:anti-slop`, `pnpm fallow:audit` and
 `pnpm secret-scan`. Four gates ran only at push and in CI:
 
 - `pnpm lint:policy`: Oxlint with `oxlint.config.ts`, which from
-  [ADR 0124](0124-oxlint-owns-all-lint-biome-only-formats.md) holds every lint
+  [ADR 0126](0126-oxlint-owns-all-lint-biome-only-formats.md) holds every lint
   rule except the anti-slop set.
 - `pnpm lint:styles`: the style-token check over CSS and `index.html`
   ([ADR 0114](0114-tailwind-on-the-ui-design-tokens.md)). Its TypeScript twin,
@@ -31,7 +31,7 @@ record brings the same hook layout upstream.
 pre-commit only when it finishes in under 30 seconds, with timings recorded.
 On 8 November 2026, on one Apple M2 Max with load averages of 5 to 24 from
 other work, the median of five wall-clock runs of each step, with
-[ADR 0124](0124-oxlint-owns-all-lint-biome-only-formats.md) applied, on the
+[ADR 0126](0126-oxlint-owns-all-lint-biome-only-formats.md) applied, on the
 whole repository and after a one-file staged change, was:
 
 | Step | Whole repository | One staged file |

@@ -1,4 +1,4 @@
-// General lint rules, owned by Oxlint since ADR 0124 retired Biome's linter.
+// General lint rules, owned by Oxlint since ADR 0126 retired Biome's linter.
 // Each native rule names the Biome rule it replaces. `oxlint.config.ts`
 // spreads this table into its root rules, so every linted file gets it.
 export const generalRules = {

@@ -1,6 +1,6 @@
 # 10. Lint engines own disjoint concerns
 
-- **Status:** Superseded by [0124](0124-oxlint-owns-all-lint-biome-only-formats.md);
+- **Status:** Superseded by [0126](0126-oxlint-owns-all-lint-biome-only-formats.md);
   earlier superseded in part by ADR 0103 (lint engine) and amended by
   [0098](0098-oxlint-replaces-eslint.md)
 - **Date:** 2026-10-15

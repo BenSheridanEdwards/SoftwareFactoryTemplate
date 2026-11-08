@@ -1,4 +1,4 @@
-# 124. Oxlint owns all lint; Biome only formats
+# 126. Oxlint owns all lint; Biome only formats
 
 - **Status:** Proposed (the maintainer accepts it by approving the PR)
 - **Date:** 2026-11-08

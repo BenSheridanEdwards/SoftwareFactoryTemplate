@@ -242,7 +242,7 @@ export default {
       rules: { 'no-restricted-globals': ['error', 'document', 'window'] },
     },
     {
-      // Naming and file names, ported from Biome's override (ADR 0124).
+      // Naming and file names, ported from Biome's override (ADR 0126).
       files: ['{apps,packages}/*/src/**', 'showcase/*/*/src/**'],
       rules: {
         'naming/naming-convention': 'error',

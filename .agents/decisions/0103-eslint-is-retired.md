@@ -1,7 +1,7 @@
 # 103. ESLint is retired; Oxlint is the only policy lint engine
 
 - **Status:** Accepted (merged in #284); amended by
-  [0124](0124-oxlint-owns-all-lint-biome-only-formats.md), which makes Oxlint the
+  [0126](0126-oxlint-owns-all-lint-biome-only-formats.md), which makes Oxlint the
   only lint engine
 - **Date:** 2026-11-01
 - **Replaces:** ADR 0015 (deleted), whose React Doctor CLI split now lives in
