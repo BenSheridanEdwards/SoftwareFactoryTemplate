@@ -9,23 +9,20 @@ import {
   renameTodo,
   setTodoDone,
 } from './application.ts';
+import type { Outcome, TodoProblem } from './domain.ts';
 
 const addInputSchema = Schema.Struct({ title: Schema.String });
 const setDoneInputSchema = Schema.Struct({ id: Schema.String, done: Schema.Boolean });
 const renameInputSchema = Schema.Struct({ id: Schema.String, title: Schema.String });
 const deleteInputSchema = Schema.Struct({ id: Schema.String });
 
-const ERROR_CODES = { 'invalid-title': 'BAD_REQUEST', 'not-found': 'NOT_FOUND' } as const;
-
-type Outcome<Value> =
-  | { readonly ok: true; readonly value: Value }
-  | {
-      readonly ok: false;
-      readonly problem: { readonly kind: keyof typeof ERROR_CODES; readonly message: string };
-    };
+const ERROR_CODES = {
+  'invalid-title': 'BAD_REQUEST',
+  'not-found': 'NOT_FOUND',
+} as const satisfies Record<TodoProblem['kind'], TRPCError['code']>;
 
 /** The value of a successful outcome, or the tRPC error its problem maps to. */
-function answer<Value>(outcome: Outcome<Value>): Value {
+function unwrapOrThrow<Value>(outcome: Outcome<Value>): Value {
   if (!outcome.ok) {
     throw new TRPCError({
       code: ERROR_CODES[outcome.problem.kind],
@@ -39,16 +36,16 @@ const todosProcedures = {
   list: procedure.query(() => listTodos()),
   add: procedure
     .input(Schema.toStandardSchemaV1(addInputSchema))
-    .mutation(({ input }) => answer(addTodo(input))),
+    .mutation(({ input }) => unwrapOrThrow(addTodo(input))),
   setDone: procedure
     .input(Schema.toStandardSchemaV1(setDoneInputSchema))
-    .mutation(({ input }) => answer(setTodoDone(input))),
+    .mutation(({ input }) => unwrapOrThrow(setTodoDone(input))),
   rename: procedure
     .input(Schema.toStandardSchemaV1(renameInputSchema))
-    .mutation(({ input }) => answer(renameTodo(input))),
+    .mutation(({ input }) => unwrapOrThrow(renameTodo(input))),
   delete: procedure
     .input(Schema.toStandardSchemaV1(deleteInputSchema))
-    .mutation(({ input }) => answer(deleteTodo(input))),
+    .mutation(({ input }) => unwrapOrThrow(deleteTodo(input))),
   clearDone: procedure.mutation(() => clearDoneTodos()),
 };
 

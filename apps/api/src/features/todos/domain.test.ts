@@ -7,7 +7,6 @@ import {
   normaliseTitle,
   removeTodo,
   replaceTodo,
-  TITLE_MAX_LENGTH,
   withDone,
   withTitle,
 } from './domain.ts';
@@ -26,7 +25,6 @@ it.each([
 });
 
 it('accepts a title of 1 to 100 characters after normalising it', () => {
-  expect(TITLE_MAX_LENGTH).toBe(100);
   expect(checkTitle(' a ')).toEqual({ ok: true, value: 'a' });
   expect(checkTitle(` ${'b'.repeat(100)} `)).toEqual({ ok: true, value: 'b'.repeat(100) });
   expect(checkTitle(`${'c'.repeat(50)}   ${'c'.repeat(49)}`)).toEqual({

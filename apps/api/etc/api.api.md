@@ -65,9 +65,7 @@ meta: object;
 }>;
 clearDone: TRPCMutationProcedure<    {
 input: void;
-output: {
-ids: readonly string[];
-};
+output: ClearedTodos;
 meta: object;
 }>;
 }>>;

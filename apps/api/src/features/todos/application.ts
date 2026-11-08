@@ -1,5 +1,6 @@
 import {
   activeTodos,
+  type ClearedTodos,
   checkTitle,
   doneIds,
   findTodo,
@@ -68,7 +69,7 @@ export function deleteTodo(request: { readonly id: string }): Outcome<{ readonly
   return succeed({ id: request.id });
 }
 
-export function clearDoneTodos() {
+export function clearDoneTodos(): ClearedTodos {
   const todos = store.read();
   store.write(activeTodos(todos));
   return { ids: doneIds(todos) };

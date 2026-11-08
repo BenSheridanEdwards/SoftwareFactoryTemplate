@@ -4,7 +4,12 @@ export interface Todo {
   readonly done: boolean;
 }
 
-export const TITLE_MAX_LENGTH = 100;
+/** The ids of the to-dos a clear deleted, oldest first. */
+export interface ClearedTodos {
+  readonly ids: readonly Todo['id'][];
+}
+
+const TITLE_MAX_LENGTH = 100;
 
 const TITLE_MESSAGES = {
   blank: 'Enter a title',
