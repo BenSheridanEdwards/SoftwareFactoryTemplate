@@ -3,6 +3,8 @@
 - **Status:** Proposed (the maintainer accepts it by approving the PR)
 - **Date:** 2026-11-08
 - **Amends:** [0032](0032-api-ui-greeting-and-contract.md),
+  [0045](0045-prds-state-intent-and-link-their-specs.md),
+  [0058](0058-prds-name-the-code-they-cover.md),
   [0107](0107-a-second-api-feature-proves-feature-isolation-on-the-real-tree.md)
 
 ## Context
@@ -97,6 +99,13 @@ changed-coverage gate asked for an E2E spec naming each deleted slice; it now
 counts only slices whose folder is still in the tree. The Pact consumer test
 merged into a `web-api.json` left by an earlier run, so a renamed interaction
 lingered and failed the provider check; it now starts from a fresh file.
+
+Rehearsals of the rebuild found a third. `check-prd-conflicts` read only
+tracked files, so a rebuilt slice failed its PRD's Covers globs and proof
+links until the agent staged it. Amending ADRs 0045 and 0058, the check now
+reads every file in the working tree that Git tracks or would track
+(untracked but not ignored). CI checks out a clean tree, where the two sets
+are the same.
 
 ## Consequences
 

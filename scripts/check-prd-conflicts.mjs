@@ -10,7 +10,7 @@
  * A behaviour is a top-level `- ` item under `## Behaviours`. Its proofs are
  * nested items of the form `- Proved by [<test title>](<path to the spec>)`,
  * with the path relative to the PRD and any `#` anchor ignored. A test counts
- * when its spec is a tracked `web/e2e/**\/*.spec.ts` file and a
+ * when its spec is a `web/e2e/**\/*.spec.ts` file in the working tree and a
  * `test('<title>', ...)` call in it has that exact literal title and runs: the
  * spec is parsed, so a test in a comment, a `test.skip`, `test.fixme` or
  * `test.fail`, a test inside `test.describe.skip` or `test.describe.fixme`, a
@@ -64,13 +64,17 @@ const CALL_ROLES = new Map([
 const SKIP_KINDS = new Set(['skip', 'fixme', 'fail']);
 
 /**
- * The filesystem port: the tracked files present in the working tree, and file
- * text, by repository-relative path.
+ * The filesystem port: the files present in the working tree that Git tracks
+ * or would track (untracked but not ignored), so a rebuilt slice counts before
+ * it is staged, and file text, by repository-relative path.
  */
 export function createNodeFilesystem(rootDirectory) {
   return {
-    listTrackedFiles: () =>
-      execFileSync('git', ['ls-files', '-z'], { cwd: rootDirectory, encoding: 'utf8' })
+    listFiles: () =>
+      execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
+        cwd: rootDirectory,
+        encoding: 'utf8',
+      })
         .split('\0')
         .filter((path) => path && existsSync(resolve(rootDirectory, path))),
     readText: (path) => readFileSync(resolve(rootDirectory, path), 'utf8'),
@@ -291,7 +295,7 @@ function testTitlesRun(specPath, specText) {
 function proofConflicts(prdPath, { line, title, spec }, specs, readText) {
   if (!specs.has(spec)) {
     return [
-      `${prdPath}:${line} links \`${spec}\`, which is not a tracked E2E spec ` +
+      `${prdPath}:${line} links \`${spec}\`, which is not an E2E spec in the working tree ` +
         `(\`${SPEC_GLOB}\`). Point the link at the spec that proves the behaviour.`,
     ];
   }
@@ -314,17 +318,17 @@ function proofConflicts(prdPath, { line, title, spec }, specs, readText) {
 }
 
 /** The conflicts in one PRD: no behaviours, an unread line, a behaviour with no proof, or a broken proof. */
-function prdConflicts(prdPath, filesystem, specs, tracked) {
+function prdConflicts(prdPath, filesystem, specs, files) {
   const { behaviours, unread, covers, coverageConflicts } = parseBehaviours(
     prdPath,
     filesystem.readText(prdPath),
   );
   const conflicts = coverageConflicts.concat(
     covers
-      .filter((pattern) => !tracked.some((path) => matchesGlob(path, pattern)))
+      .filter((pattern) => !files.some((path) => matchesGlob(path, pattern)))
       .map(
         (pattern) =>
-          `${prdPath} Covers glob \`${pattern}\` matches no tracked file. Update the glob to name the code this PRD governs.`,
+          `${prdPath} Covers glob \`${pattern}\` matches no file in the working tree. Update the glob to name the code this PRD governs.`,
       ),
   );
   const unreadConflicts = unread.map(({ line, number }) =>
@@ -358,20 +362,18 @@ function prdConflicts(prdPath, filesystem, specs, tracked) {
 
 /** Every conflict between the PRDs and the specs they link, as one message each. */
 export function findPrdConflicts(filesystem) {
-  const tracked = filesystem.listTrackedFiles();
-  const specs = new Set(tracked.filter((path) => matchesGlob(path, SPEC_GLOB)));
-  return tracked
+  const files = filesystem.listFiles();
+  const specs = new Set(files.filter((path) => matchesGlob(path, SPEC_GLOB)));
+  return files
     .filter((path) => matchesGlob(path, PRD_GLOB))
-    .flatMap((prdPath) => prdConflicts(prdPath, filesystem, specs, tracked));
+    .flatMap((prdPath) => prdConflicts(prdPath, filesystem, specs, files));
 }
 
 function runCli() {
   const filesystem = createNodeFilesystem(process.cwd());
   const conflicts = findPrdConflicts(filesystem);
   if (conflicts.length === 0) {
-    const count = filesystem
-      .listTrackedFiles()
-      .filter((path) => matchesGlob(path, PRD_GLOB)).length;
+    const count = filesystem.listFiles().filter((path) => matchesGlob(path, PRD_GLOB)).length;
     console.log(
       `OK: coverage and E2E proof links are valid for ${count} PRD${count === 1 ? '' : 's'}.`,
     );

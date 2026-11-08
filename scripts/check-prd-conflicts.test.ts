@@ -28,7 +28,7 @@ const SPEC_TEXT = [
 /** An in-memory filesystem: `files` maps a repository-relative path to its content. */
 function filesystemOf(files: Record<string, string>) {
   return {
-    listTrackedFiles: () => Object.keys(files),
+    listFiles: () => Object.keys(files),
     readText: (path: string) => {
       if (!Object.hasOwn(files, path)) {
         throw new Error(`ENOENT: ${path}`);
@@ -62,7 +62,7 @@ function conflictsOf(prdText: string, extraFiles: Record<string, string> = {}) {
 describe('findPrdConflicts', () => {
   it('passes on the PRDs in this repository', () => {
     const filesystem = createNodeFilesystem(REPOSITORY_ROOT);
-    expect(filesystem.listTrackedFiles()).toContain('docs/prd/todos.md');
+    expect(filesystem.listFiles()).toContain('docs/prd/todos.md');
     expect(findPrdConflicts(filesystem)).toEqual([]);
   });
 
@@ -450,7 +450,7 @@ describe('PRD coverage', () => {
     const declaration = `${COVERS}, \`apps/web/src/routes/missing/**\``;
     expect(conflictsOf(text.replace(COVERS, declaration))).toEqual([
       expect.stringMatching(
-        /^docs\/prd\/todos\.md .*apps\/web\/src\/routes\/missing\/\*\*.*matches no tracked file/,
+        /^docs\/prd\/todos\.md .*apps\/web\/src\/routes\/missing\/\*\*.*matches no file in the working tree/,
       ),
     ]);
   });
@@ -546,19 +546,29 @@ describe('createNodeFilesystem', () => {
     });
     rmSync(join(root, SPEC));
     expect(findPrdConflicts(createNodeFilesystem(root))).toEqual([
-      expect.stringContaining('is not a tracked E2E spec'),
+      expect.stringContaining('is not an E2E spec in the working tree'),
     ]);
   });
 
-  it('ignores untracked files when checking whether a Covers glob matches', () => {
+  it('counts untracked spec and source files, so a rebuild needs no staging', () => {
+    track({ 'docs/prd/todos.md': prd('- **Adds.** Hi.', proof('adds a to-do through the api')) });
+    [SPEC, SOURCE].forEach((path) => {
+      mkdirSync(dirname(join(root, path)), { recursive: true });
+      writeFileSync(join(root, path), path === SPEC ? SPEC_TEXT : '');
+    });
+    expect(findPrdConflicts(createNodeFilesystem(root))).toEqual([]);
+  });
+
+  it('ignores files Git ignores when checking whether a Covers glob matches', () => {
     track({
+      '.gitignore': 'apps/web/src/routes/todos/\n',
       'docs/prd/todos.md': prd('- **Adds.** Hi.', proof('adds a to-do through the api')),
       [SPEC]: SPEC_TEXT,
     });
     mkdirSync(dirname(join(root, SOURCE)), { recursive: true });
     writeFileSync(join(root, SOURCE), '');
     expect(findPrdConflicts(createNodeFilesystem(root))).toEqual([
-      expect.stringContaining('matches no tracked file'),
+      expect.stringContaining('matches no file in the working tree'),
     ]);
   });
 });
