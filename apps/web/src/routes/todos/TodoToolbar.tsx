@@ -11,8 +11,7 @@ export interface TodoToolbarProps {
 export function TodoToolbar({ filter, canClearDone, onFilter, onClearDone }: TodoToolbarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <fieldset className="flex gap-2">
-        <legend className="sr-only">Filter</legend>
+      <fieldset aria-label="Filter" className="flex gap-2">
         {TODO_FILTERS.map(({ value, label }) => (
           <Button
             key={value}
