@@ -124,8 +124,8 @@ See [ADR 0028](../decisions/0028-pre-push-runs-the-full-local-gate-suite.md).
   extensions, `erasableSyntaxOnly`, no DOM), `tsconfig.domain.json` (api
   domain modules without Node types), and `tsconfig.test.json`,
   `tsconfig.api.test.json` and `tsconfig.node.test.json` (the web, api and web
-  contract tests, which alone see Jest and its test globals `present` and
-  `unwrap`). All extend `tsconfig.base.json`.
+  contract tests, which alone see the test globals `present` and `unwrap`;
+  the web and api programs load no Jest types). All extend `tsconfig.base.json`.
   See [ADR 0034](../decisions/0034-trial-harness-and-evidence.md) for the
   program boundaries and their limits.
 - Jest + React Testing Library own component, hook and api behaviour in

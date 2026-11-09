@@ -1,6 +1,14 @@
 /** @jest-environment node */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, matchesGlob, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -796,6 +804,50 @@ function useSummary(list: { data: string[]; isError: boolean }) {
 export const hooks = [useSummary];
 `,
   },
+  // A destructured query and an indexed read of its data count as reads of the query.
+  {
+    path: 'apps/web/src/routes/todos/useDestructured.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useDestructured() {
+  const { data, isPending, isError: failed = false } = useQuery(options);
+  return { todos: data ?? [], isPending, failed };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage(
+      'useDestructured',
+      '`data`, `isPending`, `isError`',
+      '{ data, isPending, isError: failed = false }',
+    ),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useFirst.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useFirst() {
+  const list = useQuery(options);
+  return { first: list.data?.[0], loading: list.isLoading };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useFirst', '`data`, `isLoading`', 'list'),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useDestructuredError.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+declare const plain: { data: string[]; isError: boolean };
+export function useDestructuredError() {
+  const { data, error } = useQuery(options);
+  const { isError } = plain;
+  return { todos: data, problem: error, failed: isError };
+}
+`,
+  },
   {
     path: 'apps/web/src/routes/todos/useOwnScope.ts',
     source: `
@@ -1076,12 +1128,13 @@ export function Layout() {
 }
 `,
   },
-  // A limit inside a class name, a fraction or a time is not a count.
+  // A limit inside a class name, a fraction, a time or a price is not a count.
   {
     path: 'apps/web/src/routes/todos/listClasses.ts',
     source: `
 export const MAX_ITEMS = 10;
 export const listClasses = 'grid gap-10 px-4 w-1/10 md:10 items-center';
+export const price = 'Save $10 today';
 `,
   },
   {
@@ -1857,6 +1910,17 @@ it('keeps one type scan per folder and extension mode, replacing it when a file 
     touch('export type Entry = { id: string };\n', 3);
     expect([...siblingTypes(folder, true)]).toEqual([['Entry', './useTodos.ts']]);
     expect(siblingScans.size).toBe(before + 2);
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+it('skips a broken link and a folder named like a module when it scans the type exports', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'sibling-skips-'));
+  try {
+    writeFileSync(join(folder, 'useTodos.ts'), 'export type Todo = { id: string };\n');
+    mkdirSync(join(folder, 'nested.ts'));
+    symlinkSync(join(folder, 'missing.ts'), join(folder, 'broken.ts'));
+    expect([...siblingTypes(folder, false)]).toEqual([['Todo', './useTodos']]);
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }

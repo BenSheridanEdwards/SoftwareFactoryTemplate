@@ -28,7 +28,9 @@ result-root override, `{apps,packages}/*/src/**/*.{ts,tsx}` and
   `isPending`, `isLoading`, `isError` and `isSuccess`. A query is a `const`
   bound to the result of `useQuery`, `useSuspenseQuery` or `useInfiniteQuery`.
   A lookup keyed by the status, such as `STATES[list.status]`, reads
-  `status`. The rule follows one `const` binding, and resolves each name in
+  `status`; an index into a field, such as `list.data?.[0]`, reads `data`; and
+  a name destructured from the query, as in
+  `const { data, isError } = useQuery(…)`, reads its field. The rule follows one `const` binding, and resolves each name in
   its own scope. `error` and `isFetching` describe a state rather than choose
   one, so `{ status: list.status, problem: list.error }` and
   `{ list: list.data, refreshing: list.isFetching }` pass, as does a mutation
@@ -105,7 +107,9 @@ other fallback strings such as `?? 'waiting'` to review, because a test may
 render one on purpose. `policy/message-uses-its-limit` skips JSX attributes, so
 a `placeholder` that restates a limit passes; a limit not followed by a word,
 such as `at most 100.` or `100-character`, passes, and so does a limit after
-`-`, `/` or `:`, as in the class `gap-10 px-4`. `policy/test-imports-the-type`
+`-`, `/`, `:` or `$`, as in the class `gap-10 px-4` or the price `$10`. A
+limit of 10 still matches prose such as `Step 10 of 12`; a reviewer renames
+the constant or rewords the text. `policy/test-imports-the-type`
 matches a type by name across the folder, because the restated type usually
 comes from a sibling hook rather than the module under test; a test that
 declares its own `Props` beside a sibling's exported `Props` must rename it.

@@ -1108,16 +1108,22 @@ function variableAt(context, node, name) {
   return lookup(context.sourceCode.getScope(node));
 }
 
-/** The initialiser of the `const` an identifier names in its own scope, or null. */
-function constInit(context, identifier) {
+/** The one `const` definition an identifier names in its own scope, or null. */
+function constDefinition(context, identifier) {
   const [definition, ...others] = variableAt(context, identifier, identifier.name)?.defs ?? [];
 
   return others.length === 0 &&
     definition?.type === 'Variable' &&
-    definition.parent?.kind === 'const' &&
-    definition.node.id.type === 'Identifier'
-    ? definition.node.init
+    definition.parent?.kind === 'const'
+    ? definition
     : null;
+}
+
+/** The initialiser of the `const` an identifier names in its own scope, or null. */
+function constInit(context, identifier) {
+  const definition = constDefinition(context, identifier);
+
+  return definition?.node.id.type === 'Identifier' ? definition.node.init : null;
 }
 
 const QUERY_HOOKS = new Set(['useQuery', 'useSuspenseQuery', 'useInfiniteQuery']);
@@ -1140,10 +1146,11 @@ const QUERY_STATUS_FIELDS = new Set([
   'isSuccess',
 ]);
 
-/** What a value reads through: the left of `a ?? b`, or the key of a lookup such as `STATES[list.status]`. */
+/** What a value reads through: the left of `a ?? b`, the key of a lookup such as `STATES[list.status]`, or the list of `list.data[0]`. */
 const READS_THROUGH = {
   LogicalExpression: (node) => node.left,
-  MemberExpression: (node) => (node.computed ? node.property : null),
+  MemberExpression: (node) =>
+    node.computed ? (node.property.type === 'Literal' ? node.object : node.property) : null,
 };
 
 /** The expression a value reads, following one `const` binding resolved in its own scope. */
@@ -1160,14 +1167,42 @@ function readExpression(context, node, follow) {
   return bound ? readExpression(context, bound, false) : value;
 }
 
+/** The name a destructured property binds: `failed` in `{ isError: failed = false }`. */
+const boundName = (property) =>
+  property.value.type === 'AssignmentPattern' ? property.value.left : property.value;
+
+/** The field a name destructures from a query, `{ root, field }` for `isError` in `const { isError } = useQuery(…)`, or null. */
+function destructuredField(context, identifier) {
+  const definition = constDefinition(context, identifier);
+  const pattern = definition?.node.id;
+  const property =
+    pattern?.type === 'ObjectPattern' && isQueryCall(definition.node.init)
+      ? pattern.properties.find(
+          (entry) =>
+            entry.type === 'Property' && !entry.computed && boundName(entry) === definition.name,
+        )
+      : null;
+
+  return property ? { root: context.sourceCode.getText(pattern), field: property.key.name } : null;
+}
+
+/** The first field a member chain reads of a `const` bound to a query call, `{ root, field }`, or null. */
+function queryMemberRead(context, value) {
+  const chain = memberChain(value);
+
+  return chain && isQueryCall(constInit(context, chain.node))
+    ? { root: chain.root, field: chain.names[0] }
+    : null;
+}
+
 /** The query state a value reads (`list.data ?? []` reads `data` of `list`), or null; only a query hook's result counts. */
 function statusField(context, node) {
-  const chain = memberChain(readExpression(context, node, true));
-  const field = chain?.names[0];
+  const value = readExpression(context, node, true);
+  const read =
+    (value?.type === 'Identifier' && destructuredField(context, value)) ||
+    queryMemberRead(context, value);
 
-  return QUERY_STATUS_FIELDS.has(field) && isQueryCall(constInit(context, chain.node))
-    ? { root: chain.root, field }
-    : null;
+  return QUERY_STATUS_FIELDS.has(read?.field) ? read : null;
 }
 
 /** The object a function returns: a `return { ... }` or an arrow's `({ ... })` body. */
@@ -1296,12 +1331,14 @@ const EXPORTED_TYPE = /^export\s+(?:declare\s+)?(?:interface|type)\s+([A-Za-z_$]
 /** Each folder and extension mode's latest scan, replaced when its modules change. */
 export const siblingScans = new Map();
 
-/** A folder's non-test modules, sorted, each with its modification time. */
+/** A folder's non-test module files, sorted, each with its modification time; a broken link or a folder is skipped. */
 const siblingModules = (directory) =>
   readdirSync(directory)
     .filter((file) => /\.tsx?$/.test(file) && !isSpecFile(file) && !file.endsWith('.d.ts'))
     .sort()
-    .map((file) => [file, statSync(join(directory, file)).mtimeMs]);
+    .map((file) => [file, statSync(join(directory, file), { throwIfNoEntry: false })])
+    .filter(([, stats]) => stats?.isFile())
+    .map(([file, stats]) => [file, stats.mtimeMs]);
 
 /**
  * Each type name a module in `directory` exports by declaration, mapped to its
@@ -1382,7 +1419,7 @@ const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** The limit written as a count of something: `100 characters`, `1,000 items`. */
 const countPattern = (value) =>
   new RegExp(
-    `(?<![\\w.,/:-])(?:${[...new Set([String(value), value.toLocaleString('en-GB')])].map(escapeRegExp).join('|')})\\s+[A-Za-z]`,
+    `(?<![\\w.,/:$-])(?:${[...new Set([String(value), value.toLocaleString('en-GB')])].map(escapeRegExp).join('|')})\\s+[A-Za-z]`,
   );
 
 /** An import or export source, or text inside a JSX attribute, holds no message. */
