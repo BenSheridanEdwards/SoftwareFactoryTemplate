@@ -270,6 +270,51 @@ describe('Fallow contract over the reference result', () => {
     expect(architectureGate({ [path]: source })).toEqual({ status: 0, findings: [] });
   });
 
+  describe('a feature rules module shared by the api domain and the web', () => {
+    const RULES = `${TODOS}/rules.ts`;
+    const shared = {
+      'apps/api/package.json':
+        '{ "name": "@repo/api", "private": true, "type": "module", "exports": { ".": { "types": "./src/router.ts" }, "./*/rules": { "types": "./src/features/*/rules.ts", "default": "./src/features/*/rules.ts" } } }\n',
+      [RULES]: 'export const TITLE_MAX_LENGTH = 100;\n',
+      [`${TODOS}/domain.ts`]:
+        "import { TITLE_MAX_LENGTH } from './rules.ts';\nexport interface Todo { readonly message: string }\nexport const formatTitle = (name: string) => name.slice(0, TITLE_MAX_LENGTH);\n",
+      [`${WEB}/routes/todos/index.ts`]:
+        "import { TITLE_MAX_LENGTH } from '@repo/api/todos/rules';\nimport { ApiProvider } from '../../api-client';\nimport { nameInput } from '../../features/name-input';\nimport { Button } from '@repo/ui';\nexport const todos = [TITLE_MAX_LENGTH, ApiProvider, nameInput, Button];\n",
+    };
+
+    it('passes when the domain and a route import the rules by value', () => {
+      expect(architectureGate(shared)).toEqual({ status: 0, findings: [] });
+    });
+
+    it.each([
+      [
+        'the rules import their domain',
+        "import type { Todo } from './domain.ts';\nexport const TITLE_MAX_LENGTH = 100;\nexport type Titled = Todo;\n",
+        'boundary api-rules -> api-domain',
+      ],
+      [
+        'the rules import Effect',
+        "import { Schema } from 'effect';\nexport const TITLE_MAX_LENGTH = 100;\nexport const title = Schema;\n",
+        'policy contract/rules-pure',
+      ],
+    ])('fails when %s', (_label, source, finding) => {
+      expect(architectureGate({ ...shared, [RULES]: source })).toEqual({
+        status: 1,
+        findings: [finding],
+      });
+    });
+
+    it('fails when the api client imports the rules by value', () => {
+      expect(
+        architectureGate({
+          ...shared,
+          [`${WEB}/api-client/index.ts`]:
+            "import type { AppRouter } from '@repo/api';\nimport { TITLE_MAX_LENGTH } from '@repo/api/todos/rules';\nexport const ApiProvider = TITLE_MAX_LENGTH;\nexport type Router = AppRouter;\n",
+        }),
+      ).toEqual({ status: 1, findings: ['boundary web-api-client -> api-rules'] });
+    });
+  });
+
   it.each([
     [
       'a loose file directly under features composes several features',

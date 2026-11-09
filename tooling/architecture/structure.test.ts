@@ -733,6 +733,8 @@ describe('route co-location', () => {
     "const other = import('../other');",
     "import { useTrpc } from '../../api-client/trpc';",
     "import type { AppRouter } from '@repo/api';",
+    "import { formatTitle } from '@repo/api/todos/domain';",
+    "import { TITLE_MAX_LENGTH } from '@other/api/todos/rules';",
     "import { readFile } from 'node:fs';",
     "import { App } from '/apps/web/src/App';",
     "import { data } from '@/data';",
@@ -744,6 +746,16 @@ describe('route co-location', () => {
         'apps/web/src/routes/other/index.ts': 'export const other = 1;',
       }),
     ).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'route-colocation' })]));
+  });
+
+  it("accepts its own result's feature rules from the api package", () => {
+    expect(
+      validate({
+        'apps/web/src/routes/todos/todoFormSchema.ts':
+          "import { TITLE_MAX_LENGTH, normaliseTitle } from '@repo/api/todos/rules';",
+        'apps/api/src/features/todos/rules.ts': 'export const TITLE_MAX_LENGTH = 100;',
+      }),
+    ).toEqual([]);
   });
 
   it('accepts route-local code, UI primitives, the api-client surface and npm packages', () => {

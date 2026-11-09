@@ -129,6 +129,10 @@
         ]
       },
       {
+        "name": "api-rules",
+        "patterns": ["{apps,showcase/*}/api/src/features/*/rules.ts"]
+      },
+      {
         "name": "api-integrations",
         "patterns": [
           "{apps,showcase/*}/api/src/features/*/integrations.ts",
@@ -137,8 +141,8 @@
       }
     ],
     // `allow` lists the roles a role may import by value. For every role except
-    // ui, `allowTypeOnly` lists the remaining roles (ADR 0085 amends ADR 0037).
-    // ui imports no other role, types included. A role is never listed for
+    // ui and api-rules, `allowTypeOnly` lists the remaining roles (ADR 0085 amends
+    // ADR 0037). ui and api-rules import no other role, types included. A role is never listed for
     // itself: sibling slices stay isolated for types too.
     "rules": [
       // The composition root mounts the routes inside the api providers.
@@ -152,7 +156,8 @@
           "api-procedures",
           "api-application",
           "api-domain",
-          "api-integrations"
+          "api-integrations",
+          "api-rules"
         ]
       },
       // The api client wires the tRPC client over the router type; it imports
@@ -170,7 +175,8 @@
           "api-procedures",
           "api-application",
           "api-domain",
-          "api-integrations"
+          "api-integrations",
+          "api-rules"
         ]
       },
       // A route composes a page from features, the api client and the ui kit.
@@ -178,7 +184,7 @@
       // another route, not even a type.
       {
         "from": "web-routes",
-        "allow": ["web-features", "web-api-client", "ui"],
+        "allow": ["web-features", "web-api-client", "ui", "api-rules"],
         "allowTypeOnly": [
           "web-app",
           "api-app",
@@ -193,7 +199,7 @@
       // imports another, not even a type.
       {
         "from": "web-features",
-        "allow": ["web-api-client", "ui"],
+        "allow": ["web-api-client", "ui", "api-rules"],
         "allowTypeOnly": [
           "web-app",
           "web-routes",
@@ -223,7 +229,8 @@
           "ui",
           "api-application",
           "api-domain",
-          "api-integrations"
+          "api-integrations",
+          "api-rules"
         ]
       },
       {
@@ -239,7 +246,8 @@
           "api-procedures",
           "api-application",
           "api-domain",
-          "api-integrations"
+          "api-integrations",
+          "api-rules"
         ]
       },
       // Procedures validate input and delegate to application logic; they may
@@ -255,7 +263,8 @@
           "ui",
           "api-app",
           "api-domain",
-          "api-integrations"
+          "api-integrations",
+          "api-rules"
         ]
       },
       {
@@ -269,13 +278,14 @@
           "ui",
           "api-app",
           "api-trpc",
-          "api-procedures"
+          "api-procedures",
+          "api-rules"
         ]
       },
-      // The domain is pure: it imports no other role by value.
+      // The domain is pure: it imports only its feature's rules by value (ADR 0127).
       {
         "from": "api-domain",
-        "allow": [],
+        "allow": ["api-rules"],
         "allowTypeOnly": [
           "web-app",
           "web-api-client",
@@ -303,8 +313,16 @@
           "api-trpc",
           "api-procedures",
           "api-application",
-          "api-domain"
+          "api-domain",
+          "api-rules"
         ]
+      },
+      // A feature's rules hold the values both the api domain and the web need
+      // to check an input: limits, messages, normalisers. They import nothing.
+      {
+        "from": "api-rules",
+        "allow": [],
+        "allowTypeOnly": []
       }
     ],
     "coverage": {

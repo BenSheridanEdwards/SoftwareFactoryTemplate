@@ -49,6 +49,32 @@
       "message": "Keep the domain free of tRPC, Effect and Node: move the effect to the feature's integrations module and call it from application."
     },
     {
+      "id": "rules-pure",
+      "kind": "banned-import",
+      "zones": ["api-rules"],
+      "specifiers": [
+        "@trpc/server",
+        "@trpc/client",
+        "effect",
+        "react",
+        "child_process",
+        "crypto",
+        "fs",
+        "http",
+        "module",
+        "path",
+        "process",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:http",
+        "node:module",
+        "node:path",
+        "node:process"
+      ],
+      "message": "Keep a feature's rules free of every library: the api domain and the web both import them (ADR 0127). Apply them with Effect or tRPC on each side."
+    },
+    {
       "id": "application-without-trpc",
       "kind": "banned-import",
       "zones": ["api-application"],
