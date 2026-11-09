@@ -538,7 +538,7 @@ describe('A Fallow warning fails the gate', () => {
 
   it('fails duplication left at its default warning, with no threshold', () => {
     const seed = {
-      '.fallowrc.jsonc': config.replace(/\n\s*"duplicates": \{[^\n]*\},?/, ''),
+      '.fallowrc.jsonc': config.replace('"threshold": 0.001', '"threshold": 0'),
     };
     const gate = withSeededRepository(seed, runGate);
     expect(gate.status).toBe(1);
@@ -579,7 +579,7 @@ describe('A Fallow warning fails the gate', () => {
       ];
     };
 
-    const withoutThreshold = audit(config.replace(/\n\s*"duplicates": \{[^\n]*\},?/, ''));
+    const withoutThreshold = audit(config.replace('"threshold": 0.001', '"threshold": 0'));
     expect([withoutThreshold.status, verdict(withoutThreshold)]).toEqual([0, ['warn', 1, 0]]);
     const withThreshold = audit(config);
     expect([withThreshold.status, verdict(withThreshold)]).toEqual([1, ['fail', 1, 0]]);

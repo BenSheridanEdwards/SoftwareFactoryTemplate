@@ -29,9 +29,14 @@
   "audit": { "gate": "all" },
 
   // A clone group is a warning, and the audit passes a warning, until a
-  // threshold is set; this one fails any duplication (ADR 0127). Showcase
-  // results copy the reference's template files by design (ADR 0034).
-  "duplicates": { "threshold": 0.001, "ignore": ["showcase/**"] },
+  // threshold is set; this one fails any duplication (ADR 0127).
+  "duplicates": {
+    "ignore": [
+      // Showcase results copy the reference's template files by design (ADR 0034).
+      "showcase/**"
+    ],
+    "threshold": 0.001
+  },
 
   "rules": {
     // A rule-pack finding fails the gate, like a boundary violation.
