@@ -4,8 +4,11 @@ import '@testing-library/jest-dom';
 
 // `toHaveNoViolations` for jest-axe — lets unit tests assert accessibility.
 import { toHaveNoViolations } from 'jest-axe';
+// `present` and `unwrap` take a value a test expects, so a test file needs no import for them.
+import { testGlobals } from './test-globals';
 
 expect.extend(toHaveNoViolations);
+Object.assign(globalThis, testGlobals);
 
 // jsdom leaves out the encoding globals that browsers and Node both ship, and
 // Effect reads TextEncoder when it loads.

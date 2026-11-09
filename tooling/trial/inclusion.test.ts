@@ -38,6 +38,8 @@ const PNPM_IN_COPY = ['--config.verify-deps-before-run=false'];
 const TS = '@ts';
 const WEB_FILE = 'web/src/routes/greeting/GreetingPage.tsx';
 const API_FILE = 'api/src/features/greeting/procedures.ts';
+const WEB_TEST = 'web/src/routes/greeting/GreetingPage.test.tsx';
+const API_TEST = 'api/src/features/greeting/application.test.ts';
 
 const env: NodeJS.ProcessEnv = {
   ...process.env,
@@ -264,7 +266,7 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
       const showcase = configs[index] ?? {};
       expect(showcase).toEqual(configs[index + 1]);
       const policy = Object.entries(showcase).filter(([rule]) => rule.startsWith('policy/'));
-      expect(policy).toHaveLength(21);
+      expect(policy).toHaveLength(27);
       expect(
         policy.filter(([, value]) => (Array.isArray(value) ? value[0] : value) !== 'error'),
       ).toEqual([]);
@@ -340,6 +342,13 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
 
     expect(filesOf('tsconfig.json')).toContain(`showcase/x/${WEB_FILE}`);
     expect(filesOf('tsconfig.api.json')).toContain(`showcase/x/${API_FILE}`);
+    expect(filesOf('tsconfig.test.json')).toContain(`showcase/x/${WEB_TEST}`);
+    expect(filesOf('tsconfig.api.test.json')).toContain(`showcase/x/${API_TEST}`);
+    expect(
+      [...filesOf('tsconfig.json'), ...filesOf('tsconfig.api.json')].filter((path) =>
+        /\.test\.tsx?$/.test(path),
+      ),
+    ).toEqual([]);
     expect(filesOf('tsconfig.node.json')).toEqual(
       expect.arrayContaining([
         'showcase/x/web/e2e/greeting.spec.ts',
@@ -364,6 +373,25 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
     expect(checked.code).toBe(1);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toMatch(/^showcase\/x\/api\/src\/features\/greeting\/seed\.ts.*error TS2835/);
+  });
+
+  it.each([
+    WEB_FILE.replace('GreetingPage.tsx', 'leak.ts'),
+    API_FILE.replace('procedures.ts', 'leak.ts'),
+  ])('fails the type check on a production call to the test globals in %s', (file) => {
+    const checked = withSeed(
+      {
+        [`showcase/x/${file}`]:
+          'export const leak = [present(1), unwrap({ ok: true, value: 1 })];\n',
+      },
+      () => script('typecheck'),
+    );
+    const errors = checked.output.split('\n').filter((line) => line.includes('error TS'));
+
+    expect(checked.code).toBe(1);
+    expect(errors).toHaveLength(2);
+    expect(errors[0]).toMatch(/leak\.ts.*error TS2304: Cannot find name 'present'/);
+    expect(errors[1]).toMatch(/leak\.ts.*error TS2304: Cannot find name 'unwrap'/);
   });
 
   it('passes the type check and the api report with a Node import in its api integrations', () => {

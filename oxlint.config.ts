@@ -214,6 +214,12 @@ export default {
         'policy/slice-isolation': 'error',
         'policy/procedure-input-schema': 'error',
         'policy/form-uses-effect-schema': 'error',
+        'policy/one-status-from-hooks': 'error',
+        'policy/test-unwraps-values': 'error',
+        'policy/test-imports-the-type': 'error',
+        'policy/message-uses-its-limit': 'error',
+        'policy/reexport-only-from-index': 'error',
+        'policy/keep-rejections': 'error',
         'max-depth': ['error', 4],
         'no-restricted-imports': [
           'error',
@@ -240,6 +246,10 @@ export default {
       files: ['{apps,packages}/*/src/**/*.{ts,tsx}', 'showcase/*/*/src/**/*.{ts,tsx}'],
       excludeFiles: ['{apps,showcase/*}/web/src/main.tsx'],
       rules: { 'no-restricted-globals': ['error', 'document', 'window'] },
+    },
+    {
+      files: ['{apps,showcase/*}/web/e2e/**/*.ts'],
+      rules: { 'policy/test-unwraps-values': 'error' },
     },
     {
       // Naming and file names, ported from Biome's override (ADR 0126).
