@@ -34,8 +34,11 @@ left three gaps that issue #231 names:
   a rule, an override's rule or a rule-pack file sets `warn`, or when
   duplication is on with a threshold of 0 or above 0.001. `arch:gate` runs at pre-commit and in
   the CI Fallow job.
-- **Duplication.** `.fallowrc.jsonc` sets `duplicates.threshold` to `0.001`,
-  so any clone group makes the audit fail. Main has none.
+- **Duplication.** `.fallowrc.jsonc` sets `duplicates.threshold` to `0.001`
+  percent of the lines Fallow analyses. The smallest clone group (two
+  five-line copies) exceeds it while the analysed code stays under about a
+  million lines, so any clone group makes the audit fail; main analyses about
+  18,600 lines and has none. A codebase past that size lowers the threshold.
 - **Showcase results leave duplication analysis.** A showcase result copies
   the reference's template files by design (ADR 0034), so with a threshold
   every trial result would fail its own audit on code it must copy. This

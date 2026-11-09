@@ -43,7 +43,10 @@ Keep the passing declared-error behaviour test and trial acceptance machinery.
 ## Consequences
 
 Warnings now require a fix or a test that explicitly expects them. Console
-output at module load sits outside a Jest test's hooks. The browser guard
-covers the test's page; workers and other pages have separate lifecycles.
-Fallow warning behaviour stays unchanged. Warnings as failures across every
-tool remains a target.
+output at module load sits outside a Jest test's hooks. As first merged, the
+browser guard covered the test's page only, Fallow warning behaviour stayed
+unchanged, and warnings as failures across every tool remained a target.
+[ADR 0128](0128-warning-findings-and-test-console-warnings-fail.md) extends
+the guard to every page, popup and worker in the test's context and to the
+test process, makes Fallow warn-severity findings fail the gate, and runs five
+proof mutants in place of the one above.

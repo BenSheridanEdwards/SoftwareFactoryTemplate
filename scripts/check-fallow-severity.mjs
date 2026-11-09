@@ -22,7 +22,7 @@ const ruleWarnings = (config) =>
       .map(([rule]) => `rule ${rule}`),
   );
 
-// The audit fails duplication over the threshold; in the changed files it reads, one clone group exceeds 0.001%.
+// Fallow fails duplication over this percentage of the lines it analyses; one clone group exceeds it below about 1M lines.
 const MAX_DUPLICATION_THRESHOLD = 0.001;
 
 /** A duplication threshold of 0 or above 0.001, which leaves some clone groups as warnings. */
