@@ -3,7 +3,8 @@
 - **Status:** Accepted on 23 October 2026 (merged in #127); amended on
   3 November 2026 to remove the dead per-run entries; amended by
   [0128](0128-warning-findings-and-test-console-warnings-fail.md), which
-  leaves every showcase result out of code-duplication analysis
+  leaves every showcase result out of code-duplication analysis, so the
+  title now holds for styling, complexity and health analysis only
 - **Approval:** On 23 October 2026 the maintainer approved excluding the six
   generated Todo trial outputs from Fallow's duplication and styling scan as
   an exemption, keeping real-code rules, thresholds and severities unchanged

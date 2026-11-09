@@ -20,7 +20,7 @@ export const test = base.extend<ConsoleFixtures>({
     async ({ context, expectedConsole }, use, testInfo) => {
       const messages: string[] = [];
       const expected = [...expectedConsole];
-      // The context hears every page, popup and dedicated worker the test opens.
+      // The context hears every page, popup and worker the test opens.
       const recordConsole = (message: ConsoleMessage) => {
         if (message.type() === 'warning' || message.type() === 'error') {
           messages.push(`console.${message.type()}: ${message.text()}`);

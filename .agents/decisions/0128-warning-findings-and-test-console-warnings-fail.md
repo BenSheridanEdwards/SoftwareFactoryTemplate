@@ -2,13 +2,15 @@
 
 - **Status:** Proposed (the maintainer accepts it by approving the PR)
 - **Date:** 2026-11-09
-- **Amends:** [0086](0086-console-warnings-fail-tests.md) for workers, other
-  pages and the Playwright test process, [0079](0079-no-advisory-lint.md)
-  for how a Fallow warning fails the gate, and
-  [0059](0059-preserve-recorded-trial-outputs-in-duplication-analysis.md),
-  whose per-result `duplicates.ignore` entries give way to one `showcase/**`
-  entry, and [0034](0034-trial-harness-and-evidence.md), whose showcase
-  results now get that one exception
+- **Amends:**
+  - [0086](0086-console-warnings-fail-tests.md) for workers, other pages and
+    the Playwright test process
+  - [0079](0079-no-advisory-lint.md) for how a Fallow warning fails the gate
+  - [0059](0059-preserve-recorded-trial-outputs-in-duplication-analysis.md),
+    whose per-result `duplicates.ignore` entries give way to one
+    `showcase/**` entry
+  - [0034](0034-trial-harness-and-evidence.md), whose showcase results now
+    get that one exception
 
 ## Context
 
@@ -56,7 +58,8 @@ left three gaps that issue #231 names:
   without the threshold, and a `fail` verdict and exit 1 with it.
 - **Playwright pages and workers.** The fixture in each result's
   `e2e/fixtures.ts` listens on the browser context's `console` and `weberror`
-  events, which carry every page, popup and dedicated worker the test opens.
+  events, which carry every page, popup and dedicated worker the test opens,
+  and a service worker's own `console` calls.
 - **Playwright test process.** The same fixture records `console.warn`,
   `console.error` and Node `warning` events in the test's worker process,
   waits one turn of the event loop for a pending warning, and restores the
@@ -96,8 +99,9 @@ These stay outside the guarantee:
   keeps for slices the reference has not built yet. Failing on them would fail
   a clean main.
 - Output from the Playwright runner outside a test (config load, the web
-  servers' own logs) and service-worker lifecycle messages; the app registers
-  no service worker.
+  servers' own logs) and the browser's own service-worker lifecycle logs. A
+  service worker's `console.warn` or `console.error` does reach the context
+  and fails the test; the app registers no service worker.
 - Duplication in a showcase result, inside it or against the reference.
 - Tools outside this list. commitlint, for example, keeps the
   `body-leading-blank` and `footer-leading-blank` warnings of
