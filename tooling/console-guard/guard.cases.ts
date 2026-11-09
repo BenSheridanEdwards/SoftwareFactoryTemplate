@@ -1,4 +1,4 @@
-import { test } from '../../apps/web/e2e/fixtures';
+import { type Page, test } from '../../apps/web/e2e/fixtures';
 
 const messages = [
   { method: 'warning', emit: () => console.warn('x') },
@@ -42,19 +42,21 @@ workerSources.forEach(({ title, source }) => {
   });
 });
 
-test('popup console.warning', async ({ page }) => {
+/** The app opened again in a popup of the test's page. */
+async function openPopup(page: Page) {
   await page.goto('/');
   const opened = page.waitForEvent('popup');
   await page.evaluate(() => window.open('/'));
-  const popup = await opened;
+  return opened;
+}
+
+test('popup console.warning', async ({ page }) => {
+  const popup = await openPopup(page);
   await popup.evaluate(() => console.warn('x'));
 });
 
 test('popup pageerror', async ({ page }) => {
-  await page.goto('/');
-  const opened = page.waitForEvent('popup');
-  await page.evaluate(() => window.open('/'));
-  const popup = await opened;
+  const popup = await openPopup(page);
   const error = popup.waitForEvent('pageerror');
   await popup.evaluate(() => {
     setTimeout(() => {

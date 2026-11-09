@@ -480,7 +480,7 @@ describe('Fallow contract over the reference result', () => {
   });
 });
 
-describe('A Fallow warning fails the architecture gate', () => {
+describe('A Fallow warning fails the gate', () => {
   jest.setTimeout(30_000);
   const archGate: string = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8'))
     .scripts['arch:gate'];
@@ -534,6 +534,55 @@ describe('A Fallow warning fails the architecture gate', () => {
     const gate = withSeededRepository(seed, runGate);
     expect(gate.status).toBe(1);
     expect(gate.stderr).toContain('  - rule boundary-violation');
+  });
+
+  it('fails duplication left at its default warning, with no threshold', () => {
+    const seed = {
+      '.fallowrc.jsonc': config.replace(/\n\s*"duplicates": \{[^\n]*\},?/, ''),
+    };
+    const gate = withSeededRepository(seed, runGate);
+    expect(gate.status).toBe(1);
+    expect(gate.stderr).toContain('  - duplicates.threshold');
+  });
+
+  it('fails the audit on a clone group that Fallow passes as a warning without the threshold', () => {
+    const helper = `function summarise(values: readonly number[]) {\n  const doubled = values.map((value) => value * 2);\n  const kept = doubled.filter((value) => value > 10);\n  const total = kept.reduce((sum, value) => sum + value, 0);\n  const mean = total / Math.max(kept.length, 1);\n  const largest = kept.reduce((top, value) => Math.max(top, value), 0);\n  return { doubled, kept, total, mean, largest };\n}\n`;
+    const clones = {
+      [`${GREETING}/application.ts`]: `${LAYOUT[`${GREETING}/application.ts`]}${helper}`,
+      [`${GREETING}/procedures.ts`]: `${LAYOUT[`${GREETING}/procedures.ts`]}${helper}`,
+    };
+    const audit = (seedConfig: string) =>
+      withSeededRepository({ '.fallowrc.jsonc': seedConfig }, (directory) => {
+        const git = (...args: string[]) =>
+          spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+            cwd: directory,
+            encoding: 'utf8',
+          });
+        git('init', '-q', '-b', 'main');
+        git('add', '-A');
+        git('commit', '-qm', 'base');
+        Object.entries(clones).forEach(([path, source]) => {
+          writeFileSync(join(directory, path), source);
+        });
+        git('commit', '-qam', 'clone');
+        return spawnSync(FALLOW_BIN, ['audit', '--base', 'HEAD~1', '--format', 'json', '-q'], {
+          cwd: directory,
+          encoding: 'utf8',
+        });
+      });
+    const verdict = (run: { stdout: string }) => {
+      const report = JSON.parse(run.stdout);
+      return [
+        report.verdict,
+        report.summary.duplication_clone_groups,
+        report.summary.dead_code_issues,
+      ];
+    };
+
+    const withoutThreshold = audit(config.replace(/\n\s*"duplicates": \{[^\n]*\},?/, ''));
+    expect([withoutThreshold.status, verdict(withoutThreshold)]).toEqual([0, ['warn', 1, 0]]);
+    const withThreshold = audit(config);
+    expect([withThreshold.status, verdict(withThreshold)]).toEqual([1, ['fail', 1, 0]]);
   });
 
   it('fails a rule-pack rule set to warn', () => {
