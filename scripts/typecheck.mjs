@@ -13,7 +13,7 @@ import { bunBinary } from './bun.mjs';
 
 /**
  * Each program's `bun check` arguments. `-b` follows `tsconfig.json`'s reference to the api program.
- * The two test programs come last: they alone see the Jest test globals.
+ * The three test programs come last: they alone see the Jest test globals.
  */
 export const PROGRAMS = [
   ['-b', 'tsconfig.json'],
@@ -21,6 +21,7 @@ export const PROGRAMS = [
   ['-p', 'tsconfig.domain.json'],
   ['-p', 'tsconfig.test.json'],
   ['-p', 'tsconfig.api.test.json'],
+  ['-p', 'tsconfig.node.test.json'],
 ];
 
 /** Checks one program with its errors on this terminal, and returns Bun's exit code. Throws when Bun cannot start. */

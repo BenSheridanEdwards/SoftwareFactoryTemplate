@@ -1382,7 +1382,7 @@ const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** The limit written as a count of something: `100 characters`, `1,000 items`. */
 const countPattern = (value) =>
   new RegExp(
-    `(?<![\\w.,])(?:${[...new Set([String(value), value.toLocaleString('en-GB')])].map(escapeRegExp).join('|')})\\s+[A-Za-z]`,
+    `(?<![\\w.,/:-])(?:${[...new Set([String(value), value.toLocaleString('en-GB')])].map(escapeRegExp).join('|')})\\s+[A-Za-z]`,
   );
 
 /** An import or export source, or text inside a JSX attribute, holds no message. */

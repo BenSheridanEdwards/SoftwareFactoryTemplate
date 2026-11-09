@@ -78,9 +78,12 @@ returns a value that is neither `null` nor `undefined` and throws otherwise.
 returns its value, and throws with the failure otherwise. The Jest setup makes
 both globals, because a unit test in a package may import nothing from outside
 that package (`policy/slice-isolation`). `tooling/types/test-globals.d.ts`
-types them, and only the test type programs, `tsconfig.test.json` and
-`tsconfig.api.test.json`, include it: the web and api programs exclude test
-files, so a production module that calls either fails `pnpm typecheck`. A
+types them, and only the test type programs, `tsconfig.test.json`,
+`tsconfig.api.test.json` and `tsconfig.node.test.json` (web contract tests),
+include it: the web, api and Node programs exclude test files, so a
+production module or E2E spec that calls either fails `pnpm typecheck`. The
+Jest types move to the test programs too, so web and api source cannot call
+`expect` or `jest` either. A
 result is self-contained and a showcase copies the reference's `e2e/` folder,
 so each result's `e2e/fixtures.ts` holds its own five-line `present` and
 `unwrap`, which a unit test holds to the same behaviour as the Jest globals,
@@ -101,7 +104,12 @@ leaves `data` beside `error` to review. `policy/test-unwraps-values` leaves
 other fallback strings such as `?? 'waiting'` to review, because a test may
 render one on purpose. `policy/message-uses-its-limit` skips JSX attributes, so
 a `placeholder` that restates a limit passes; a limit not followed by a word,
-such as `at most 100.` or `100-character`, passes. The first version of these rules
+such as `at most 100.` or `100-character`, passes, and so does a limit after
+`-`, `/` or `:`, as in the class `gap-10 px-4`. `policy/test-imports-the-type`
+matches a type by name across the folder, because the restated type usually
+comes from a sibling hook rather than the module under test; a test that
+declares its own `Props` beside a sibling's exported `Props` must rename it.
+The first version of these rules
 reported five shapes that were not the pattern, found in review: a query's
 `isFetching`, a mutation's state, a status beside its error, a flattened local
 union and an `ok` check that never reads `value`. Each is now a passing

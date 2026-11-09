@@ -10,7 +10,7 @@
     "moduleResolution": "NodeNext",
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
-    "types": ["node", "jest"],
+    "types": ["node"],
     "composite": true,
     "noEmit": false,
     "emitDeclarationOnly": true,

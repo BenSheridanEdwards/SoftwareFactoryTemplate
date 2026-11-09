@@ -344,10 +344,15 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
     expect(filesOf('tsconfig.api.json')).toContain(`showcase/x/${API_FILE}`);
     expect(filesOf('tsconfig.test.json')).toContain(`showcase/x/${WEB_TEST}`);
     expect(filesOf('tsconfig.api.test.json')).toContain(`showcase/x/${API_TEST}`);
+    expect(filesOf('tsconfig.node.test.json')).toContain(
+      'showcase/x/web/src/api-client/trpc.contract.test.ts',
+    );
     expect(
-      [...filesOf('tsconfig.json'), ...filesOf('tsconfig.api.json')].filter((path) =>
-        /\.test\.tsx?$/.test(path),
-      ),
+      [
+        ...filesOf('tsconfig.json'),
+        ...filesOf('tsconfig.api.json'),
+        ...filesOf('tsconfig.node.json'),
+      ].filter((path) => /\.test\.tsx?$/.test(path)),
     ).toEqual([]);
     expect(filesOf('tsconfig.node.json')).toEqual(
       expect.arrayContaining([

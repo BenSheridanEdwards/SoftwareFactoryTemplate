@@ -18,6 +18,7 @@ test('typecheck runs Bun over the web, node, domain and test programs from one s
     ['-p', 'tsconfig.domain.json'],
     ['-p', 'tsconfig.test.json'],
     ['-p', 'tsconfig.api.test.json'],
+    ['-p', 'tsconfig.node.test.json'],
   ]);
 });
 

@@ -15,12 +15,11 @@
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
     "tsBuildInfoFile": ".cache/types/web.tsbuildinfo",
-
-    "types": ["jest", "@testing-library/jest-dom"]
+    "types": []
   },
   "include": ["apps/web/src", "showcase/*/web/src", "packages/ui/src", "tooling/types/styles.d.ts"],
   // Unit tests type-check in tsconfig.test.json, the one browser program that
-  // sees the Jest test globals; contract tests run on Node (tsconfig.node.json).
+  // sees Jest and its test globals; contract tests run on Node (tsconfig.node.test.json).
   "exclude": ["**/*.test.ts", "**/*.test.tsx"],
   "references": [{ "path": "./tsconfig.api.json" }],
   "ts-node": {

@@ -117,14 +117,15 @@ See [ADR 0028](../decisions/0028-pre-push-runs-the-full-local-gate-suite.md).
 - React Doctor (`pnpm react-doctor`) owns the project-level checks the
   per-file plugins leave out, such as duplicated JSX across files.
 - TypeScript owns type semantics; `pnpm typecheck` checks them with the pinned
-  Bun's `bun check` ([ADR 0120](../decisions/0120-bun-checks-types.md)) over six programs:
+  Bun's `bun check` ([ADR 0120](../decisions/0120-bun-checks-types.md)) over seven programs:
   `tsconfig.json` (web packages and `packages/ui`, with the DOM and no Node
   types), `tsconfig.node.json` (root configs, Vite configs and e2e specs, on
   Node), `tsconfig.api.json` (api packages, `NodeNext`, `.ts` import
   extensions, `erasableSyntaxOnly`, no DOM), `tsconfig.domain.json` (api
-  domain modules without Node types), and `tsconfig.test.json` and
-  `tsconfig.api.test.json` (the web and api tests, which alone see the Jest
-  test globals `present` and `unwrap`). All extend `tsconfig.base.json`.
+  domain modules without Node types), and `tsconfig.test.json`,
+  `tsconfig.api.test.json` and `tsconfig.node.test.json` (the web, api and web
+  contract tests, which alone see Jest and its test globals `present` and
+  `unwrap`). All extend `tsconfig.base.json`.
   See [ADR 0034](../decisions/0034-trial-harness-and-evidence.md) for the
   program boundaries and their limits.
 - Jest + React Testing Library own component, hook and api behaviour in

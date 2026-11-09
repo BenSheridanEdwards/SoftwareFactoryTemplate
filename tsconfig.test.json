@@ -5,7 +5,8 @@
   // fails to compile in tsconfig.json.
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "tsBuildInfoFile": ".cache/types/web-test.tsbuildinfo"
+    "tsBuildInfoFile": ".cache/types/web-test.tsbuildinfo",
+    "types": ["jest", "@testing-library/jest-dom"]
   },
   "include": [
     "apps/web/src/**/*.test.ts",

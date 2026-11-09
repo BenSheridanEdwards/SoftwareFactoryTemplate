@@ -1076,6 +1076,14 @@ export function Layout() {
 }
 `,
   },
+  // A limit inside a class name, a fraction or a time is not a count.
+  {
+    path: 'apps/web/src/routes/todos/listClasses.ts',
+    source: `
+export const MAX_ITEMS = 10;
+export const listClasses = 'grid gap-10 px-4 w-1/10 md:10 items-center';
+`,
+  },
   {
     caseRoot: 'slop-limit-test',
     path: 'apps/api/src/features/todos/domain.test.ts',
