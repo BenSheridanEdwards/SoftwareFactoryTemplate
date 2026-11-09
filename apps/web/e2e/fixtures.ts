@@ -1,3 +1,4 @@
+import { format } from 'node:util';
 import { test as base, type ConsoleMessage, expect, type WebError } from '@playwright/test';
 
 export { expect, type Page } from '@playwright/test';
@@ -10,11 +11,13 @@ interface ConsoleFixtures {
 type RunnerMethod = 'warn' | 'error';
 
 const RUNNER_METHODS: RunnerMethod[] = ['warn', 'error'];
+// Node prints its own process warnings through console.error; the warning listener records them.
+const NODE_WARNING = `(node:${process.pid}) `;
 
 export const test = base.extend<ConsoleFixtures>({
   expectedConsole: [[], { option: true }],
   expectConsole: [
-    async ({ context, expectedConsole }, use) => {
+    async ({ context, expectedConsole }, use, testInfo) => {
       const messages: string[] = [];
       const expected = [...expectedConsole];
       // The context hears every page, popup and dedicated worker the test opens.
@@ -36,7 +39,10 @@ export const test = base.extend<ConsoleFixtures>({
       process.on('warning', recordWarning);
       originals.forEach(([method, original]) => {
         console[method] = (...args: unknown[]) => {
-          messages.push(`runner console.${method}: ${args.map(String).join(' ')}`);
+          const text = format(...args);
+          if (!text.startsWith(NODE_WARNING)) {
+            messages.push(`runner console.${method}: ${text}`);
+          }
           original(...args);
         };
       });
@@ -50,14 +56,21 @@ export const test = base.extend<ConsoleFixtures>({
       process.off('warning', recordWarning);
       context.off('console', recordConsole);
       context.off('weberror', recordError);
-      expect({
+      const guard = {
         unexpected: messages.filter(
           (message) => !expected.some((pattern) => message.search(pattern) !== -1),
         ),
         missing: expected
           .filter((pattern) => !messages.some((message) => message.search(pattern) !== -1))
           .map(String),
-      }).toEqual({ unexpected: [], missing: [] });
+      };
+      if (guard.unexpected.length > 0 || guard.missing.length > 0) {
+        await testInfo.attach('console-guard.json', {
+          body: JSON.stringify(guard),
+          contentType: 'application/json',
+        });
+      }
+      expect(guard).toEqual({ unexpected: [], missing: [] });
     },
     { auto: true },
   ],

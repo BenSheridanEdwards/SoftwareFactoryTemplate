@@ -60,7 +60,7 @@ Set `E2E_BASE_URL` to use your own reference web server, such as `pnpm preview` 
 
 `pnpm e2e:console-guard` owns the reference servers and captures eleven child
 failures: a page console warning, error and uncaught error, a worker and a popup warning and uncaught error,
-runner console and process warnings, and a missing expected message. Three
+runner console and process warnings, and a missing expected message. Five
 fixture mutants each drop one recording path and must let their case pass. It requires each fixture diagnostic and a passing declared
 error; a startup failure fails the proof. Child cases live in
 `tooling/console-guard/`, outside the behaviour map. The End-to-end behaviour

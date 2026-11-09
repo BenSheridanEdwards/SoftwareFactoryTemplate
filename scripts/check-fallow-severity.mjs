@@ -22,10 +22,16 @@ const ruleWarnings = (config) =>
       .map(([rule]) => `rule ${rule}`),
   );
 
-/** Duplication with no threshold, which reports each clone group as a warning. */
+// The audit fails duplication over the threshold; in the changed files it reads, one clone group exceeds 0.001%.
+const MAX_DUPLICATION_THRESHOLD = 0.001;
+
+/** A duplication threshold of 0 or above 0.001, which leaves some clone groups as warnings. */
 const duplicationWarnings = ({ duplicates }) =>
-  duplicates.enabled && !(duplicates.threshold > 0)
-    ? ['duplicates.threshold (0 reports each clone group as a warning)']
+  duplicates.enabled &&
+  !(duplicates.threshold > 0 && duplicates.threshold <= MAX_DUPLICATION_THRESHOLD)
+    ? [
+        `duplicates.threshold ${duplicates.threshold} (set it above 0 and at most ${MAX_DUPLICATION_THRESHOLD}, so each clone group fails)`,
+      ]
     : [];
 
 /** Each rule-pack file that sets a rule's severity to `warn`. */
@@ -55,7 +61,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
   if (warnings.length > 0) {
     console.error(
-      `Fallow reports a warning and still passes, so set each rule to "error" or "off" and duplicates.threshold above 0:\n${warnings
+      `Fallow reports a warning and still passes, so set each rule to "error" or "off" and duplicates.threshold above 0 and at most 0.001:\n${warnings
         .map((warning) => `  - ${warning}`)
         .join('\n')}`,
     );

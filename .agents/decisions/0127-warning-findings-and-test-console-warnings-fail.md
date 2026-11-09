@@ -1,4 +1,4 @@
-# 127. Warnings fail every gate tool
+# 127. Warning findings and test console warnings fail the gate
 
 - **Status:** Proposed (the maintainer accepts it by approving the PR)
 - **Date:** 2026-11-09
@@ -48,14 +48,23 @@ left three gaps that issue #231 names:
   `console.error` and Node `warning` events in the test's worker process,
   waits one turn of the event loop for a pending warning, and restores the
   originals before it checks. These messages start with `runner`, and
-  `expectedConsole` declares them like any other.
-- `pnpm e2e:console-guard` proves each new case fails: a worker warning and
-  error, a popup warning and error, and a runner `console.warn`,
-  `console.error` and process warning. It also runs three mutants of the
-  fixture, each without one recording path (console errors, worker messages,
-  process warnings), and requires the matching case to pass there, so the
-  proof fails if the fixture stops recording it. One child run serves all the
-  mutants, so the proof starts its servers twice, as before.
+  `expectedConsole` declares them like any other; a pattern matches page and
+  runner messages alike. Node prints its own warnings through
+  `console.error`, so the patch skips text that starts with
+  `(node:<pid>) `, and the warning listener records each one once.
+- When the fixture fails, it attaches `console-guard.json` with the exact
+  `unexpected` and `missing` lists, so the proof compares them instead of
+  reading the assertion's text diff.
+- `pnpm e2e:console-guard` proves each new case fails with exactly its
+  attached result: a worker warning and error, a popup warning and error, and
+  a runner `console.warn`, `console.error` and process warning. It also runs
+  five mutants of the fixture, each without one recording path (console
+  errors, worker messages, popup pages, `console.warn`, process warnings),
+  and requires the matching case to pass there, so the proof fails if the
+  fixture stops recording it. One child run serves all the mutants, so the
+  proof starts its servers twice, as before. It runs its children without
+  `NO_COLOR`, as CI does; beside `FORCE_COLOR`, that variable makes Node warn
+  as each worker starts.
 
 ## Consequences
 
@@ -77,4 +86,7 @@ These stay outside the guarantee:
   servers' own logs) and service-worker lifecycle messages; the app registers
   no service worker.
 - Duplication inside a showcase result.
+- Tools outside this list. commitlint, for example, keeps the
+  `body-leading-blank` and `footer-leading-blank` warnings of
+  `@commitlint/config-conventional` and exits 0 on them.
 - Console output at module load in Jest, outside a test's hooks (ADR 0086).

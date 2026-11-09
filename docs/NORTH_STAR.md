@@ -150,13 +150,12 @@ The [bypass hook](../.agents/hooks/block-gate-bypass.sh) refuses common skips, i
 hook sessions and Cursor agents. Its known gaps are in [ADR 0027](../.agents/decisions/0027-block-common-hook-bypasses.md);
 clean-checkout CI and hosted required checks remain the backstop.
 
-Warnings fail every gate tool. Biome, Oxlint and React Doctor fail on a warning, and `pnpm arch:gate` refuses a
-Fallow rule set to `warn` or duplication with no threshold, so every warn-severity finding fails its gate and every
-lint rule is an error or removed
-([ADR 0079](../.agents/decisions/0079-no-advisory-lint.md)). A console warning or error fails a Jest test, and a
+Biome, Oxlint, React Doctor and Fallow fail on a warn-severity finding: the first three fail on a warning, and
+`pnpm arch:gate` refuses a Fallow rule set to `warn` or duplication with no threshold, so each of their rules is an
+error or removed ([ADR 0079](../.agents/decisions/0079-no-advisory-lint.md)). A console warning or error fails a Jest test, and a
 Playwright test when its pages, popups, workers or test process emit one
 ([ADR 0086](../.agents/decisions/0086-console-warnings-fail-tests.md),
-[ADR 0127](../.agents/decisions/0127-warnings-fail-every-gate-tool.md), which names the tool log lines and
+[ADR 0127](../.agents/decisions/0127-warning-findings-and-test-console-warnings-fail.md), which names the tool log lines and
 runner output it leaves out).
 
 Oxlint ignores `eslint-*` directives; keep reasoned exceptions in `oxlint.config.ts`. `pnpm check:suppressions`

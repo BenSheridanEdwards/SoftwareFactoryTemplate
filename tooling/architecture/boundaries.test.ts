@@ -536,13 +536,16 @@ describe('A Fallow warning fails the gate', () => {
     expect(gate.stderr).toContain('  - rule boundary-violation');
   });
 
-  it('fails duplication left at its default warning, with no threshold', () => {
+  it.each([
+    ['0, its default, which leaves each clone group a warning', '0'],
+    ['5, which lets a clone group under 5% pass as a warning', '5'],
+  ])('fails a duplication threshold of %s', (_case, threshold) => {
     const seed = {
-      '.fallowrc.jsonc': config.replace('"threshold": 0.001', '"threshold": 0'),
+      '.fallowrc.jsonc': config.replace('"threshold": 0.001', `"threshold": ${threshold}`),
     };
     const gate = withSeededRepository(seed, runGate);
     expect(gate.status).toBe(1);
-    expect(gate.stderr).toContain('  - duplicates.threshold');
+    expect(gate.stderr).toContain(`  - duplicates.threshold ${threshold} `);
   });
 
   it('fails the audit on a clone group that Fallow passes as a warning without the threshold', () => {

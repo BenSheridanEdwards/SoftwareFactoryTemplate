@@ -1,7 +1,7 @@
 # 86. Console warnings fail tests
 
 - **Status:** Accepted (merged in #254), amended by
-  [0127](0127-warnings-fail-every-gate-tool.md) (workers, other pages, the test process and Fallow)
+  [0127](0127-warning-findings-and-test-console-warnings-fail.md) (workers, other pages, the test process and Fallow)
 - **Date:** 2026-10-31
 
 ## Context

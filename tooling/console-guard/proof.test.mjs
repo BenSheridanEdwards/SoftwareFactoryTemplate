@@ -7,24 +7,33 @@ import { fileURLToPath } from 'node:url';
 import { stripVTControlCharacters } from 'node:util';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
+/** Each failing case and the exact guard result its fixture attaches. */
+const unexpected = (message) => ({ unexpected: [message], missing: [] });
 const failures = [
-  { title: 'console.warning', diagnostic: 'console.warning: x' },
-  { title: 'console.error', diagnostic: 'console.error: x' },
-  { title: 'pageerror', diagnostic: 'pageerror: x' },
-  { title: 'worker console.warning', diagnostic: 'console.warning: x' },
-  { title: 'worker pageerror', diagnostic: 'pageerror: x' },
-  { title: 'popup console.warning', diagnostic: 'console.warning: x' },
-  { title: 'popup pageerror', diagnostic: 'pageerror: x' },
-  { title: 'runner console warn', diagnostic: 'runner console.warn: x' },
-  { title: 'runner console error', diagnostic: 'runner console.error: x' },
-  { title: 'runner warning', diagnostic: 'runner warning: x' },
-  { title: 'missing expected message', diagnostic: '/expected error/' },
+  { title: 'console.warning', guard: unexpected('console.warning: x') },
+  { title: 'console.error', guard: unexpected('console.error: x') },
+  { title: 'pageerror', guard: unexpected('pageerror: x') },
+  { title: 'worker console.warning', guard: unexpected('console.warning: x') },
+  { title: 'worker pageerror', guard: unexpected('pageerror: x') },
+  { title: 'popup console.warning', guard: unexpected('console.warning: x') },
+  { title: 'popup pageerror', guard: unexpected('pageerror: x') },
+  { title: 'runner console warn', guard: unexpected('runner console.warn: x') },
+  { title: 'runner console error', guard: unexpected('runner console.error: x') },
+  { title: 'runner warning', guard: unexpected('runner warning: x') },
+  { title: 'missing expected message', guard: { unexpected: [], missing: ['/expected error/'] } },
 ];
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const specs = (suite) => [...suite.specs, ...(suite.suites ?? []).flatMap(specs)];
 
-function rejectViolation(spec, diagnostic) {
-  assert.ok(spec, `Missing guard case: ${diagnostic}`);
+/** The guard result the fixture attached to a failed attempt. */
+function attachedGuard(attempt) {
+  const attachment = attempt.attachments.find(({ name }) => name === 'console-guard.json');
+  assert.ok(attachment, 'The fixture must attach its guard result');
+  return JSON.parse(Buffer.from(attachment.body, 'base64').toString('utf8'));
+}
+
+function rejectViolation(spec, guard) {
+  assert.ok(spec, `Missing guard case: ${JSON.stringify(guard)}`);
   assert.equal(spec.tests.length, 1);
   const [result] = spec.tests;
   assert.equal(result.expectedStatus, 'passed');
@@ -36,11 +45,7 @@ function rejectViolation(spec, diagnostic) {
     const [error] = attempt.errors;
     assert.equal(error.location.file, join(root, 'apps/web/e2e/fixtures.ts'));
     const message = stripVTControlCharacters(error.message);
-    const received = message.split('\n').flatMap((line) => {
-      const match = /^\+\s+"([^"]+)",?$/.exec(line);
-      return match ? [match[1]] : [];
-    });
-    assert.deepEqual(received, [diagnostic], message);
+    assert.deepEqual(attachedGuard(attempt), guard, message);
     assert.match(message, /toEqual/);
   });
 }
@@ -61,7 +66,9 @@ function runChild(config, directory, args = []) {
     {
       cwd: root,
       encoding: 'utf8',
-      env: { ...process.env, E2E_BASE_URL: '', FORCE_COLOR: '0' },
+      // NO_COLOR beside FORCE_COLOR makes Node warn at worker start, which would hide how
+      // the fixture treats a test's first Node warning, so the child runs as CI does.
+      env: { ...process.env, E2E_BASE_URL: '', FORCE_COLOR: '0', NO_COLOR: undefined },
       maxBuffer: 10 * 1024 * 1024,
     },
   );
@@ -90,6 +97,17 @@ const mutations = [
     find: "process.on('warning', recordWarning);",
     replace: '',
   },
+  {
+    title: 'runner console warn',
+    find: "const RUNNER_METHODS: RunnerMethod[] = ['warn', 'error'];",
+    replace: "const RUNNER_METHODS: RunnerMethod[] = ['error'];",
+  },
+  {
+    title: 'popup console.warning',
+    find: "context.on('console', recordConsole);",
+    replace:
+      "context.on('page', (opened) => { void opened.opener().then((opener) => { if (!opener) opened.on('console', recordConsole); }); });",
+  },
 ];
 
 test('the real browser fixture rejects every guard violation and allows declared errors', () => {
@@ -101,10 +119,10 @@ test('the real browser fixture rejects every guard violation and allows declared
       join(directory, 'results'),
     );
     assert.equal(cases.length, failures.length + 1, child.stderr);
-    failures.forEach(({ title, diagnostic }) => {
+    failures.forEach(({ title, guard }) => {
       rejectViolation(
         cases.find((entry) => entry.title === title),
-        diagnostic,
+        guard,
       );
     });
     const declared = cases.find(({ title }) => title === 'declared expected error');
@@ -154,12 +172,12 @@ export default { ...base, projects: mutants.map(({ folder, grep }, index) => ({
       mutations.map(({ title }) => title).sort(),
     );
     mutations.forEach(({ title }) => {
-      const diagnostic = failures.find((failure) => failure.title === title)?.diagnostic;
+      const guard = failures.find((failure) => failure.title === title)?.guard;
       assert.throws(
         () =>
           rejectViolation(
             mutant.cases.find((entry) => entry.title === title),
-            diagnostic,
+            guard,
           ),
         new RegExp(`${escapeRegExp(title)} must fail`),
       );
