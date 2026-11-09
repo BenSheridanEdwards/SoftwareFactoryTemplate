@@ -29,7 +29,7 @@
   "audit": { "gate": "all" },
 
   // A clone group is a warning, and the audit passes a warning, until a
-  // threshold is set; this one fails any duplication (ADR 0127).
+  // threshold is set; this one fails any duplication (ADR 0128).
   "duplicates": {
     "ignore": [
       // Showcase results copy the reference's template files by design (ADR 0034).

@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { spawnSync } from 'node:child_process';
+import { type SpawnSyncReturns, spawnSync } from 'node:child_process';
 import {
   copyFileSync,
   mkdirSync,
@@ -484,10 +484,11 @@ describe('A Fallow warning fails the gate', () => {
   jest.setTimeout(30_000);
   const archGate: string = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8'))
     .scripts['arch:gate'];
-  // The Fallow steps of `pnpm arch:gate`; the structure and diagram checks read the whole repo.
+  // The Fallow steps of `pnpm arch:gate`, each as words; the structure and diagram checks read the whole repo.
   const fallowSteps = archGate
     .slice(0, archGate.indexOf(' && node tooling/architecture/structure.mjs'))
-    .replace('node scripts/', `node ${REPOSITORY_ROOT}/scripts/`);
+    .split(' && ')
+    .map((step) => step.split(' '));
   const config = readFileSync(join(REPOSITORY_ROOT, '.fallowrc.jsonc'), 'utf8');
   const pack = readFileSync(join(REPOSITORY_ROOT, RULE_PACK), 'utf8');
   const routeImportsRoute = {
@@ -500,17 +501,25 @@ describe('A Fallow warning fails the gate', () => {
       '"rules": {\n    "boundary-violation": "warn",',
     ),
   };
+  /** Runs each step without a shell, as `&&` does, from the seeded directory. */
   const runGate = (directory: string) =>
-    spawnSync('sh', ['-c', fallowSteps], {
-      cwd: directory,
-      encoding: 'utf8',
-      env: { ...process.env, PATH: `${dirname(FALLOW_BIN)}:${process.env.PATH ?? ''}` },
-    });
+    fallowSteps.reduce<SpawnSyncReturns<string> | undefined>(
+      (previous, [command = '', ...args]) =>
+        previous && previous.status !== 0
+          ? previous
+          : spawnSync(
+              command === 'fallow' ? FALLOW_BIN : process.execPath,
+              command === 'fallow' ? args : args.map((arg) => join(REPOSITORY_ROOT, arg)),
+              { cwd: directory, encoding: 'utf8' },
+            ),
+      undefined,
+    ) ?? { status: null, stderr: 'The gate has no Fallow steps' };
 
   it('runs the severity check before Fallow in the gate', () => {
-    expect(fallowSteps).toBe(
-      `node ${REPOSITORY_ROOT}/scripts/check-fallow-severity.mjs && fallow architecture -q`,
-    );
+    expect(fallowSteps).toEqual([
+      ['node', 'scripts/check-fallow-severity.mjs'],
+      ['fallow', 'architecture', '-q'],
+    ]);
   });
 
   it('passes the clean layout under the real config', () => {

@@ -3,7 +3,7 @@
  * Fail when a Fallow rule or rule-pack rule is set to `warn`, or duplication has
  * no threshold, which leaves each clone group a warning. Fallow reports a
  * warn-level finding and still exits 0, so `pnpm arch:gate` runs this first and
- * a Fallow warning fails the gate (ADR 0127).
+ * a Fallow warning fails the gate (ADR 0128).
  */
 
 import { execFileSync } from 'node:child_process';

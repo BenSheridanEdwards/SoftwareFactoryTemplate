@@ -1,10 +1,13 @@
-# 127. Warning findings and test console warnings fail the gate
+# 128. Warning findings and test console warnings fail the gate
 
 - **Status:** Proposed (the maintainer accepts it by approving the PR)
 - **Date:** 2026-11-09
 - **Amends:** [0086](0086-console-warnings-fail-tests.md) for workers, other
-  pages and the Playwright test process, and [0079](0079-no-advisory-lint.md)
-  for how a Fallow warning fails the gate
+  pages and the Playwright test process, [0079](0079-no-advisory-lint.md)
+  for how a Fallow warning fails the gate, and
+  [0059](0059-preserve-recorded-trial-outputs-in-duplication-analysis.md),
+  whose per-result `duplicates.ignore` entries give way to one `showcase/**`
+  entry
 
 ## Context
 
@@ -29,12 +32,18 @@ left three gaps that issue #231 names:
   `scripts/check-fallow-severity.mjs` before `fallow architecture`. It reads
   the resolved config with `fallow config` and fails, naming each cause, when
   a rule, an override's rule or a rule-pack file sets `warn`, or when
-  duplication is on with no threshold. `arch:gate` runs at pre-commit and in
+  duplication is on with a threshold of 0 or above 0.001. `arch:gate` runs at pre-commit and in
   the CI Fallow job.
 - **Duplication.** `.fallowrc.jsonc` sets `duplicates.threshold` to `0.001`,
-  so any clone group makes the audit fail. Main has none. `showcase/**` stays
-  out of duplicate detection, because a showcase result copies the
-  reference's template files by design (ADR 0034).
+  so any clone group makes the audit fail. Main has none.
+- **Showcase results leave duplication analysis.** A showcase result copies
+  the reference's template files by design (ADR 0034), so with a threshold
+  every trial result would fail its own audit on code it must copy. This
+  amends ADR 0059: `duplicates.ignore` holds one `showcase/**` entry in place
+  of named per-result entries, so code-duplication analysis no longer runs on
+  any showcase result, for clones inside it or against `apps/`. Its
+  `health.ignore` rule for styling and complexity is unchanged, and dead-code
+  and architecture analysis still read every result.
 - `tooling/architecture/boundaries.test.ts` proves each case on a seeded
   repository. With `boundary-violation` at `warn`, Fallow alone reports the
   route-to-route import and exits 0, and the gate's Fallow steps exit 1. A
@@ -85,7 +94,7 @@ These stay outside the guarantee:
 - Output from the Playwright runner outside a test (config load, the web
   servers' own logs) and service-worker lifecycle messages; the app registers
   no service worker.
-- Duplication inside a showcase result.
+- Duplication in a showcase result, inside it or against the reference.
 - Tools outside this list. commitlint, for example, keeps the
   `body-leading-blank` and `footer-leading-blank` warnings of
   `@commitlint/config-conventional` and exits 0 on them.
