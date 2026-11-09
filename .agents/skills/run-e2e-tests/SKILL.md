@@ -22,7 +22,9 @@ post-feature check before Done.
    result's `accessibility.spec.ts`.
    Import `test`, `expect` and `Page` from `./fixtures`; copy the reference's
    `fixtures.ts` into a new result's E2E folder. Its automatic guard fails on
-   page console warnings, console errors and uncaught errors. For a deliberate
+   console warnings, console errors and uncaught errors in every page, popup
+   and worker the test opens, and on `console.warn`, `console.error` and Node
+   warnings in the test's own process (`runner …` messages). For a deliberate
    error, declare its message with `expectConsole(/message/)` inside that test,
    or `test.use({ expectedConsole: [/message/] })` within its describe block.
    Each expected pattern must appear; fix unexpected messages at their cause.
@@ -56,9 +58,10 @@ Node api and Vite web. The reference uses ports 5173 and 3001; each further
 result adds 10. New results and specs join without config changes.
 Set `E2E_BASE_URL` to use your own reference web server, such as `pnpm preview` on :3000.
 
-`pnpm e2e:console-guard` owns the reference servers and captures four child
-failures: console warning, console error, uncaught page error and a missing
-expected message. It requires each fixture diagnostic and a passing declared
+`pnpm e2e:console-guard` owns the reference servers and captures eleven child
+failures: a page console warning, error and uncaught error, a worker and a popup warning and uncaught error,
+runner console and process warnings, and a missing expected message. Three
+fixture mutants each drop one recording path and must let their case pass. It requires each fixture diagnostic and a passing declared
 error; a startup failure fails the proof. Child cases live in
 `tooling/console-guard/`, outside the behaviour map. The End-to-end behaviour
 map CI job runs Run console guard proof after Chromium installation. Keep

@@ -11,8 +11,16 @@ const failures = [
   { title: 'console.warning', diagnostic: 'console.warning: x' },
   { title: 'console.error', diagnostic: 'console.error: x' },
   { title: 'pageerror', diagnostic: 'pageerror: x' },
+  { title: 'worker console.warning', diagnostic: 'console.warning: x' },
+  { title: 'worker pageerror', diagnostic: 'pageerror: x' },
+  { title: 'popup console.warning', diagnostic: 'console.warning: x' },
+  { title: 'popup pageerror', diagnostic: 'pageerror: x' },
+  { title: 'runner console warn', diagnostic: 'runner console.warn: x' },
+  { title: 'runner console error', diagnostic: 'runner console.error: x' },
+  { title: 'runner warning', diagnostic: 'runner warning: x' },
   { title: 'missing expected message', diagnostic: '/expected error/' },
 ];
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const specs = (suite) => [...suite.specs, ...(suite.suites ?? []).flatMap(specs)];
 
 function rejectViolation(spec, diagnostic) {
@@ -64,7 +72,27 @@ function runChild(config, directory, args = []) {
   return { child, report, cases: report.suites.flatMap(specs) };
 }
 
-test('the real browser fixture rejects four guard violations and allows declared errors', () => {
+/** Each mutant removes one recording path from a copy of the fixture; its case must then pass. */
+const mutations = [
+  {
+    title: 'console.error',
+    find: "message.type() === 'warning' || message.type() === 'error'",
+    replace: "message.type() === 'warning'",
+  },
+  {
+    title: 'worker console.warning',
+    find: "if (message.type() === 'warning' || message.type() === 'error') {",
+    replace:
+      "if (!message.worker() && (message.type() === 'warning' || message.type() === 'error')) {",
+  },
+  {
+    title: 'runner warning',
+    find: "process.on('warning', recordWarning);",
+    replace: '',
+  },
+];
+
+test('the real browser fixture rejects every guard violation and allows declared errors', () => {
   mkdirSync(join(root, '.scratch'), { recursive: true });
   const directory = mkdtempSync(join(root, '.scratch/console-guard-'));
   try {
@@ -72,7 +100,7 @@ test('the real browser fixture rejects four guard violations and allows declared
       'tooling/console-guard/playwright.config.ts',
       join(directory, 'results'),
     );
-    assert.equal(cases.length, 5, child.stderr);
+    assert.equal(cases.length, failures.length + 1, child.stderr);
     failures.forEach(({ title, diagnostic }) => {
       rejectViolation(
         cases.find((entry) => entry.title === title),
@@ -89,47 +117,53 @@ test('the real browser fixture rejects four guard violations and allows declared
     assert.equal(passing.results[0].status, 'passed');
     assert.deepEqual(passing.results[0].errors, []);
     assert.equal(report.stats.expected, 1);
-    assert.equal(report.stats.unexpected, 4);
+    assert.equal(report.stats.unexpected, failures.length);
     assert.equal(report.stats.skipped, 0);
     assert.equal(report.stats.flaky, 0);
     assert.equal(child.status, 1);
 
     const fixture = readFileSync(join(root, 'apps/web/e2e/fixtures.ts'), 'utf8');
-    const condition = "message.type() === 'warning' || message.type() === 'error'";
-    assert.ok(
-      fixture.includes(condition),
-      'Mutation must remove the real error recording condition',
-    );
-    writeFileSync(
-      join(directory, 'fixtures.ts'),
-      fixture.replace(condition, "message.type() === 'warning'"),
-    );
-    writeFileSync(
-      join(directory, 'guard.cases.ts'),
-      readFileSync(join(root, 'tooling/console-guard/guard.cases.ts'), 'utf8').replace(
-        '../../apps/web/e2e/fixtures',
-        './fixtures',
-      ),
-    );
+    const mutantCases = readFileSync(
+      join(root, 'tooling/console-guard/guard.cases.ts'),
+      'utf8',
+    ).replace('../../apps/web/e2e/fixtures', './fixtures');
+    const mutants = mutations.map(({ title, find, replace }, index) => {
+      assert.ok(fixture.includes(find), `Mutation must remove a real recording path: ${find}`);
+      const folder = join(directory, `mutant-${index}`);
+      mkdirSync(folder);
+      writeFileSync(join(folder, 'fixtures.ts'), fixture.replace(find, replace));
+      writeFileSync(join(folder, 'guard.cases.ts'), mutantCases);
+      return { title, folder, grep: `(^| )${escapeRegExp(title)}$` };
+    });
+    // One child run serves every mutant, each in its own project, so the servers start once.
     const config = join(directory, 'playwright.config.ts');
     writeFileSync(
       config,
       `import base from ${JSON.stringify(join(root, 'tooling/console-guard/playwright.config.ts'))};
-export default { ...base, projects: base.projects.map(project => ({ ...project, testDir: import.meta.dirname })) };
+const mutants = ${JSON.stringify(mutants)};
+export default { ...base, projects: mutants.map(({ folder, grep }, index) => ({
+  ...base.projects[0], name: 'mutant-' + index, testDir: folder, grep: new RegExp(grep),
+})) };
 `,
     );
-    const mutant = runChild(config, join(directory, 'mutation-results'), [
-      '--grep',
-      'console\\.error',
-    ]);
-    assert.equal(mutant.cases.length, 1);
-    assert.equal(mutant.child.status, 0);
-    assert.equal(mutant.report.stats.expected, 1);
-    assert.equal(mutant.cases[0].title, 'console.error');
-    assert.throws(
-      () => rejectViolation(mutant.cases[0], 'console.error: x'),
-      /console.error must fail/,
+    const mutant = runChild(config, join(directory, 'mutation-results'));
+    assert.equal(mutant.child.status, 0, mutant.child.stderr);
+    assert.equal(mutant.report.stats.expected, mutations.length);
+    assert.deepEqual(
+      mutant.cases.map(({ title }) => title).sort(),
+      mutations.map(({ title }) => title).sort(),
     );
+    mutations.forEach(({ title }) => {
+      const diagnostic = failures.find((failure) => failure.title === title)?.diagnostic;
+      assert.throws(
+        () =>
+          rejectViolation(
+            mutant.cases.find((entry) => entry.title === title),
+            diagnostic,
+          ),
+        new RegExp(`${escapeRegExp(title)} must fail`),
+      );
+    });
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

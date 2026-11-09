@@ -2,7 +2,15 @@
  * @jest-environment node
  */
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -469,5 +477,74 @@ describe('Fallow contract over the reference result', () => {
     );
     expect(result.status).toBe(1);
     expect(result.stdout).toContain('suppression is missing a reason');
+  });
+});
+
+describe('A Fallow warning fails the architecture gate', () => {
+  jest.setTimeout(30_000);
+  const archGate: string = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8'))
+    .scripts['arch:gate'];
+  // The Fallow steps of `pnpm arch:gate`; the structure and diagram checks read the whole repo.
+  const fallowSteps = archGate
+    .slice(0, archGate.indexOf(' && node tooling/architecture/structure.mjs'))
+    .replace('node scripts/', `node ${REPOSITORY_ROOT}/scripts/`);
+  const config = readFileSync(join(REPOSITORY_ROOT, '.fallowrc.jsonc'), 'utf8');
+  const pack = readFileSync(join(REPOSITORY_ROOT, RULE_PACK), 'utf8');
+  const routeImportsRoute = {
+    [`${WEB}/routes/greeting/index.ts`]:
+      "import { settings } from '../settings';\nexport const greeting = settings;\n",
+  };
+  const warnBoundaries = {
+    '.fallowrc.jsonc': config.replace(
+      '"rules": {',
+      '"rules": {\n    "boundary-violation": "warn",',
+    ),
+  };
+  const runGate = (directory: string) =>
+    spawnSync('sh', ['-c', fallowSteps], {
+      cwd: directory,
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${dirname(FALLOW_BIN)}:${process.env.PATH ?? ''}` },
+    });
+
+  it('runs the severity check before Fallow in the gate', () => {
+    expect(fallowSteps).toBe(
+      `node ${REPOSITORY_ROOT}/scripts/check-fallow-severity.mjs && fallow architecture -q`,
+    );
+  });
+
+  it('passes the clean layout under the real config', () => {
+    expect(withSeededRepository({}, runGate).status).toBe(0);
+  });
+
+  it('fails a boundary violation that Fallow reports as a warning and lets pass', () => {
+    const seed = { ...routeImportsRoute, ...warnBoundaries };
+    const fallowAlone = withSeededRepository(seed, (directory) =>
+      spawnSync(FALLOW_BIN, ['architecture', '-q', '--format', 'json'], {
+        cwd: directory,
+        encoding: 'utf8',
+      }),
+    );
+    const report: ArchitectureReport = JSON.parse(fallowAlone.stdout);
+    expect(fallowAlone.status).toBe(0);
+    expect(report.boundary_violations?.map(({ to_zone }) => to_zone)).toEqual([
+      'web-routes/settings',
+    ]);
+
+    const gate = withSeededRepository(seed, runGate);
+    expect(gate.status).toBe(1);
+    expect(gate.stderr).toContain('  - rule boundary-violation');
+  });
+
+  it('fails a rule-pack rule set to warn', () => {
+    const seed = {
+      [RULE_PACK]: pack.replace(
+        '"id": "domain-pure",',
+        '"id": "domain-pure",\n      "severity": "warn",',
+      ),
+    };
+    const gate = withSeededRepository(seed, runGate);
+    expect(gate.status).toBe(1);
+    expect(gate.stderr).toContain(`  - rule pack ${RULE_PACK}`);
   });
 });

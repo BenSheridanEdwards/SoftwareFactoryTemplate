@@ -23,6 +23,59 @@ test('pageerror', async ({ page }) => {
   await error;
 });
 
+const workerSources = [
+  { title: 'worker console.warning', source: "console.warn('x');" },
+  { title: 'worker pageerror', source: "setTimeout(() => { throw new Error('x'); }, 0);" },
+];
+
+workerSources.forEach(({ title, source }) => {
+  test(title, async ({ context, page }) => {
+    await page.goto('/');
+    const heard = title.endsWith('pageerror')
+      ? context.waitForEvent('weberror')
+      : context.waitForEvent('console', (message) => message.text() === 'x');
+    await page.evaluate((body) => {
+      const url = URL.createObjectURL(new Blob([body], { type: 'text/javascript' }));
+      return new Worker(url);
+    }, source);
+    await heard;
+  });
+});
+
+test('popup console.warning', async ({ page }) => {
+  await page.goto('/');
+  const opened = page.waitForEvent('popup');
+  await page.evaluate(() => window.open('/'));
+  const popup = await opened;
+  await popup.evaluate(() => console.warn('x'));
+});
+
+test('popup pageerror', async ({ page }) => {
+  await page.goto('/');
+  const opened = page.waitForEvent('popup');
+  await page.evaluate(() => window.open('/'));
+  const popup = await opened;
+  const error = popup.waitForEvent('pageerror');
+  await popup.evaluate(() => {
+    setTimeout(() => {
+      throw new Error('x');
+    }, 0);
+  });
+  await error;
+});
+
+test('runner console warn', () => {
+  console.warn('x');
+});
+
+test('runner console error', () => {
+  console.error('x');
+});
+
+test('runner warning', () => {
+  process.emitWarning('x');
+});
+
 test.describe('expected console messages', () => {
   test.use({ expectedConsole: [/expected error/] });
 
