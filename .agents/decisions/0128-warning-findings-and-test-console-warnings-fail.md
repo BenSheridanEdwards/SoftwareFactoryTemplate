@@ -7,7 +7,8 @@
   for how a Fallow warning fails the gate, and
   [0059](0059-preserve-recorded-trial-outputs-in-duplication-analysis.md),
   whose per-result `duplicates.ignore` entries give way to one `showcase/**`
-  entry
+  entry, and [0034](0034-trial-harness-and-evidence.md), whose showcase
+  results now get that one exception
 
 ## Context
 
@@ -50,7 +51,7 @@ left three gaps that issue #231 names:
 - `tooling/architecture/boundaries.test.ts` proves each case on a seeded
   repository. With `boundary-violation` at `warn`, Fallow alone reports the
   route-to-route import and exits 0, and the gate's Fallow steps exit 1. A
-  rule-pack rule at `warn` and a config with no duplication threshold fail the
+  rule-pack rule at `warn` and a duplication threshold of 0 (the default) or 5 fail the
   same steps. A committed clone gives the audit a `warn` verdict and exit 0
   without the threshold, and a `fail` verdict and exit 1 with it.
 - **Playwright pages and workers.** The fixture in each result's
