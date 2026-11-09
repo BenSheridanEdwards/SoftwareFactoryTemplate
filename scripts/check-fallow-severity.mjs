@@ -36,7 +36,7 @@ const duplicationWarnings = ({ duplicates }) =>
 
 /** Each rule-pack file that sets a rule's severity to `warn`. */
 const packWarnings = (config, directory) =>
-  config.rulePacks
+  (config.rulePacks ?? [])
     .filter((pack) => WARN_SEVERITY.test(readFileSync(join(directory, pack), 'utf8')))
     .map((pack) => `rule pack ${pack}`);
 
