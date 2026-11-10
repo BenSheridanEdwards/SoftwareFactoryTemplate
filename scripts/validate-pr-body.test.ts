@@ -1521,7 +1521,7 @@ describe('PRD impact git and CLI', () => {
 
     it('stops at a merge that also edits the PR', () => {
       const { main } = diverge();
-      git(...asAuthor, 'merge', '-q', '--no-ff', '--no-commit', 'main');
+      git(...asAuthor, 'merge', '--quiet', '--no-ff', '--no-commit', 'main');
       write('feature.txt', 'edited during the merge\n');
       const edited = commit();
       expect(readUpdatedHeads(edited, main, directory)).toEqual([edited]);

@@ -102,6 +102,7 @@ interface Calls {
   updates: number[];
   dispatches: DispatchRequest[];
   created: string[];
+  edited: string[];
   deleted: number[];
 }
 
@@ -123,6 +124,7 @@ function fakeGitHub({
   comments = [],
   refuse,
   moves = true,
+  headsWithoutRuns = [],
 }: {
   pulls: PullRequest[];
   behind: Record<number, number>;
@@ -130,10 +132,11 @@ function fakeGitHub({
   comments?: Comment[];
   refuse?: { status: number; message: string };
   moves?: boolean;
+  headsWithoutRuns?: string[];
 }) {
   const state = new Map(pulls.map((pr) => [pr.number, { ...pr }]));
   const pending = new Set<number>();
-  const calls: Calls = { updates: [], dispatches: [], created: [], deleted: [] };
+  const calls: Calls = { updates: [], dispatches: [], created: [], edited: [], deleted: [] };
   const github = {
     paginate: async <T>(method: (args: PageRequest) => Promise<{ data: T[] }>, args: PageRequest) =>
       (await method(args)).data,
@@ -168,6 +171,9 @@ function fakeGitHub({
         },
       },
       actions: {
+        listWorkflowRuns: async ({ head_sha }: { head_sha: string }) => ({
+          data: { total_count: headsWithoutRuns.includes(head_sha) ? 0 : 1 },
+        }),
         createWorkflowDispatch: async (args: DispatchRequest) => {
           calls.dispatches.push(args);
           return { data: {} };
@@ -177,6 +183,10 @@ function fakeGitHub({
         listComments: async () => ({ data: comments }),
         createComment: async ({ body }: { body: string }) => {
           calls.created.push(body);
+          return { data: {} };
+        },
+        updateComment: async ({ body }: { body: string }) => {
+          calls.edited.push(body);
           return { data: {} };
         },
         deleteComment: async ({ comment_id }: { comment_id: number }) => {
@@ -315,7 +325,70 @@ describe('run', () => {
     });
     await run({ github, context: context(), core: core(), sleep });
     expect(calls.updates).toEqual([]);
+    expect(calls.dispatches).toEqual([]);
     expect(calls.deleted).toEqual([4]);
+  });
+
+  it('dispatches the checks for a current PR whose head an earlier update left without runs', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest()],
+      behind: { 7: 0 },
+      headsWithoutRuns: [OLD_HEAD],
+    });
+    const log = core();
+    await run({ github, context: context(), core: log, sleep });
+    expect(calls.updates).toEqual([]);
+    expect(calls.dispatches.map(({ workflow_id, ref }) => [workflow_id, ref])).toEqual(
+      DISPATCHES.map(({ workflow, onMain }) => [workflow, onMain ? 'main' : 'feat/thing']),
+    );
+    expect(log.info).toHaveBeenCalledWith(`#7 has no check runs at ${OLD_HEAD}: dispatch`);
+  });
+
+  it('fails the run when a dispatch fails, and the next run dispatches the checks again', async () => {
+    const first = fakeGitHub({ pulls: [pullRequest()], behind: { 7: 1 } });
+    first.github.rest.actions.createWorkflowDispatch = async () => {
+      throw Object.assign(new Error('Server Error'), { status: 502 });
+    };
+    const log = core();
+    await run({ github: first.github, context: context(), core: log, sleep });
+    expect(log.setFailed).toHaveBeenCalledWith(expect.stringContaining('Server Error'));
+
+    const next = fakeGitHub({
+      pulls: [pullRequest({ head: { ...pullRequest().head, sha: NEW_HEAD } })],
+      behind: { 7: 0 },
+      headsWithoutRuns: [NEW_HEAD],
+    });
+    await run({ github: next.github, context: context(), core: core(), sleep });
+    expect(next.calls.dispatches).toHaveLength(DISPATCHES.length);
+  });
+
+  it('rewrites its one notice when the reason changes', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest({ mergeable: false })],
+      behind: { 7: 1 },
+      comments: [oldNotice],
+    });
+    await run({ github, context: context(), core: core(), sleep });
+    expect(calls.created).toEqual([]);
+    expect(calls.edited).toEqual([expect.stringContaining('needs a manual rebase')]);
+  });
+
+  it('leaves a PR alone when its head moves while GitHub computes mergeability', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest({ mergeable: null })],
+      behind: { 7: 1 },
+    });
+    const reads = [
+      pullRequest({ mergeable: null }),
+      pullRequest({ mergeable: true, head: { ...pullRequest().head, sha: NEW_HEAD } }),
+    ];
+    github.rest.pulls.get = async () => ({ data: reads.shift() ?? pullRequest() });
+    const log = core();
+    await run({ github, context: context(), core: log, sleep });
+    expect(calls.updates).toEqual([]);
+    expect(log.info).toHaveBeenCalledWith(
+      '#7 moved while it was being read; its own push runs its checks: skip',
+    );
   });
 
   it('limits a dispatched run to the PR it names, and rejects anything but a number', async () => {
@@ -338,7 +411,7 @@ describe('run', () => {
     });
     const log = core();
     await run({ github, context: context(), core: log, sleep, dryRun: true });
-    expect(calls).toEqual({ updates: [], dispatches: [], created: [], deleted: [] });
+    expect(calls).toEqual({ updates: [], dispatches: [], created: [], edited: [], deleted: [] });
     expect(log.info.mock.calls.map(([line]) => line)).toEqual([
       '#1 is 1 commit(s) behind main: update',
       expect.stringMatching(

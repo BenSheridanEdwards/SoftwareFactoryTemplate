@@ -119,8 +119,9 @@ export function planUpdate(facts) {
 function conflictNotice(defaultBranch) {
   return (
     `This pull request is behind \`${defaultBranch}\` and conflicts with it, so it cannot be ` +
-    'brought up to date automatically. It needs a manual rebase: rebase it on ' +
-    `\`${defaultBranch}\` (or merge \`${defaultBranch}\` into it), resolve the conflicts, and push.`
+    'brought up to date automatically. It needs a manual rebase: merge ' +
+    `\`${defaultBranch}\` into it (or rebase it on \`${defaultBranch}\`), resolve the conflicts, ` +
+    "and push. A merge keeps the sign-off and the body's head commit; a rebase does not."
   );
 }
 
@@ -202,6 +203,10 @@ async function readPlan({ github, repo, number, defaultBranch, sleep, core }) {
       `#${number}: GitHub has not computed mergeability; the next push to main retries.`,
     );
   }
+  if (current.head.sha !== first.head.sha) {
+    const moved = 'moved while it was being read; its own push runs its checks';
+    return { plan: { action: 'skip', reason: moved }, head: first.head.sha, ref: first.head.ref };
+  }
   const plan = planUpdate({
     pullRequest: current,
     behindBy: incoming.ahead_by,
@@ -212,7 +217,7 @@ async function readPlan({ github, repo, number, defaultBranch, sleep, core }) {
     repository: `${repo.owner}/${repo.repo}`,
     defaultBranch,
   });
-  return { plan, head: current.head.sha };
+  return { plan, head: first.head.sha, ref: first.head.ref };
 }
 
 /**
@@ -243,7 +248,8 @@ async function requestUpdate({ github, repo, number, defaultBranch, core }, head
  *
  * @param {Shell} shell @param {string} head the head before the update
  */
-async function dispatchChecks({ github, repo, number, defaultBranch, sleep, core }, head) {
+async function dispatchChecks(shell, head) {
+  const { github, repo, number, defaultBranch, sleep, core } = shell;
   const read = () => github.rest.pulls.get({ ...repo, pull_number: number });
   const { data: updated } = await poll(read, ({ data }) => data.head.sha !== head, sleep);
   if (updated.head.sha === head) {
@@ -251,29 +257,74 @@ async function dispatchChecks({ github, repo, number, defaultBranch, sleep, core
     await notify({ github, repo, number, reason });
     throw new Error(`#${number}: GitHub accepted the update but the head did not move in time.`);
   }
+  await dispatchAll(shell, updated.head.ref);
+  core.info(`#${number} updated to ${updated.head.sha}; dispatched its checks.`);
+}
+
+/**
+ * Dispatch every check for the PR's branch head.
+ *
+ * @param {Shell} shell @param {string} ref the PR branch
+ */
+async function dispatchAll({ github, repo, number, defaultBranch }, ref) {
   await Promise.all(
     DISPATCHES.map(({ workflow, onMain, withPr }) =>
       github.rest.actions.createWorkflowDispatch({
         ...repo,
         workflow_id: workflow,
-        ref: onMain ? defaultBranch : updated.head.ref,
+        ref: onMain ? defaultBranch : ref,
         inputs: withPr ? { pr: String(number) } : {},
       }),
     ),
   );
-  core.info(`#${number} updated to ${updated.head.sha}; dispatched its checks.`);
+}
+
+/**
+ * Whether a PR-branch workflow has no run at all for `head`. A pull_request
+ * push always starts them, so this finds a head an earlier update moved without
+ * finishing its dispatches.
+ *
+ * @param {Shell} shell @param {string} head
+ */
+async function lacksChecks({ github, repo }, head) {
+  const counts = await Promise.all(
+    DISPATCHES.filter(({ onMain }) => !onMain).map(async ({ workflow }) => {
+      const { data } = await github.rest.actions.listWorkflowRuns({
+        ...repo,
+        workflow_id: workflow,
+        head_sha: head,
+        per_page: 1,
+      });
+      return data.total_count;
+    }),
+  );
+  return counts.some((count) => count === 0);
+}
+
+/**
+ * A current PR: dispatch its checks when an earlier update moved its head but
+ * did not finish dispatching them.
+ *
+ * @param {Shell} shell @param {string} head @param {string} ref
+ */
+async function settle(shell, head, ref) {
+  const { number, core, dryRun } = shell;
+  if (!(await lacksChecks(shell, head))) return;
+  core.info(`#${number} has no check runs at ${head}: dispatch`);
+  if (!dryRun) await dispatchAll(shell, ref);
 }
 
 /**
  * Bring one PR up to date and dispatch its checks, leave the one notice, or
- * clear a notice once the PR is current, however it got there.
+ * settle a PR that is current.
  *
  * @param {Shell} shell
  */
 async function handle(shell) {
   const { github, repo, number, core } = shell;
-  const { plan, head } = await readPlan(shell);
+  const { plan, head, ref } = await readPlan(shell);
   core.info(`#${number} ${plan.reason}: ${plan.action}`);
+  if (plan.action === 'current') await settle(shell, head, ref);
   if (shell.dryRun) return;
   if (plan.action === 'notify') await notify({ github, repo, number, reason: plan.reason });
   if (plan.action === 'current') await clearNotices({ github, repo, number });
@@ -291,17 +342,22 @@ const listComments = ({ github, repo, number }) =>
   });
 
 /**
- * Post the notice once: an existing notice stays as it is.
+ * Keep one notice: post it, or rewrite the existing one when the reason changed.
  *
  * @param {{ github: any, repo: { owner: string, repo: string }, number: number, reason: string }} input
  */
 async function notify({ github, repo, number, reason }) {
-  const comments = await listComments({ github, repo, number });
-  if (comments.some(isNotice)) return;
+  const body = noticeBody(reason);
+  const existing = (await listComments({ github, repo, number })).find(isNotice);
+  if (existing?.body === body) return;
+  if (existing) {
+    await github.rest.issues.updateComment({ ...repo, comment_id: existing.id, body });
+    return;
+  }
   await github.rest.issues.createComment({
     ...repo,
     issue_number: number,
-    body: noticeBody(reason),
+    body,
   });
 }
 
@@ -395,8 +451,18 @@ function readOnlyGitHub(repository) {
         compareCommitsWithBasehead: (/** @type {{ basehead: string }} */ { basehead }) =>
           api(`compare/${basehead}`),
       },
-      actions: { createWorkflowDispatch: refuse },
-      issues: { listComments: refuse, createComment: refuse, deleteComment: refuse },
+      actions: {
+        listWorkflowRuns: (
+          /** @type {{ workflow_id: string, head_sha: string }} */ { workflow_id, head_sha },
+        ) => api(`actions/workflows/${workflow_id}/runs?head_sha=${head_sha}&per_page=1`),
+        createWorkflowDispatch: refuse,
+      },
+      issues: {
+        listComments: refuse,
+        createComment: refuse,
+        updateComment: refuse,
+        deleteComment: refuse,
+      },
     },
   };
 }

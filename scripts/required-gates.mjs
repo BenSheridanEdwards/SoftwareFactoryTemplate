@@ -894,12 +894,6 @@ function checkHookSteps(readFile, jobsByWorkflow, hookSteps, errors) {
   });
 }
 
-/**
- * Check workflows, composites and the generated inventory against the contract.
- * `readWorkflow(fileName)` reads workflows; `readFile(path)` reads other repo files.
- * `compositeActions` lists required repo-relative composite paths to read with `readFile`.
- * Returns error strings.
- */
 /** The workflow that posts the `enforcement-approval` status. */
 const STATUS_WORKFLOW = 'enforcement-approval.yml';
 
@@ -933,6 +927,12 @@ export function checkDispatches(readWorkflow, dispatches = DISPATCHES) {
   });
 }
 
+/**
+ * Check workflows, composites and the generated inventory against the contract.
+ * `readWorkflow(fileName)` reads workflows; `readFile(path)` reads other repo files.
+ * `compositeActions` lists required repo-relative composite paths to read with `readFile`.
+ * Returns error strings.
+ */
 export function checkContract({
   readWorkflow,
   readFile,

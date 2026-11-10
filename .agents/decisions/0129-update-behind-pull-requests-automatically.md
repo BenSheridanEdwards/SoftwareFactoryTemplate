@@ -39,15 +39,18 @@ merges cleanly, then:
 - skips a draft, a PR from a fork (the token cannot push there), and a PR opened
   by a bot (Dependabot keeps its own branch current and stops once another
   account pushes to it);
-- leaves a PR that is up to date alone, and removes any earlier notice from it,
-  however it got there;
-- comments once on a PR that conflicts with main, saying it needs a manual
-  rebase;
+- leaves a PR that is up to date alone, removes any earlier notice from it,
+  however it got there, and dispatches its checks when its head has no run of a
+  dispatched workflow, so an update whose dispatches failed or came late is
+  finished by the next run;
+- keeps one comment on a PR that conflicts with main, saying it needs a manual
+  rebase and that merging main keeps the sign-off, and rewrites that comment
+  when the reason changes;
 - comments once, without trying, when main's new commits change a file under
   `.github/workflows/` or list too many files to tell, because the token may not
   push that change;
-- otherwise calls update-branch with the head it judged, so a push made in the
-  meantime wins and is judged by its own run. Update-branch answers before it
+- otherwise calls update-branch pinned to the head it compared, so a push made
+  in the meantime wins and is judged by its own run. Update-branch answers before it
   writes the merge commit, so the script waits for the head to move; a head
   that never moves gets the notice and fails the run.
 
@@ -80,7 +83,9 @@ dispatched run differs from a `pull_request` run:
   Strict branch protection still refuses to merge a head that lacks main.
 - `pr-quality.yml` reads the title, body and branch from the API on both events.
   A dispatch fails unless it names, by number, the open PR whose head is this
-  branch.
+  branch. Both events take the base from the base branch's tip in the checkout,
+  because GitHub refreshes a PR's `base.sha` lazily and a stale one would reject
+  a fresh merge from main.
 - The enforcement gate runs only from the default branch, so main's script
   judges the PR, exactly as on a PR event, and carries an unchanged sign-off by
   ADR 0122's fingerprint.
@@ -113,6 +118,10 @@ asking for **Update branch**, and a person pressing it starts the normal
 so the first run after it merges comments on every behind PR. Closing this gap
 needs a GitHub App installation token with Contents, Pull requests and
 Workflows write, stored as a secret; that is a separate decision.
+
+Branch protection dismisses stale approvals, so in a copy of this template that
+requires approving reviews, each automatic update dismisses them; this
+repository requires none. Fork and bot PRs are skipped without a comment.
 
 Every dispatched update runs the full CI, CodeQL, Lighthouse and visual lanes,
 without the docs-only and UI-scope savings. The merge confidence label grades
