@@ -94,6 +94,12 @@ const RESULT_ROOT = {
       'slice-isolation',
       'procedure-input-schema',
       'form-uses-effect-schema',
+      'one-status-from-hooks',
+      'test-unwraps-values',
+      'test-imports-the-type',
+      'message-uses-its-limit',
+      'reexport-only-from-index',
+      'keep-rejections',
     ].map((name) => [`policy/${name}`, ['error']]),
   ),
   ...Object.fromEntries(
@@ -138,6 +144,7 @@ const RESULT_ROOT = {
     },
   ],
 };
+const E2E = { ...EVERY_FILE, 'policy/test-unwraps-values': ['error'] };
 const REACT_DOCTOR = {
   count: 349,
   sha256: '4de76157f37662452af5ffbcfe299d7009423e84e89aa55eb33cf8fcd5adeef3',
@@ -262,7 +269,9 @@ it.each(PROBES)('turns on exactly the frozen rules at error for each probe path:
       ? path === 'apps/web/src/main.tsx'
         ? RESULT_ROOT
         : { ...RESULT_ROOT, 'no-restricted-globals': ['error', 'document', 'window'] }
-      : EVERY_FILE,
+      : path.includes('/e2e/')
+        ? E2E
+        : EVERY_FILE,
   );
   if (RESULT_PATHS.includes(path)) expectDoctor(rules);
   else expect(doctorNames(rules)).toEqual([]);
@@ -283,8 +292,10 @@ it('adds no rule through a category, a preset or a warning', () => {
     undefined,
     undefined,
     undefined,
+    undefined,
   ]);
   expect(config.overrides.map((value) => [value.plugins, value.jsPlugins])).toEqual([
+    [undefined, undefined],
     [undefined, undefined],
     [undefined, undefined],
     [undefined, undefined],

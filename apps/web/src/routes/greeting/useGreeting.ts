@@ -35,11 +35,12 @@ export function useGreeting() {
 
   useEffect(() => {
     if (name !== null && !query.isFetching && query.isSuccess && query.dataUpdatedAt > 0) {
-      void queryClient
-        .getMutationCache()
-        .build(queryClient, trpc.recentGreetings.record.mutationOptions())
-        .execute({ name: name.trim() })
-        .catch(() => undefined);
+      void Promise.allSettled([
+        queryClient
+          .getMutationCache()
+          .build(queryClient, trpc.recentGreetings.record.mutationOptions())
+          .execute({ name: name.trim() }),
+      ]);
     }
   }, [name, query.isFetching, query.isSuccess, query.dataUpdatedAt, queryClient, trpc]);
 

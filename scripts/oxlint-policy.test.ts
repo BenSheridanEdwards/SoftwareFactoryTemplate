@@ -1,10 +1,23 @@
 /** @jest-environment node */
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, matchesGlob, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import policy, { colourLiterals } from '../tooling/oxlint-plugin-policy.js';
+import policy, {
+  colourLiterals,
+  siblingScans,
+  siblingTypes,
+} from '../tooling/oxlint-plugin-policy.js';
+import { findNegativePhrasing, findSlop } from './check-doc-phrasing.mjs';
 
 const ROOT = resolve(__dirname, '..');
 const command = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts['lint:policy'];
@@ -167,6 +180,41 @@ function ExtraPage() { return <p />; }`
       ],
     };
   }),
+  ...roots.flatMap((root) => [
+    {
+      path: `${root}/src/routes/slop/useSlop.ts`,
+      source:
+        'declare const useQuery: () => { data: string; isError: boolean };\nexport function useSlop() {\n  const list = useQuery();\n  return { text: list.data, failed: list.isError };\n}\n',
+      code: 'policy(one-status-from-hooks)',
+    },
+    {
+      path: `${root}/src/routes/slop/limit.ts`,
+      source:
+        "export const MAX_LENGTH = 100;\nexport const TOO_LONG = 'Use 100 characters or fewer';\n",
+      code: 'policy(message-uses-its-limit)',
+    },
+    {
+      path: `${root}/src/routes/slop/reexport.ts`,
+      source: "export type { Slop } from './slop';\n",
+      code: 'policy(reexport-only-from-index)',
+    },
+    {
+      path: `${root}/src/routes/slop/keep.ts`,
+      source:
+        'export const saved = (save: () => Promise<void>) => save().catch(() => undefined);\n',
+      code: 'policy(keep-rejections)',
+    },
+    {
+      path: `${root}/src/routes/slop/slop.ts`,
+      source: 'export interface Slop {\n  readonly id: string;\n}\n',
+    },
+    {
+      path: `${root}/src/routes/slop/slop.test.ts`,
+      source:
+        "interface Slop {\n  readonly id: string;\n}\nexport const id = (found?: Slop) => found?.id ?? '';\n",
+      codes: ['policy(test-imports-the-type)', 'policy(test-unwraps-values)'],
+    },
+  ]),
   ...roots.flatMap((root) => [
     {
       path: `${root}/src/BadFolder/value.ts`,
@@ -367,7 +415,7 @@ const contractFixtures: Fixture[] = [
   ].map(([_label, source]) => ({
     path: 'apps/web/src/routes/greeting/hooks.ts',
     source: source,
-    code: 'policy(state-and-effects-in-hooks)',
+    codes: ['policy(state-and-effects-in-hooks)', 'policy(reexport-only-from-index)'],
   })),
   ...[
     ['a route imports another route', 'apps/web/src/routes/a/A.tsx', "import { B } from '../b';"],
@@ -569,6 +617,661 @@ export function useGreeting() {
 `,
   },
 ].map((fixture, index) => ({ ...fixture, caseRoot: `contract-${index}` }));
+const statusMessage = (hook: string, fields: string, root: string) =>
+  `Return one \`status\` union from \`${hook}\` in place of ${fields} from \`${root}\`, for example \`{ status: 'loading' } | { status: 'failed' } | { status: 'loaded'; greetings }\`, so the page renders exactly one state.`;
+const presentMessage = (expression: string) =>
+  `Unwrap \`${expression}\` with \`present(${expression})\`, a Jest global that an E2E spec imports from \`./fixtures\`, so a missing value fails the test here instead of standing in as \`''\`.`;
+const unwrapMessage = (expression: string) =>
+  `Unwrap \`${expression}\` with \`unwrap(${expression})\`, a Jest global that an E2E spec imports from \`./fixtures\`, so a failure fails the test here with its problem instead of standing in as \`''\`.`;
+const subject = (caseRoot: string, path: string, source = 'export const value = 1;\n') => ({
+  caseRoot,
+  path,
+  source,
+});
+const slopFixtures: Fixture[] = [
+  // policy/one-status-from-hooks: r5, r4 and regen rebuilds, then the reference shape.
+  {
+    path: 'apps/web/src/routes/todos/useTodos.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useTodos() {
+  const list = useQuery(options);
+  return { todos: list.data, loadFailed: list.isError, failure: null };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useTodos', '`data`, `isError`', 'list'),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useTodos.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useTodos() {
+  const list = useQuery(options);
+  const todos = list.data ?? [];
+  return { todos, loading: list.isPending };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    messageContains: '`data`, `isPending` from `list`',
+  },
+  {
+    path: 'apps/web/src/routes/greeting/useGreeting.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export const useGreeting = () => {
+  const query = useQuery(options);
+  return { message: query.data?.message, failed: query.isError };
+};
+`,
+    code: 'policy(one-status-from-hooks)',
+    messageContains: 'from `useGreeting`',
+  },
+  // r7 and r8 map the query's status through a lookup object.
+  {
+    path: 'apps/web/src/routes/todos/useTodos.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+const LIST_STATES = { pending: 'loading', error: 'failed', success: 'loaded' } as const;
+export function useTodos() {
+  const list = useQuery(options);
+  const todos = list.data ?? [];
+  return { todos, listState: LIST_STATES[list.status] };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useTodos', '`data`, `status`', 'list'),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useTodos.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+const LIST_STATUS = { pending: 'loading', error: 'failed', success: 'ready' } as const;
+type ListStatus = (typeof LIST_STATUS)[keyof typeof LIST_STATUS];
+export function useTodos() {
+  const list = useQuery(options);
+  const listStatus: ListStatus = LIST_STATUS[list.status];
+  return { todos: list.data ?? [], listStatus };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useTodos', '`data`, `status`', 'list'),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useSuspenseTodos.ts',
+    source: `
+import { useInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
+declare const options: never;
+declare const trpc: { todos: { list: { useQuery: () => { data: string[]; isError: boolean } } } };
+export function useSuspenseTodos() {
+  const list = useSuspenseQuery(options);
+  return { loading: list.isPending, failed: list.isError };
+}
+function usePages() {
+  const pages = useInfiniteQuery(options);
+  return { pages: pages.data, done: pages.isSuccess };
+}
+function useClassic() {
+  const list = trpc.todos.list.useQuery();
+  return { todos: list.data, failed: list.isError };
+}
+export const hooks = [usePages, useClassic];
+`,
+    codes: [
+      'policy(one-status-from-hooks)',
+      'policy(one-status-from-hooks)',
+      'policy(one-status-from-hooks)',
+    ],
+  },
+  // Reads that are not two states of one query pass.
+  {
+    path: 'apps/web/src/routes/todos/useRefreshing.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useRefreshing() {
+  const list = useQuery(options);
+  return { list: list.data, refreshing: list.isFetching };
+}
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useSave.ts',
+    source: `
+import { useMutation } from '@tanstack/react-query';
+declare const options: never;
+export function useSave() {
+  const save = useMutation(options);
+  return { submitting: save.isPending, problem: save.error, saved: save.data, failed: save.isError };
+}
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useListStatus.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useListStatus() {
+  const list = useQuery(options);
+  return { status: list.status, problem: list.error };
+}
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useFlatList.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+type View = { status: 'loading'; data: undefined } | { status: 'loaded'; data: string[] };
+declare const toView: (query: unknown) => View;
+export function useFlatList() {
+  const view = toView(useQuery(options));
+  return { status: view.status, data: view.data };
+}
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useStatus.ts',
+    source: `
+export const useStatus = (list: { status: string; data: string[] }) => ({
+  status: list.status,
+  todos: list.data,
+});
+`,
+  },
+  // Each name resolves in its own scope, not to a same-named binding elsewhere.
+  {
+    path: 'apps/web/src/routes/todos/useShadowed.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function earlier(list: { data: string[] }) {
+  const todos = list.data;
+  return todos;
+}
+export function useShadowed(todos: string[]) {
+  const list = useQuery(options);
+  return { todos, failed: list.isError };
+}
+function useSummary(list: { data: string[]; isError: boolean }) {
+  return { todos: list.data, failed: list.isError };
+}
+export const hooks = [useSummary];
+`,
+  },
+  // A destructured query and an indexed read of its data count as reads of the query.
+  {
+    path: 'apps/web/src/routes/todos/useDestructured.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useDestructured() {
+  const { data, isPending, isError: failed = false } = useQuery(options);
+  return { todos: data ?? [], isPending, failed };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage(
+      'useDestructured',
+      '`data`, `isPending`, `isError`',
+      '{ data, isPending, isError: failed = false }',
+    ),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useFirst.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useFirst() {
+  const list = useQuery(options);
+  return { first: list.data?.[0], loading: list.isLoading };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useFirst', '`data`, `isLoading`', 'list'),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useDestructuredError.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+declare const plain: { data: string[]; isError: boolean };
+export function useDestructuredError() {
+  const { data, error } = useQuery(options);
+  const { isError } = plain;
+  return { todos: data, problem: error, failed: isError };
+}
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/useOwnScope.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+export function useOwnScope() {
+  const list = useQuery(options);
+  const todos = list.data;
+  return { todos, failed: list.isError };
+}
+export function later(todos: string[]) {
+  const list = { data: todos, isError: false };
+  return list;
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useOwnScope', '`data`, `isError`', 'list'),
+  },
+  {
+    path: 'apps/web/src/routes/todos/useTodos.ts',
+    source: `
+import { useMutation, useQuery } from '@tanstack/react-query';
+declare const options: never;
+type TodoList = { status: 'loading' } | { status: 'failed' } | { status: 'loaded'; todos: string[] };
+function toTodoList(query: { data: string[] | undefined; isError: boolean }): TodoList {
+  if (query.data) {
+    return { status: 'loaded', todos: query.data };
+  }
+  return query.isError ? { status: 'failed' } : { status: 'loading' };
+}
+function summary(query: { data: string[]; isError: boolean }) {
+  return { todos: query.data, failed: query.isError };
+}
+export function useTodos() {
+  const list = useQuery(options);
+  const add = useMutation(options);
+  return {
+    list: toTodoList(list),
+    busy: [add].some((change) => change.isPending),
+    saving: add.isPending,
+    count: list.data?.length,
+    summary,
+  };
+}
+`,
+  },
+  {
+    caseRoot: 'slop-status-test',
+    path: 'apps/web/src/routes/todos/useTodos.test.ts',
+    source:
+      'export function useFake(list: { data: string; isError: boolean }) {\n  return { todos: list.data, failed: list.isError };\n}\n',
+  },
+  subject('slop-status-test', 'apps/web/src/routes/todos/useTodos.ts'),
+  // policy/test-unwraps-values: the reference's api test and E2E spec, then present() and unwrap().
+  {
+    caseRoot: 'slop-unwrap-api',
+    path: 'apps/api/src/features/todos/application.test.ts',
+    source: `
+declare const addTodo: (input: { title: string }) => { ok: true; value: { id: string } } | { ok: false };
+const added = addTodo({ title: 'Second' });
+export const id = added.ok ? added.value.id : '';
+export const ids = ['First'].map((title) => {
+  const next = addTodo({ title });
+  return !next.ok ? '' : next.value.id;
+});
+export const first = ids[0] ?? '';
+`,
+    codes: [
+      'policy(test-unwraps-values)',
+      'policy(test-unwraps-values)',
+      'policy(test-unwraps-values)',
+    ],
+    message: unwrapMessage('added'),
+  },
+  subject('slop-unwrap-api', 'apps/api/src/features/todos/application.ts'),
+  {
+    path: 'apps/web/e2e/todos.spec.ts',
+    source: `
+declare const setDoneThroughApi: (id: string) => Promise<void>;
+declare const second: { id: string } | undefined;
+export const done = setDoneThroughApi(second?.id ?? '');
+`,
+    code: 'policy(test-unwraps-values)',
+    message: presentMessage('second?.id'),
+  },
+  {
+    path: 'showcase/todo-01/web/e2e/todos.spec.ts',
+    source: "declare const id: string | undefined;\nexport const value = id ?? '';\n",
+    code: 'policy(test-unwraps-values)',
+  },
+  {
+    caseRoot: 'slop-unwrap-valid',
+    path: 'apps/api/src/features/todos/application.test.ts',
+    source: `
+declare const present: <Value>(value: Value | null | undefined) => Value;
+declare const unwrap: <Value>(outcome: { ok: true; value: Value } | { ok: false }) => Value;
+declare const added: { ok: true; value: { id: string } } | { ok: false };
+declare const ids: string[];
+declare const message: string | undefined;
+declare const response: { ok: boolean; status: number };
+declare const other: { value: string };
+export const id = unwrap(added).id;
+export const fallback = added.ok ? added.value.id : undefined;
+export const verdict = response.ok ? 'passed' : 'failed';
+export const code = !response.ok ? '' : response.status;
+export const elsewhere = response.ok ? other.value : '';
+export const first = present(ids[0]);
+export const shown = message ?? 'waiting';
+`,
+  },
+  subject('slop-unwrap-valid', 'apps/api/src/features/todos/application.ts'),
+  {
+    path: 'apps/api/src/features/todos/fallback.ts',
+    source: "declare const id: string | undefined;\nexport const value = id ?? '';\n",
+  },
+  {
+    path: 'apps/web/e2e/fixtures.ts',
+    source: "export { expect, type Page } from '@playwright/test';\n",
+  },
+  // policy/test-imports-the-type: the reference's page test, then an imported type.
+  {
+    caseRoot: 'slop-type-page',
+    path: 'apps/web/src/routes/todos/TodosPage.test.tsx',
+    source: `
+interface Todo {
+  readonly id: string;
+  readonly title: string;
+  readonly done: boolean;
+}
+export const todos: readonly Todo[] = [];
+`,
+    code: 'policy(test-imports-the-type)',
+    message:
+      'Import `Todo` from `./useTodos` in place of this copy, so the test follows the real shape when it changes.',
+  },
+  subject('slop-type-page', 'apps/web/src/routes/todos/TodosPage.tsx'),
+  subject(
+    'slop-type-page',
+    'apps/web/src/routes/todos/useTodos.ts',
+    'export type Todo = { id: string; title: string; done: boolean };\nexport const useTodos = () => [];\n',
+  ),
+  {
+    caseRoot: 'slop-type-api',
+    path: 'apps/api/src/features/todos/procedures.test.ts',
+    source:
+      "type Problem = { kind: string };\nexport const problem: Problem = { kind: 'not-found' };\n",
+    code: 'policy(test-imports-the-type)',
+    messageContains: 'Import `Problem` from `./domain.ts`',
+  },
+  subject('slop-type-api', 'apps/api/src/features/todos/procedures.ts'),
+  subject(
+    'slop-type-api',
+    'apps/api/src/features/todos/domain.ts',
+    'export interface Problem {\n  readonly kind: string;\n}\n',
+  ),
+  // Only a declaration at the start of a line exports a type; text in strings and comments does not.
+  {
+    caseRoot: 'slop-type-text',
+    path: 'apps/web/src/routes/todos/TodosPage.test.tsx',
+    source: `
+interface Todo {
+  readonly id: string;
+}
+type Problem = { readonly message: string };
+export const cases: readonly [Todo, Problem] = [{ id: '1' }, { message: 'Enter a title' }];
+`,
+  },
+  subject('slop-type-text', 'apps/web/src/routes/todos/TodosPage.tsx'),
+  subject(
+    'slop-type-text',
+    'apps/web/src/routes/todos/useTodos.ts',
+    "// export type Problem = string;\nexport const sample = 'export interface Todo { id: string }';\nexport const useTodos = () => [];\n",
+  ),
+  // Each test in a folder reads the same scan of its siblings.
+  ...['TodoItem', 'TodoList'].map((name) => ({
+    caseRoot: 'slop-type-folder',
+    path: `apps/web/src/routes/todos/${name}.test.tsx`,
+    source: "type Todo = { readonly id: string };\nexport const todo: Todo = { id: '1' };\n",
+    code: 'policy(test-imports-the-type)',
+  })),
+  subject('slop-type-folder', 'apps/web/src/routes/todos/TodoItem.tsx'),
+  subject('slop-type-folder', 'apps/web/src/routes/todos/TodoList.tsx'),
+  subject(
+    'slop-type-folder',
+    'apps/web/src/routes/todos/useTodos.ts',
+    'export type Todo = { id: string };\nexport const useTodos = () => [];\n',
+  ),
+  {
+    caseRoot: 'slop-type-valid',
+    path: 'apps/web/src/routes/todos/TodosPage.test.tsx',
+    source: `
+import type { Todo } from './useTodos';
+interface Harness {
+  readonly todos: readonly Todo[];
+}
+export const harness: Harness = { todos: [] };
+`,
+  },
+  subject('slop-type-valid', 'apps/web/src/routes/todos/TodosPage.tsx'),
+  subject(
+    'slop-type-valid',
+    'apps/web/src/routes/todos/useTodos.ts',
+    'export type Todo = { id: string };\nexport const useTodos = () => [];\n',
+  ),
+  // policy/message-uses-its-limit: r5's api domain and web schema, then the reference.
+  {
+    path: 'apps/api/src/features/todos/domain.ts',
+    source: `
+const MAX_TITLE_LENGTH = 100;
+export const TITLE_MESSAGES = { tooLong: 'Use 100 characters or fewer', blank: 'Enter a title' };
+export const fits = (title: string) => title.length <= MAX_TITLE_LENGTH;
+`,
+    code: 'policy(message-uses-its-limit)',
+    message:
+      'Interpolate `MAX_TITLE_LENGTH` into this text in place of 100, so the message changes with the limit.',
+  },
+  {
+    path: 'apps/web/src/routes/todos/todoFormSchema.ts',
+    source:
+      'export const TITLE_MAX_LENGTH = 100;\nexport const tooLong = (count: number) => `Use 100 characters or fewer, not $' +
+      '{count}`;\n',
+    code: 'policy(message-uses-its-limit)',
+  },
+  {
+    path: 'apps/web/src/routes/todos/limits.ts',
+    source: `
+export const TITLE_MAX_LENGTH = 100;
+const RETRIES = 3;
+export const tooLong = \`Use \${TITLE_MAX_LENGTH} characters or fewer\`;
+export const retry = 'Try 3 times, up to 1000 items or 100ms';
+export const used = RETRIES;
+`,
+  },
+  {
+    path: 'apps/web/src/routes/todos/itemLimit.ts',
+    source: `
+export const MAX_ITEMS = 1000;
+export const maxTitleLength = 80;
+export const tooMany = 'Keep 1,000 items or fewer';
+export const tooLong = \`Use 80 characters, not \${maxTitleLength + 1}\`;
+`,
+    codes: ['policy(message-uses-its-limit)', 'policy(message-uses-its-limit)'],
+    message:
+      'Interpolate `MAX_ITEMS` into this text in place of 1000, so the message changes with the limit.',
+  },
+  {
+    path: 'apps/web/src/routes/todos/LimitHint.tsx',
+    source: `
+export const MAX_LENGTH = 100;
+export function LimitHint() {
+  return <p>Up to 100 characters</p>;
+}
+`,
+    code: 'policy(message-uses-its-limit)',
+  },
+  // A number that is not a limit, or not a count of words, passes.
+  {
+    path: 'apps/web/src/routes/todos/Layout.tsx',
+    source: `
+import { readings } from './100 readings';
+export const COLUMNS = 10;
+export const ICON_SIZE = 24;
+export const MAX_PERCENT = 100;
+export const PORT = 3000;
+export const PAGE_SIZE = 20;
+export const MAX_LENGTH = 50;
+export const done = '100% done';
+export const url = 'http://localhost:3000/api';
+export const audience = 'Ages 20 and over';
+export const hint = 'gap-10 p-4';
+export function Layout() {
+  return (
+    <div className="grid gap-10 p-4" title={readings}>
+      <svg viewBox="0 0 24 24" aria-label="An icon" />
+      <span title="Up to 50 characters" />
+    </div>
+  );
+}
+`,
+  },
+  // A limit inside a class name, a fraction, a time or a price is not a count.
+  {
+    path: 'apps/web/src/routes/todos/listClasses.ts',
+    source: `
+export const MAX_ITEMS = 10;
+export const listClasses = 'grid gap-10 px-4 w-1/10 md:10 items-center';
+export const price = 'Save $10 today';
+`,
+  },
+  {
+    caseRoot: 'slop-limit-test',
+    path: 'apps/api/src/features/todos/domain.test.ts',
+    source: "const LIMIT = 100;\nexport const expected = ['Use 100 characters or fewer', LIMIT];\n",
+  },
+  subject('slop-limit-test', 'apps/api/src/features/todos/domain.ts'),
+  // policy/reexport-only-from-index: r6's application, a nested barrel, then the slice's index.ts.
+  {
+    path: 'apps/api/src/features/todos/application.ts',
+    source: "export type { Outcome, Problem } from './domain.ts';\nexport const value = 1;\n",
+    code: 'policy(reexport-only-from-index)',
+    message:
+      'Import `Outcome, Problem` straight from `./domain.ts` and remove this re-export; a slice re-exports only from its `index.ts`.',
+  },
+  {
+    path: 'apps/web/src/routes/todos/types.ts',
+    source: "export * from './useTodos';\n",
+    code: 'policy(reexport-only-from-index)',
+    messageContains: 'Import each name you need straight from `./useTodos`',
+  },
+  {
+    path: 'apps/api/src/features/todos/procedures.ts',
+    source:
+      "import type { Todo } from './domain.ts';\nconst local = 1;\nexport type { Todo };\nexport { local };\n",
+    code: 'policy(reexport-only-from-index)',
+    messageContains: 'Import `Todo` straight from `./domain.ts`',
+  },
+  {
+    path: 'apps/api/src/features/todos/index.ts',
+    source: "export { todosRouter } from './procedures.ts';\n",
+  },
+  {
+    path: 'apps/web/src/routes/todos/components/index.ts',
+    source: "export { TodoItem } from './TodoItem';\n",
+    code: 'policy(reexport-only-from-index)',
+    messageContains: 'a slice re-exports only from its `index.ts`',
+  },
+  {
+    path: 'apps/web/src/api-client/trpc.ts',
+    source: "export { useQuery } from '@tanstack/react-query';\n",
+    code: 'policy(state-and-effects-in-hooks)',
+  },
+  {
+    path: 'apps/web/src/routes/todos/useTodoFilter.ts',
+    source: "export type Filter = 'all' | 'done';\nconst all: Filter = 'all';\nexport { all };\n",
+  },
+  // policy/keep-rejections: r2, r4 and the greeting reference, then a handled failure.
+  {
+    path: 'apps/web/src/routes/todos/useSucceeded.ts',
+    source:
+      'export const succeeded = (change: Promise<unknown>) => change.then(() => true, () => false);\n',
+    code: 'policy(keep-rejections)',
+    message:
+      'Handle the failure where it shows (`onError`, a `failure` state) and let the promise reject; returning `false` hides the error from callers and tests. To ignore a failure on purpose, settle the promise with `Promise.allSettled` and read its result.',
+  },
+  {
+    path: 'apps/web/src/routes/todos/useCreate.ts',
+    source: `
+const succeeded = () => true;
+const failed = () => false;
+export const create = (save: () => Promise<void>) => save().then(succeeded, failed);
+`,
+    code: 'policy(keep-rejections)',
+  },
+  {
+    path: 'apps/web/src/routes/greeting/useRecord.ts',
+    source: `
+declare const record: { mutateAsync: (input: { name: string }) => Promise<void> };
+export const recordName = (name: string) => record.mutateAsync({ name }).catch(() => undefined);
+export const quiet = (save: () => Promise<void>) => save().catch((_error: unknown) => null);
+export const empty = (save: () => Promise<void>) => save().catch(function ignore() {
+  return;
+});
+`,
+    codes: ['policy(keep-rejections)', 'policy(keep-rejections)', 'policy(keep-rejections)'],
+    messageContains: 'returning `undefined`',
+  },
+  {
+    path: 'apps/web/src/routes/todos/useHandled.ts',
+    source: `
+declare const report: (error: unknown) => void;
+declare const setFailure: (message: string) => void;
+export const handled = (save: () => Promise<void>) => [
+  save().catch((error: Error) => setFailure(error.message)),
+  save().catch(report),
+  save().then(() => true),
+  save().then(() => true, (error: unknown) => report(error)),
+];
+`,
+  },
+  // A handler resolves in its own scope, not to a same-named binding elsewhere.
+  {
+    path: 'apps/web/src/routes/todos/useScopedHandlers.ts',
+    source: `
+export function quiet(save: () => Promise<void>) {
+  const handle = () => undefined;
+  return save().catch(handle);
+}
+export function loud(save: () => Promise<void>, report: (error: unknown) => void) {
+  const handle = (error: unknown) => report(error);
+  return save().catch(handle);
+}
+`,
+    code: 'policy(keep-rejections)',
+  },
+  {
+    path: 'apps/web/src/routes/todos/useGivenHandler.ts',
+    source: `
+export function fallback() {
+  const handle = () => false;
+  return handle;
+}
+export function given(save: () => Promise<void>, handle: (error: unknown) => void) {
+  return save().catch(handle);
+}
+`,
+  },
+  // An ignored rejection that is meant: settle the promise and read the result.
+  {
+    path: 'apps/web/src/routes/todos/usePrefetch.ts',
+    source: `
+declare const prefetch: () => Promise<void>;
+declare const save: () => Promise<void>;
+export const warm = () => void Promise.allSettled([prefetch()]);
+export const saved = () => Promise.allSettled([save()]).then(([result]) => result?.status === 'fulfilled');
+`,
+  },
+  {
+    caseRoot: 'slop-keep-test',
+    path: 'apps/web/src/routes/todos/useHandled.test.ts',
+    source:
+      'export const settled = (save: () => Promise<void>) => save().catch(() => undefined);\n',
+  },
+  subject('slop-keep-test', 'apps/web/src/routes/todos/useHandled.ts'),
+].map((fixture, index) => ({ ...fixture, caseRoot: fixture.caseRoot ?? `slop-${index}` }));
 const mutation = 'function f(item) { item.x = 1; }';
 const componentFixtures: Fixture[] = [
   {
@@ -1001,6 +1704,7 @@ const fixtures: Fixture[] = [
   ...policyFixtures,
   ...contractFixtures,
   ...componentFixtures,
+  ...slopFixtures,
   ...'ts tsx mts cts js jsx mjs cjs'.split(' ').flatMap((extension) => [
     { path: `scripts/mutation.${extension}`, source: mutation, code: 'eslint(no-param-reassign)' },
     { path: `scripts/copy.${extension}`, source: 'function f(item) { return { ...item, x: 1 }; }' },
@@ -1114,7 +1818,7 @@ const policyOnly = (rules = {}) => Object.fromEntries(Object.entries(rules).filt
   !Object.hasOwn(generalRules, rule) && !['naming/naming-convention', 'unicorn/filename-case'].includes(rule)));
 export default { ...config, rules: policyOnly(config.rules), overrides: config.overrides.map(override => ({
   ...override, rules: policyOnly(override.rules),
-  files: override.files.flatMap(pattern => [pattern, "contract-*/" + pattern, "component-*/" + pattern])
+  files: override.files.flatMap(pattern => [pattern, "contract-*/" + pattern, "component-*/" + pattern, "slop-*/" + pattern])
 })) };`,
   );
   write('apps/web/.oxlintrc.json', '{"rules":{"no-param-reassign":"off"}}');
@@ -1160,7 +1864,7 @@ it('turns on every policy rule at error in result roots', () => {
   const rules = Object.keys(policy.rules).filter(
     (rule) => !['no-loops', 'no-hand-written-globs'].includes(rule),
   );
-  expect(rules).toHaveLength(19);
+  expect(rules).toHaveLength(25);
   roots.forEach((root) => {
     const applicable = rules.filter(
       (rule) =>
@@ -1186,6 +1890,73 @@ it('turns on every policy rule at error in result roots', () => {
         ]),
       );
     });
+  });
+});
+it('keeps one type scan per folder and extension mode, replacing it when a file changes', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'sibling-scans-'));
+  const file = join(folder, 'useTodos.ts');
+  const touch = (source: string, seconds: number) => {
+    writeFileSync(file, source);
+    utimesSync(file, seconds, seconds);
+  };
+  try {
+    const before = siblingScans.size;
+    touch('export type Todo = { id: string };\n', 1);
+    siblingTypes(folder, false);
+    touch('export type Item = { id: string };\n', 2);
+    expect([...siblingTypes(folder, false)]).toEqual([['Item', './useTodos']]);
+    expect(siblingScans.size).toBe(before + 1);
+    siblingTypes(folder, true);
+    touch('export type Entry = { id: string };\n', 3);
+    expect([...siblingTypes(folder, true)]).toEqual([['Entry', './useTodos.ts']]);
+    expect(siblingScans.size).toBe(before + 2);
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+it('skips a broken link and a folder named like a module when it scans the type exports', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'sibling-skips-'));
+  try {
+    writeFileSync(join(folder, 'useTodos.ts'), 'export type Todo = { id: string };\n');
+    mkdirSync(join(folder, 'nested.ts'));
+    symlinkSync(join(folder, 'missing.ts'), join(folder, 'broken.ts'));
+    expect([...siblingTypes(folder, false)]).toEqual([['Todo', './useTodos']]);
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+it('scans the type exports of a folder once until a file in it changes', () => {
+  const folder = mkdtempSync(join(tmpdir(), 'sibling-types-'));
+  try {
+    writeFileSync(join(folder, 'useTodos.ts'), 'export type Todo = { id: string };\n');
+    const first = siblingTypes(folder, false);
+    expect(siblingTypes(folder, false)).toBe(first);
+    expect([...first]).toEqual([['Todo', './useTodos']]);
+    writeFileSync(join(folder, 'domain.ts'), 'export interface Problem {}\n');
+    expect([...siblingTypes(folder, true)]).toEqual([
+      ['Problem', './domain.ts'],
+      ['Todo', './useTodos.ts'],
+    ]);
+  } finally {
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+const minedRules = [
+  'one-status-from-hooks',
+  'test-unwraps-values',
+  'test-imports-the-type',
+  'message-uses-its-limit',
+  'reexport-only-from-index',
+  'keep-rejections',
+];
+const mined = Object.entries(policy.rules).filter(([name]) => minedRules.includes(name));
+it('ships every rule mined from the rebuilds', () => expect(mined).toHaveLength(minedRules.length));
+it.each(mined)('policy/%s states its fix in check:docs phrasing', (_name, rule) => {
+  const messages = Object.values('messages' in rule.meta ? rule.meta.messages : {});
+  expect(messages).not.toHaveLength(0);
+  messages.forEach((message) => {
+    expect(findNegativePhrasing(String(message))).toEqual([]);
+    expect(findSlop(String(message))).toEqual([]);
   });
 });
 it('runs the fixture set in under ten seconds', () => expect(elapsed).toBeLessThan(10_000));

@@ -1,0 +1,23 @@
+{
+  // The browser program's unit tests: the web and ui tests, with the Jest test
+  // globals `present` and `unwrap` (tooling/types/test-globals.d.ts). Only the
+  // test programs include that file, so a production module that calls either
+  // fails to compile in tsconfig.json.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".cache/types/web-test.tsbuildinfo",
+    "types": ["jest", "@testing-library/jest-dom"]
+  },
+  "include": [
+    "apps/web/src/**/*.test.ts",
+    "apps/web/src/**/*.test.tsx",
+    "showcase/*/web/src/**/*.test.ts",
+    "showcase/*/web/src/**/*.test.tsx",
+    "packages/ui/src/**/*.test.ts",
+    "packages/ui/src/**/*.test.tsx",
+    "tooling/types/styles.d.ts",
+    "tooling/types/test-globals.d.ts"
+  ],
+  "exclude": ["**/*.contract.test.ts"],
+  "references": [{ "path": "./tsconfig.api.json" }]
+}

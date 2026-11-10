@@ -1,6 +1,6 @@
 // Repository policy rules that no installed plugin expresses (ADR 0019, ADR 0103). Each
 // message names the fix, so an agent can act on the error alone.
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, posix, relative, sep } from 'node:path';
 
 const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*$/;
@@ -1074,6 +1074,550 @@ const noArbitraryStyles = {
   },
 };
 
+// Rules mined from nine agent rebuilds of the reference feature (ADR 0124).
+
+const isSpecFile = (path) => /\.(test|spec)\.tsx?$/.test(path);
+
+/** `ChainExpression` and `TSNonNullExpression` wrappers removed. */
+const unwrapChain = (node) =>
+  node?.type === 'ChainExpression' || node?.type === 'TSNonNullExpression'
+    ? unwrapChain(node.expression)
+    : node;
+
+/** `{ root, node, names }` for a member chain such as `query.data?.message`, or null. */
+function memberChain(node) {
+  const current = unwrapChain(node);
+
+  if (current?.type === 'Identifier') {
+    return { root: current.name, node: current, names: [] };
+  }
+
+  if (current?.type !== 'MemberExpression' || current.computed) {
+    return null;
+  }
+
+  const inner = memberChain(current.object);
+
+  return inner && { ...inner, names: [...inner.names, current.property.name] };
+}
+
+/** The variable `name` names where `node` sits, found through the scope chain, or undefined. */
+function variableAt(context, node, name) {
+  const lookup = (scope) => (scope ? (scope.set.get(name) ?? lookup(scope.upper)) : undefined);
+
+  return lookup(context.sourceCode.getScope(node));
+}
+
+/** The one `const` definition an identifier names in its own scope, or null. */
+function constDefinition(context, identifier) {
+  const [definition, ...others] = variableAt(context, identifier, identifier.name)?.defs ?? [];
+
+  return others.length === 0 &&
+    definition?.type === 'Variable' &&
+    definition.parent?.kind === 'const'
+    ? definition
+    : null;
+}
+
+/** The initialiser of the `const` an identifier names in its own scope, or null. */
+function constInit(context, identifier) {
+  const definition = constDefinition(context, identifier);
+
+  return definition?.node.id.type === 'Identifier' ? definition.node.init : null;
+}
+
+const QUERY_HOOKS = new Set(['useQuery', 'useSuspenseQuery', 'useInfiniteQuery']);
+
+/** `useQuery(…)`, `useSuspenseQuery(…)`, `useInfiniteQuery(…)` or a client's `x.useQuery(…)`. */
+const isQueryCall = (node) => {
+  const callee = node?.type === 'CallExpression' ? unwrapChain(node.callee) : null;
+  const name = callee?.type === 'MemberExpression' ? callee.property.name : callee?.name;
+
+  return QUERY_HOOKS.has(name);
+};
+
+// `error` and `isFetching` describe a state rather than choose one, so they stay out.
+const QUERY_STATUS_FIELDS = new Set([
+  'data',
+  'status',
+  'isPending',
+  'isLoading',
+  'isError',
+  'isSuccess',
+]);
+
+/** What a value reads through: the left of `a ?? b`, the key of a lookup such as `STATES[list.status]`, or the list of `list.data[0]`. */
+const READS_THROUGH = {
+  LogicalExpression: (node) => node.left,
+  MemberExpression: (node) =>
+    node.computed ? (node.property.type === 'Literal' ? node.object : node.property) : null,
+};
+
+/** The expression a value reads, following one `const` binding resolved in its own scope. */
+function readExpression(context, node, follow) {
+  const value = unwrapChain(node);
+  const inner = READS_THROUGH[value?.type]?.(value);
+
+  if (inner) {
+    return readExpression(context, inner, follow);
+  }
+
+  const bound = follow && value?.type === 'Identifier' ? constInit(context, value) : null;
+
+  return bound ? readExpression(context, bound, false) : value;
+}
+
+/** The name a destructured property binds: `failed` in `{ isError: failed = false }`. */
+const boundName = (property) =>
+  property.value.type === 'AssignmentPattern' ? property.value.left : property.value;
+
+/** The field a name destructures from a query, `{ root, field }` for `isError` in `const { isError } = useQuery(…)`, or null. */
+function destructuredField(context, identifier) {
+  const definition = constDefinition(context, identifier);
+  const pattern = definition?.node.id;
+  const property =
+    pattern?.type === 'ObjectPattern' && isQueryCall(definition.node.init)
+      ? pattern.properties.find(
+          (entry) =>
+            entry.type === 'Property' && !entry.computed && boundName(entry) === definition.name,
+        )
+      : null;
+
+  return property ? { root: context.sourceCode.getText(pattern), field: property.key.name } : null;
+}
+
+/** The first field a member chain reads of a `const` bound to a query call, `{ root, field }`, or null. */
+function queryMemberRead(context, value) {
+  const chain = memberChain(value);
+
+  return chain && isQueryCall(constInit(context, chain.node))
+    ? { root: chain.root, field: chain.names[0] }
+    : null;
+}
+
+/** The query state a value reads (`list.data ?? []` reads `data` of `list`), or null; only a query hook's result counts. */
+function statusField(context, node) {
+  const value = readExpression(context, node, true);
+  const read =
+    (value?.type === 'Identifier' && destructuredField(context, value)) ||
+    queryMemberRead(context, value);
+
+  return QUERY_STATUS_FIELDS.has(read?.field) ? read : null;
+}
+
+/** The object a function returns: a `return { ... }` or an arrow's `({ ... })` body. */
+const returnedObject = (node) =>
+  node.type === 'ReturnStatement'
+    ? node.argument
+    : node.type === 'ArrowFunctionExpression' && node.body;
+
+const oneStatusFromHooks = {
+  meta: {
+    type: 'problem',
+    messages: {
+      status:
+        "Return one `status` union from `{{hook}}` in place of {{fields}} from `{{root}}`, for example `{ status: 'loading' } | { status: 'failed' } | { status: 'loaded'; greetings }`, so the page renders exactly one state.",
+    },
+    schema: [],
+  },
+  create(context) {
+    if (isSpecFile(context.filename)) {
+      return {};
+    }
+
+    const check = (node) => {
+      const object = unwrapChain(returnedObject(node));
+      const owner = context.sourceCode.getAncestors(node).findLast(isFunctionNode);
+      const fn = node.type === 'ArrowFunctionExpression' ? node : owner;
+      const hook = fn ? functionName(fn) : null;
+
+      if (object?.type !== 'ObjectExpression' || !(hook && HOOK_NAME.test(hook))) {
+        return;
+      }
+
+      const reads = object.properties
+        .filter((property) => property.type === 'Property')
+        .map((property) => statusField(context, property.value))
+        .filter(Boolean);
+
+      [...new Set(reads.map(({ root }) => root))]
+        .map((root) => [
+          root,
+          [...new Set(reads.filter((read) => read.root === root).map(({ field }) => field))],
+        ])
+        .filter(([, fields]) => fields.length > 1)
+        .forEach(([root, fields]) => {
+          context.report({
+            node: object,
+            messageId: 'status',
+            data: { hook, root, fields: fields.map((field) => `\`${field}\``).join(', ') },
+          });
+        });
+    };
+
+    return { ReturnStatement: check, ArrowFunctionExpression: check };
+  },
+};
+
+const isEmptyString = (node) => node?.type === 'Literal' && node.value === '';
+
+/** Whether `chain` reads `<outcome>.value…` of the outcome `outcome.ok` tests. */
+const readsValueOf = (chain, outcome) =>
+  chain?.root === outcome.root &&
+  [...outcome.names.slice(0, -1), 'value'].every((name, index) => chain.names[index] === name);
+
+/** The outcome and fallback of `x.ok ? x.value… : ''` or `!x.ok ? '' : x.value…`, or null. */
+function placeholderOutcome(node) {
+  const negated = node.test.type === 'UnaryExpression' && node.test.operator === '!';
+  const test = memberChain(negated ? node.test.argument : node.test);
+  const [read, fallback] = negated
+    ? [node.alternate, node.consequent]
+    : [node.consequent, node.alternate];
+
+  return test?.names.at(-1) === 'ok' &&
+    fallback.type === 'Literal' &&
+    readsValueOf(memberChain(read), test)
+    ? { ...test, fallback }
+    : null;
+}
+
+const testUnwrapsValues = {
+  meta: {
+    type: 'problem',
+    messages: {
+      present:
+        'Unwrap `{{expression}}` with `present({{expression}})`, a Jest global that an E2E spec imports from `./fixtures`, so a missing value fails the test here instead of standing in as `{{fallback}}`.',
+      unwrap:
+        'Unwrap `{{expression}}` with `unwrap({{expression}})`, a Jest global that an E2E spec imports from `./fixtures`, so a failure fails the test here with its problem instead of standing in as `{{fallback}}`.',
+    },
+    schema: [],
+  },
+  create(context) {
+    if (!isSpecFile(context.filename)) {
+      return {};
+    }
+
+    const report = (node, messageId, expression, fallback) =>
+      context.report({
+        node,
+        messageId,
+        data: { expression, fallback: context.sourceCode.getText(fallback) },
+      });
+
+    return {
+      'LogicalExpression[operator="??"]'(node) {
+        if (isEmptyString(node.right)) {
+          report(node, 'present', context.sourceCode.getText(node.left), node.right);
+        }
+      },
+      ConditionalExpression(node) {
+        const outcome = placeholderOutcome(node);
+
+        if (outcome) {
+          report(
+            node,
+            'unwrap',
+            [outcome.root, ...outcome.names.slice(0, -1)].join('.'),
+            outcome.fallback,
+          );
+        }
+      },
+    };
+  },
+};
+
+// A declaration starts its line, so `export type` inside a string or comment that does not start a line does not count.
+const EXPORTED_TYPE = /^export\s+(?:declare\s+)?(?:interface|type)\s+([A-Za-z_$][\w$]*)/gm;
+/** Each folder and extension mode's latest scan, replaced when its modules change. */
+export const siblingScans = new Map();
+
+/** A folder's non-test module files, sorted, each with its modification time; a broken link or a folder is skipped. */
+const siblingModules = (directory) =>
+  readdirSync(directory)
+    .filter((file) => /\.tsx?$/.test(file) && !isSpecFile(file) && !file.endsWith('.d.ts'))
+    .sort()
+    .map((file) => [file, statSync(join(directory, file), { throwIfNoEntry: false })])
+    .filter(([, stats]) => stats?.isFile())
+    .map(([file, stats]) => [file, stats.mtimeMs]);
+
+/**
+ * Each type name a module in `directory` exports by declaration, mapped to its
+ * module specifier. One scan serves every test in the folder until a module
+ * in it is added, removed or changed, and then replaces the earlier scan.
+ */
+export function siblingTypes(directory, keepExtension) {
+  const modules = siblingModules(directory);
+  const key = `${directory}\0${keepExtension}`;
+  const signature = JSON.stringify(modules);
+
+  if (siblingScans.get(key)?.signature !== signature) {
+    siblingScans.set(key, {
+      signature,
+      types: new Map(
+        modules.flatMap(([file]) =>
+          [...readFileSync(join(directory, file), 'utf8').matchAll(EXPORTED_TYPE)].map((match) => [
+            match[1],
+            `./${keepExtension ? file : file.replace(/\.tsx?$/, '')}`,
+          ]),
+        ),
+      ),
+    });
+  }
+
+  return siblingScans.get(key).types;
+}
+
+const testImportsTheType = {
+  meta: {
+    type: 'problem',
+    messages: {
+      redeclared:
+        'Import `{{name}}` from `{{module}}` in place of this copy, so the test follows the real shape when it changes.',
+    },
+    schema: [],
+  },
+  create(context) {
+    if (!isSpecFile(context.filename)) {
+      return {};
+    }
+
+    const exported = siblingTypes(
+      dirname(context.filename),
+      API_SOURCE.test(repositoryPath(context)),
+    );
+
+    const check = (node) => {
+      const module = exported.get(node.id.name);
+
+      if (module) {
+        context.report({
+          node: node.id,
+          messageId: 'redeclared',
+          data: { name: node.id.name, module },
+        });
+      }
+    };
+
+    return { TSInterfaceDeclaration: check, TSTypeAliasDeclaration: check };
+  },
+};
+
+// A limit below ten is too common in prose ("3 times") to tie to one constant.
+const SMALLEST_LIMIT = 10;
+const LIMIT_WORDS = new Set(['MAX', 'MAXIMUM', 'MIN', 'MINIMUM', 'LIMIT', 'LENGTH', 'LEN']);
+
+/** `TITLE_MAX_LENGTH` or `maxTitleLength`: a name with a limit word in it. */
+const isLimitName = (name) =>
+  name
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toUpperCase()
+    .split('_')
+    .some((word) => LIMIT_WORDS.has(word));
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The limit written as a count of something: `100 characters`, `1,000 items`. */
+const countPattern = (value) =>
+  new RegExp(
+    `(?<![\\w.,/:$-])(?:${[...new Set([String(value), value.toLocaleString('en-GB')])].map(escapeRegExp).join('|')})\\s+[A-Za-z]`,
+  );
+
+/** An import or export source, or text inside a JSX attribute, holds no message. */
+const isMessageText = (context, node) =>
+  !context.sourceCode
+    .getAncestors(node)
+    .some((ancestor) => ancestor.type === 'JSXAttribute' || ancestor.source === node);
+
+const messageUsesItsLimit = {
+  meta: {
+    type: 'problem',
+    messages: {
+      limit:
+        'Interpolate `{{name}}` into this text in place of {{value}}, so the message changes with the limit.',
+    },
+    schema: [],
+  },
+  create(context) {
+    if (isSpecFile(context.filename)) {
+      return {};
+    }
+
+    const limits = [];
+    const texts = [];
+    const addText = (node, text) => {
+      if (isMessageText(context, node)) texts.push([node, text]);
+    };
+
+    return {
+      'Program > VariableDeclaration[kind="const"] > VariableDeclarator, Program > ExportNamedDeclaration > VariableDeclaration[kind="const"] > VariableDeclarator'(
+        node,
+      ) {
+        const value = node.init?.type === 'Literal' ? node.init.value : undefined;
+
+        if (
+          node.id.type === 'Identifier' &&
+          isLimitName(node.id.name) &&
+          typeof value === 'number' &&
+          value >= SMALLEST_LIMIT
+        ) {
+          limits.push({ name: node.id.name, value, pattern: countPattern(value) });
+        }
+      },
+      Literal(node) {
+        if (isStringLiteral(node)) addText(node, node.value);
+      },
+      TemplateElement(node) {
+        addText(node, node.value.cooked ?? '');
+      },
+      JSXText(node) {
+        addText(node, node.value);
+      },
+      'Program:exit'() {
+        texts.forEach(([node, text]) => {
+          limits
+            .filter(({ pattern }) => pattern.test(text))
+            .forEach(({ name, value }) => {
+              context.report({ node, messageId: 'limit', data: { name, value: String(value) } });
+            });
+        });
+      },
+    };
+  },
+};
+
+/** A module in a slice other than the slice's own `index.ts`; a nested `components/index.ts` counts. */
+const isSliceModule = (path) => {
+  const rest = sliceOf(PACKAGE_SOURCE.exec(path)?.[2] ?? '')?.rest ?? [];
+
+  return rest.length > 0 && !(rest.length === 1 && /^index\.[cm]?[jt]sx?$/.test(rest[0]));
+};
+
+const exportedName = (specifier) => specifier.local.name ?? specifier.local.value;
+
+const reexportOnlyFromIndex = {
+  meta: {
+    type: 'problem',
+    messages: {
+      reexport:
+        'Import `{{names}}` straight from `{{source}}` and remove this re-export; a slice re-exports only from its `index.ts`.',
+      reexportAll:
+        'Import each name you need straight from `{{source}}` and remove this re-export; a slice re-exports only from its `index.ts`.',
+    },
+    schema: [],
+  },
+  create(context) {
+    if (!isSliceModule(repositoryPath(context))) {
+      return {};
+    }
+
+    const imported = new Map();
+
+    return {
+      ImportDeclaration(node) {
+        node.specifiers.forEach((specifier) => {
+          imported.set(specifier.local.name, node.source.value);
+        });
+      },
+      ExportNamedDeclaration(node) {
+        if (node.declaration) {
+          return;
+        }
+
+        const passed = node.specifiers.filter(
+          (specifier) => node.source || imported.has(exportedName(specifier)),
+        );
+        if (passed.length === 0) {
+          return;
+        }
+
+        context.report({
+          node,
+          messageId: 'reexport',
+          data: {
+            names: passed.map(exportedName).join(', '),
+            source: node.source?.value ?? imported.get(exportedName(passed[0])),
+          },
+        });
+      },
+      ExportAllDeclaration(node) {
+        context.report({ node, messageId: 'reexportAll', data: { source: node.source.value } });
+      },
+    };
+  },
+};
+
+const ignoresItsError = (handler) =>
+  isFunctionNode(handler) && handler.params.every((param) => /^_/.test(param.name ?? ''));
+
+/** What a handler body returns: the arrow's expression, a lone `return`'s argument, or null for nothing. */
+function returnedExpression(body) {
+  if (body.type !== 'BlockStatement') {
+    return body;
+  }
+
+  const [only] = body.body;
+
+  if (!only) {
+    return null;
+  }
+
+  return body.body.length === 1 && only.type === 'ReturnStatement' ? only.argument : body;
+}
+
+const SWALLOWED_VALUES = {
+  Literal: (node) => node.raw ?? String(node.value),
+  Identifier: (node) => (node.name === 'undefined' ? 'undefined' : null),
+};
+
+/** The value a rejection handler turns the failure into, as text, or null when it uses the error. */
+function swallowedValue(handler) {
+  if (!ignoresItsError(handler)) {
+    return null;
+  }
+
+  const value = returnedExpression(handler.body);
+
+  return value === null ? 'undefined' : (SWALLOWED_VALUES[value.type]?.(value) ?? null);
+}
+
+/** The argument that handles a rejection: `.catch(onRejected)`, `.then(onFulfilled, onRejected)`. */
+const REJECTION_HANDLER = new Map([
+  ['catch', 0],
+  ['then', 1],
+]);
+
+const keepRejections = {
+  meta: {
+    type: 'problem',
+    messages: {
+      swallowed:
+        'Handle the failure where it shows (`onError`, a `failure` state) and let the promise reject; returning `{{value}}` hides the error from callers and tests. To ignore a failure on purpose, settle the promise with `Promise.allSettled` and read its result.',
+    },
+    schema: [],
+  },
+  create(context) {
+    if (isSpecFile(context.filename)) {
+      return {};
+    }
+
+    const resolve = (node) =>
+      node?.type === 'Identifier' ? (constInit(context, node) ?? node) : node;
+
+    return {
+      CallExpression(node) {
+        const method =
+          node.callee.type === 'MemberExpression' && !node.callee.computed
+            ? node.callee.property.name
+            : undefined;
+        const handler = node.arguments[REJECTION_HANDLER.get(method) ?? node.arguments.length];
+        const value = handler && swallowedValue(resolve(handler));
+
+        if (value) context.report({ node, messageId: 'swallowed', data: { value } });
+      },
+    };
+  },
+};
+
 export default {
   meta: { name: 'policy' },
   rules: {
@@ -1230,5 +1774,11 @@ export default {
     'slice-isolation': sliceIsolation,
     'procedure-input-schema': procedureInputSchema,
     'form-uses-effect-schema': formUsesEffectSchema,
+    'one-status-from-hooks': oneStatusFromHooks,
+    'test-unwraps-values': testUnwrapsValues,
+    'test-imports-the-type': testImportsTheType,
+    'message-uses-its-limit': messageUsesItsLimit,
+    'reexport-only-from-index': reexportOnlyFromIndex,
+    'keep-rejections': keepRejections,
   },
 };

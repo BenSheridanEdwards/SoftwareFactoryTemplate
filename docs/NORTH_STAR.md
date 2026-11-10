@@ -134,7 +134,7 @@ When an agent gets something wrong twice, write a rule that blocks the change an
 and skills guide work; lint and CI enforce quality. Keep project skills when they earn their place; most
 skills ship with the agent.
 
-The toolchain combines Biome, Oxlint, strict TypeScript over four programs, Fallow boundaries and
+The toolchain combines Biome, Oxlint, strict TypeScript over seven programs, Fallow boundaries and
 `contract/<id>` rules, structure checks, and unit and E2E tests. [Quality
 gates](../.agents/project/QUALITY_GATES.md) defines the hook sequence: pre-commit checks types, staged
 formatting, every lint, style and suppression rule, the architecture gate, changed-file Fallow complexity and

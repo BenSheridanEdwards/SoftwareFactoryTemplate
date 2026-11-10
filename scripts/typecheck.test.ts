@@ -9,13 +9,16 @@ const manifest = JSON.parse(readFileSync('package.json', 'utf8'));
 const bun = (args: string[]) =>
   spawnSync(process.execPath, ['scripts/bun.mjs', ...args], { encoding: 'utf8' });
 
-test('typecheck runs Bun over the web, node and domain programs from one script', () => {
+test('typecheck runs Bun over the web, node, domain and test programs from one script', () => {
   expect(manifest.scripts.typecheck).toBe('node scripts/typecheck.mjs');
   expect(manifest.devDependencies.bun).toBe('1.4.4');
   expect(PROGRAMS).toEqual([
     ['-b', 'tsconfig.json'],
     ['-p', 'tsconfig.node.json'],
     ['-p', 'tsconfig.domain.json'],
+    ['-p', 'tsconfig.test.json'],
+    ['-p', 'tsconfig.api.test.json'],
+    ['-p', 'tsconfig.node.test.json'],
   ]);
 });
 

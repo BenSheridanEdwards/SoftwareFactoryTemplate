@@ -1,0 +1,11 @@
+{
+  // The Node program's web contract tests, with the Jest test globals `present`
+  // and `unwrap` (tooling/types/test-globals.d.ts). tsconfig.node.json leaves
+  // them out, so its e2e specs, which run in Playwright, never see the globals.
+  "extends": "./tsconfig.node.json",
+  "include": [
+    "apps/web/src/**/*.contract.test.ts",
+    "showcase/*/web/src/**/*.contract.test.ts",
+    "tooling/types/test-globals.d.ts"
+  ]
+}
