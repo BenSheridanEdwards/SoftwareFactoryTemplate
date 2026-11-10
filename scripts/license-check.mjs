@@ -29,17 +29,32 @@ const ALLOWED = new Set([
   'MPL-2.0',
 ]);
 
-// Handle SPDX expressions: `(A OR B)` passes if either is allowed; `A AND B`
-// passes only if both are. Anything unrecognised fails closed.
+const INNERMOST_GROUP = /\(([^()]*)\)/;
+const PASSED = '<allowed>';
+const FAILED = '<denied>';
+
+// `A OR B` passes if either is allowed; `A AND B` binds tighter and needs both.
+function allowsFlat(expression) {
+  return expression.split(' OR ').some((alternative) =>
+    alternative.split(' AND ').every((term) => {
+      const licence = term.trim();
+      return licence === PASSED || (licence !== FAILED && ALLOWED.has(licence));
+    }),
+  );
+}
+
+// Decide each innermost `(...)` group first, so `(A OR B) AND C` still needs C.
+function decides(expression) {
+  if (!INNERMOST_GROUP.test(expression)) return allowsFlat(expression);
+  return decides(
+    expression.replace(INNERMOST_GROUP, (_, group) => (allowsFlat(group) ? PASSED : FAILED)),
+  );
+}
+
+// Handle SPDX expressions. Anything unrecognised fails closed, and so does a
+// licence string that spells one of the group markers itself.
 function isAllowed(expression) {
-  const expr = expression.replace(/[()]/g, '').trim();
-  if (expr.includes(' OR ')) {
-    return expr.split(' OR ').some((part) => isAllowed(part));
-  }
-  if (expr.includes(' AND ')) {
-    return expr.split(' AND ').every((part) => isAllowed(part));
-  }
-  return ALLOWED.has(expr.trim());
+  return !expression.includes('<') && decides(expression);
 }
 
 let raw;

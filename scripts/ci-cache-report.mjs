@@ -1,4 +1,4 @@
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 export function formatCacheReport({
@@ -18,7 +18,7 @@ export function formatCacheReport({
   return `pnpm store: ${status} (${CACHE_NAME})\n`;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   try {
     const line = formatCacheReport(process.env);
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, line);
