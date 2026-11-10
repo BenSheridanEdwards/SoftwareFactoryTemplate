@@ -84,7 +84,7 @@ Each technique lists its measured gain and its status in this template.
 | Technique | Evidence | Template |
 | --- | --- | --- |
 | Lint with Oxlint, and keep lint rules free of type information | Boardy: lint 2 min to 5 s. Linear: type-free rules cut lint 55 to 68% | Done ([ADR 0103](../.agents/decisions/0103-eslint-is-retired.md)) |
-| Switch typechecker whenever a faster one ships | Boardy: 70 s on `tsc`, 13 on TypeScript 7, under 5 on `bun check`. Linear: 73% faster with `tsgo` | Done: TypeScript 7 ([ADR 0105](../.agents/decisions/0105-typescript-7-is-the-only-typechecker.md)) |
+| Switch typechecker whenever a faster one ships | Boardy: 70 s on `tsc`, 13 on TypeScript 7, under 5 on `bun check`. Linear: 73% faster with `tsgo` | Done: `bun check` ([ADR 0120](../.agents/decisions/0120-bun-checks-types.md)) |
 | Transform tests with SWC instead of Babel or type-checking `ts-jest` | One team halved CI time by dropping type-checking from its Jest transform | Done: `@swc/jest` |
 | Let test files share a module registry where safe | Vitest `isolate: false`: Boardy 100 s to 35 per shard; Linear slowest shard 379 s to 195. Jest isolates every file and has no such switch | Open: measure module load per Jest file |
 | Reset shared state after every file when isolation is off, and tell agents what a test cleans up | Both teams needed this to stop tests leaking into each other | Applies with the item above |

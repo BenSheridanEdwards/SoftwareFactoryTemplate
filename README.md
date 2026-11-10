@@ -25,7 +25,7 @@ for the operating contract and full command list.
 pnpm install          # install dependencies
 pnpm e2e:install    # one-time: download the pinned Chromium that pnpm e2e and the pre-push hook need
 pnpm dev              # web at http://localhost:5173 and api at :3001
-pnpm lint:policy      # policy, React hooks, and React Compiler rules
+pnpm lint:policy      # Oxlint: policy, Tailwind, React hooks, Compiler and Doctor rules
 pnpm lint:styles      # Tailwind tokens only in CSS and index.html: no arbitrary values or colour literals
 pnpm arch:check       # architecture, structure, diagrams, and API reports
 pnpm verify           # the full local gate suite
