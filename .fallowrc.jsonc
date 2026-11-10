@@ -28,6 +28,16 @@
   // config names, such as the rule pack above.
   "audit": { "gate": "all" },
 
+  // A clone group is a warning, and the audit passes a warning, until a
+  // threshold is set; this one fails any duplication (ADR 0128).
+  "duplicates": {
+    "ignore": [
+      // Showcase results copy the reference's template files by design (ADR 0034).
+      "showcase/**"
+    ],
+    "threshold": 0.001
+  },
+
   "rules": {
     // A rule-pack finding fails the gate, like a boundary violation.
     "policy-violation": "error",

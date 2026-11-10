@@ -1,8 +1,11 @@
 # 79. Every lint rule is an error or removed
 
 - **Status:** Accepted (merged in #214), amended by
-  [0103](0103-eslint-is-retired.md) (Oxlint owns its rules) and
-  [0109](0109-declarative-policy-lint.md)
+  [0103](0103-eslint-is-retired.md) (Oxlint owns its rules),
+  [0109](0109-declarative-policy-lint.md) and
+  [0128](0128-warning-findings-and-test-console-warnings-fail.md) (the gate
+  refuses a Fallow rule at warn and a duplication threshold of 0 or above
+  0.001)
 - **Date:** 2026-10-29
 - **Replaces:** ADR 0063 (deleted), whose advisory `pnpm lint:declarative`
   command and configs were removed in #230
