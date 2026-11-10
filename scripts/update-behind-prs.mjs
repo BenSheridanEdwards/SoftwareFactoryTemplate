@@ -39,6 +39,9 @@ export const DISPATCHES = [
   { workflow: 'enforcement-approval.yml', onMain: true, withPr: true },
 ];
 
+/** The status the enforcement gate posts on every head it judges, guarded or not. */
+export const GATE_STATUS = 'enforcement-approval';
+
 /** GitHub lists at most this many files in a comparison. */
 const COMPARE_FILES_LIMIT = 300;
 
@@ -280,13 +283,18 @@ async function dispatchAll({ github, repo, number, defaultBranch }, ref) {
 }
 
 /**
- * Whether a PR-branch workflow has no run at all for `head`. A pull_request
- * push always starts them, so this finds a head an earlier update moved without
- * finishing its dispatches.
+ * Whether a PR-branch workflow has no run at all for `head`, or the head has no
+ * enforcement gate status. A pull_request push always starts both, so this finds
+ * a head an earlier update moved without finishing its dispatches.
  *
  * @param {Shell} shell @param {string} head
  */
 async function lacksChecks({ github, repo }, head) {
+  const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
+    ...repo,
+    ref: head,
+    per_page: 100,
+  });
   const counts = await Promise.all(
     DISPATCHES.filter(({ onMain }) => !onMain).map(async ({ workflow }) => {
       const { data } = await github.rest.actions.listWorkflowRuns({
@@ -298,7 +306,10 @@ async function lacksChecks({ github, repo }, head) {
       return data.total_count;
     }),
   );
-  return counts.some((count) => count === 0);
+  return (
+    counts.some((count) => count === 0) ||
+    !statuses.some((/** @type {{ context: string }} */ status) => status.context === GATE_STATUS)
+  );
 }
 
 /**
@@ -450,6 +461,8 @@ function readOnlyGitHub(repository) {
       repos: {
         compareCommitsWithBasehead: (/** @type {{ basehead: string }} */ { basehead }) =>
           api(`compare/${basehead}`),
+        listCommitStatusesForRef: (/** @type {{ ref: string }} */ { ref }) =>
+          api(`commits/${ref}/statuses?per_page=100`),
       },
       actions: {
         listWorkflowRuns: (

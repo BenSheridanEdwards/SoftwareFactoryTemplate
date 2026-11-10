@@ -1,5 +1,7 @@
+import { STATUS_CONTEXT } from './enforcement-approval.mjs';
 import {
   DISPATCHES,
+  GATE_STATUS,
   NOTICE_AUTHOR,
   NOTICE_MARKER,
   noticeBody,
@@ -125,6 +127,7 @@ function fakeGitHub({
   refuse,
   moves = true,
   headsWithoutRuns = [],
+  headsWithoutGate = [],
 }: {
   pulls: PullRequest[];
   behind: Record<number, number>;
@@ -133,6 +136,7 @@ function fakeGitHub({
   refuse?: { status: number; message: string };
   moves?: boolean;
   headsWithoutRuns?: string[];
+  headsWithoutGate?: string[];
 }) {
   const state = new Map(pulls.map((pr) => [pr.number, { ...pr }]));
   const pending = new Set<number>();
@@ -159,6 +163,9 @@ function fakeGitHub({
         },
       },
       repos: {
+        listCommitStatusesForRef: async ({ ref }: { ref: string }) => ({
+          data: headsWithoutGate.includes(ref) ? [] : [{ context: GATE_STATUS }],
+        }),
         compareCommitsWithBasehead: async ({ basehead }: { basehead: string }) => {
           const number = [...state.values()].find((pr) => basehead.startsWith(pr.head.sha))?.number;
           const aheadBy = number === undefined ? 0 : (behind[number] ?? 0);
@@ -342,6 +349,22 @@ describe('run', () => {
       DISPATCHES.map(({ workflow, onMain }) => [workflow, onMain ? 'main' : 'feat/thing']),
     );
     expect(log.info).toHaveBeenCalledWith(`#7 has no check runs at ${OLD_HEAD}: dispatch`);
+  });
+
+  it('dispatches again for a current PR whose head never got the enforcement gate status', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest()],
+      behind: { 7: 0 },
+      headsWithoutGate: [OLD_HEAD],
+    });
+    await run({ github, context: context(), core: core(), sleep });
+    expect(calls.dispatches.map(({ workflow_id }) => workflow_id)).toContain(
+      'enforcement-approval.yml',
+    );
+  });
+
+  it('looks for the status the enforcement gate posts', () => {
+    expect(GATE_STATUS).toBe(STATUS_CONTEXT);
   });
 
   it('fails the run when a dispatch fails, and the next run dispatches the checks again', async () => {

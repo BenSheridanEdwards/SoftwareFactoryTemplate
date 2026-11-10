@@ -41,8 +41,8 @@ merges cleanly, then:
   account pushes to it);
 - leaves a PR that is up to date alone, removes any earlier notice from it,
   however it got there, and dispatches its checks when its head has no run of a
-  dispatched workflow, so an update whose dispatches failed or came late is
-  finished by the next run;
+  dispatched workflow or no `enforcement-approval` status, so an update whose
+  dispatches failed or came late is finished by the next run;
 - keeps one comment on a PR that conflicts with main, saying it needs a manual
   rebase and that merging main keeps the sign-off, and rewrites that comment
   when the reason changes;
@@ -122,6 +122,13 @@ Workflows write, stored as a secret; that is a separate decision.
 Branch protection dismisses stale approvals, so in a copy of this template that
 requires approving reviews, each automatic update dismisses them; this
 repository requires none. Fork and bot PRs are skipped without a comment.
+
+The workflow runs when main moves. A draft marked ready, or a PR whose
+mergeability GitHub had not computed, waits for the next push to main or a
+dispatch with its `pr` number. The enforcement gate still compares from the
+PR's `base.sha`; if GitHub has not refreshed it when the dispatched gate runs,
+the gate may read main's own guarded changes as the PR's and ask for a new
+tick, which fails closed.
 
 Every dispatched update runs the full CI, CodeQL, Lighthouse and visual lanes,
 without the docs-only and UI-scope savings. The merge confidence label grades

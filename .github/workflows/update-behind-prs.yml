@@ -24,8 +24,9 @@ permissions: {}
 
 concurrency:
   # Queue rather than cancel: a cancelled run could leave an updated PR with no
-  # dispatched checks. GitHub keeps one pending run, the newest.
-  group: update-behind-prs
+  # dispatched checks. GitHub keeps one pending run per group, the newest, so a
+  # one-PR dispatch gets its own group and never replaces a queued full run.
+  group: update-behind-prs-${{ inputs.pr || 'all' }}
   cancel-in-progress: false
 
 jobs:
