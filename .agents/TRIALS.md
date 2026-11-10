@@ -141,3 +141,8 @@ that differs from the gated scaffold without its gates. Pass `--agent codex`
 to each command for the Codex arms, `todo-codex-01..03` and
 `todo-plain-codex-01..03`. A change to either prompt, either task or the
 stripped paths starts a new baseline: run all six trials again.
+
+A pilot of this test ran on 10 November 2026 with sub-agents in place of harness
+sessions. Its report and result patches are in
+[`docs/trials/pilot-2026-11-10/`](../docs/trials/pilot-2026-11-10/README.md). It
+is a pilot: the harness runs above remain the evidence the report command reads.

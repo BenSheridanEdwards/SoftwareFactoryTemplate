@@ -1,0 +1,1670 @@
+From ffa43cf8d44d72e74d01042e8634251134c41228 Mon Sep 17 00:00:00 2001
+From: pilot <pilot@users.noreply.github.com>
+Date: Tue, 10 Nov 2026 17:27:50 +0000
+Subject: [PATCH] feat(showcase): add todo-plain-01 trial result
+
+---
+ pnpm-lock.yaml                                |  58 ++++++++
+ showcase/todo-plain-01/api/package.json       |  19 +++
+ .../src/features/todos/application.test.ts    |  36 +++++
+ .../api/src/features/todos/application.ts     |  39 ++++++
+ .../api/src/features/todos/domain.test.ts     |  28 ++++
+ .../api/src/features/todos/domain.ts          |  17 +++
+ .../api/src/features/todos/index.ts           |   1 +
+ .../src/features/todos/integrations.test.ts   |  21 +++
+ .../api/src/features/todos/integrations.ts    |  21 +++
+ .../api/src/features/todos/procedures.test.ts |  40 ++++++
+ .../api/src/features/todos/procedures.ts      |  39 ++++++
+ showcase/todo-plain-01/api/src/router.test.ts |  10 ++
+ showcase/todo-plain-01/api/src/router.ts      |   6 +
+ showcase/todo-plain-01/api/src/server.ts      |  17 +++
+ showcase/todo-plain-01/api/src/trpc.ts        |   7 +
+ .../web/e2e/accessibility.spec.ts             |  34 +++++
+ showcase/todo-plain-01/web/e2e/fixtures.ts    |  43 ++++++
+ showcase/todo-plain-01/web/e2e/todos.spec.ts  | 129 ++++++++++++++++++
+ showcase/todo-plain-01/web/index.html         |  12 ++
+ showcase/todo-plain-01/web/package.json       |  30 ++++
+ showcase/todo-plain-01/web/src/App.tsx        |   5 +
+ .../web/src/api-client/ApiProvider.test.tsx   |  38 ++++++
+ .../web/src/api-client/ApiProvider.tsx        |  16 +++
+ .../src/api-client/TestApiProvider.test.tsx   |  36 +++++
+ .../web/src/api-client/TestApiProvider.tsx    |  22 +++
+ .../todo-plain-01/web/src/api-client/index.ts |   4 +
+ .../src/api-client/testApiHandlers.test.ts    |  24 ++++
+ .../web/src/api-client/testApiHandlers.ts     |  56 ++++++++
+ .../todo-plain-01/web/src/api-client/trpc.ts  |  26 ++++
+ .../web/src/api-client/useTestApiClients.ts   |  18 +++
+ showcase/todo-plain-01/web/src/index.css      |   2 +
+ showcase/todo-plain-01/web/src/main.tsx       |  18 +++
+ .../web/src/routes/todos/TodoForm.tsx         |  34 +++++
+ .../web/src/routes/todos/TodoItem.tsx         |  37 +++++
+ .../web/src/routes/todos/TodoList.tsx         |  22 +++
+ .../web/src/routes/todos/TodosPage.test.tsx   | 128 +++++++++++++++++
+ .../web/src/routes/todos/TodosPage.tsx        |  30 ++++
+ .../web/src/routes/todos/index.ts             |   1 +
+ .../src/routes/todos/todoFormSchema.test.ts   |  13 ++
+ .../web/src/routes/todos/todoFormSchema.ts    |   5 +
+ .../web/src/routes/todos/useTodoForm.ts       |  11 ++
+ .../web/src/routes/todos/useTodos.test.tsx    |  91 ++++++++++++
+ .../web/src/routes/todos/useTodos.ts          |  44 ++++++
+ showcase/todo-plain-01/web/vite.config.ts     |  15 ++
+ 44 files changed, 1303 insertions(+)
+ create mode 100644 showcase/todo-plain-01/api/package.json
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/application.test.ts
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/application.ts
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/domain.test.ts
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/domain.ts
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/index.ts
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/integrations.test.ts
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/integrations.ts
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/procedures.test.ts
+ create mode 100644 showcase/todo-plain-01/api/src/features/todos/procedures.ts
+ create mode 100644 showcase/todo-plain-01/api/src/router.test.ts
+ create mode 100644 showcase/todo-plain-01/api/src/router.ts
+ create mode 100644 showcase/todo-plain-01/api/src/server.ts
+ create mode 100644 showcase/todo-plain-01/api/src/trpc.ts
+ create mode 100644 showcase/todo-plain-01/web/e2e/accessibility.spec.ts
+ create mode 100644 showcase/todo-plain-01/web/e2e/fixtures.ts
+ create mode 100644 showcase/todo-plain-01/web/e2e/todos.spec.ts
+ create mode 100644 showcase/todo-plain-01/web/index.html
+ create mode 100644 showcase/todo-plain-01/web/package.json
+ create mode 100644 showcase/todo-plain-01/web/src/App.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/ApiProvider.test.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/ApiProvider.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/TestApiProvider.test.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/TestApiProvider.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/index.ts
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/testApiHandlers.test.ts
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/testApiHandlers.ts
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/trpc.ts
+ create mode 100644 showcase/todo-plain-01/web/src/api-client/useTestApiClients.ts
+ create mode 100644 showcase/todo-plain-01/web/src/index.css
+ create mode 100644 showcase/todo-plain-01/web/src/main.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/TodoForm.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/TodoItem.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/TodoList.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/TodosPage.test.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/TodosPage.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/index.ts
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/todoFormSchema.test.ts
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/todoFormSchema.ts
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/useTodoForm.ts
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/useTodos.test.tsx
+ create mode 100644 showcase/todo-plain-01/web/src/routes/todos/useTodos.ts
+ create mode 100644 showcase/todo-plain-01/web/vite.config.ts
+
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 708b462..65ea5e1 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -235,6 +235,64 @@ importers:
+         specifier: ^4.3.3
+         version: 4.3.3
+ 
++  showcase/todo-plain-01/api:
++    dependencies:
++      '@trpc/server':
++        specifier: ^11.19.0
++        version: 11.19.0(typescript@5.9.3)
++      effect:
++        specifier: ^4.0.5
++        version: 4.0.5
++
++  showcase/todo-plain-01/web:
++    dependencies:
++      '@hookform/resolvers':
++        specifier: ^5.9.1
++        version: 5.9.1(@sinclair/typebox@0.34.49)(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@4.0.5)(react-hook-form@7.90.0(@types/react@19.2.17)(react@19.2.7))(valibot@1.5.0(typescript@5.9.3))(zod@4.6.6)
++      '@repo/ui':
++        specifier: workspace:*
++        version: link:../../../packages/ui
++      '@tanstack/react-query':
++        specifier: ^5.104.3
++        version: 5.104.3(react@19.2.7)
++      '@trpc/client':
++        specifier: ^11.19.0
++        version: 11.19.0(@trpc/server@11.19.0(typescript@5.9.3))(typescript@5.9.3)
++      '@trpc/server':
++        specifier: ^11.19.0
++        version: 11.19.0(typescript@5.9.3)
++      '@trpc/tanstack-react-query':
++        specifier: ^11.19.0
++        version: 11.19.0(@tanstack/react-query@5.104.3(react@19.2.7))(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.19.0(typescript@5.9.3))(react@19.2.7)(typescript@5.9.3)
++      effect:
++        specifier: ^4.0.5
++        version: 4.0.5
++      react:
++        specifier: ^19.1.0
++        version: 19.2.7
++      react-dom:
++        specifier: ^19.1.0
++        version: 19.2.7(react@19.2.7)
++      react-hook-form:
++        specifier: ^7.90.0
++        version: 7.90.0(@types/react@19.2.17)(react@19.2.7)
++    devDependencies:
++      '@tailwindcss/vite':
++        specifier: ^4.3.3
++        version: 4.3.3(vite@6.4.4(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
++      '@todo-plain-01/api':
++        specifier: workspace:*
++        version: link:../api
++      '@vitejs/plugin-react':
++        specifier: ^4.3.4
++        version: 4.7.0(vite@6.4.4(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
++      tailwindcss:
++        specifier: ^4.3.3
++        version: 4.3.3
++      vite:
++        specifier: ^6.0.7
++        version: 6.4.4(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
++
+ packages:
+ 
+   '@adobe/css-tools@4.5.0':
+diff --git a/showcase/todo-plain-01/api/package.json b/showcase/todo-plain-01/api/package.json
+new file mode 100644
+index 0000000..f9c1228
+--- /dev/null
++++ b/showcase/todo-plain-01/api/package.json
+@@ -0,0 +1,19 @@
++{
++  "name": "@todo-plain-01/api",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "exports": {
++    ".": {
++      "types": "./src/router.ts"
++    }
++  },
++  "scripts": {
++    "dev": "node --watch src/server.ts",
++    "start": "node src/server.ts"
++  },
++  "dependencies": {
++    "@trpc/server": "^11.19.0",
++    "effect": "^4.0.5"
++  }
++}
+diff --git a/showcase/todo-plain-01/api/src/features/todos/application.test.ts b/showcase/todo-plain-01/api/src/features/todos/application.test.ts
+new file mode 100644
+index 0000000..5259b3d
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/application.test.ts
+@@ -0,0 +1,36 @@
++import { createTodo, deleteTodo, listTodos, toggleTodo } from './application.ts';
++
++it('creates a todo that is not completed and lists it after the earlier ones', () => {
++  const first = createTodo({ title: 'Buy milk' });
++  const second = createTodo({ title: 'Buy milk' });
++
++  expect(first).toEqual({ id: expect.any(String), title: 'Buy milk', completed: false });
++  expect(second.id).not.toBe(first.id);
++  expect(listTodos().slice(-2)).toEqual([first, second]);
++});
++
++it('toggles a todo completed and back, and lists each state', () => {
++  const todo = createTodo({ title: 'Walk the dog' });
++
++  expect(toggleTodo({ id: todo.id })).toEqual({ ...todo, completed: true });
++  expect(listTodos()).toContainEqual({ ...todo, completed: true });
++  expect(toggleTodo({ id: todo.id })).toEqual(todo);
++  expect(listTodos()).toContainEqual(todo);
++});
++
++it('deletes a todo, so it is no longer listed', () => {
++  const kept = createTodo({ title: 'Read a book' });
++  const { id } = createTodo({ title: 'Water the plants' });
++
++  expect(deleteTodo({ id })).toEqual({ id });
++  expect(listTodos()).toContainEqual(kept);
++  expect(listTodos()).not.toContainEqual(expect.objectContaining({ id }));
++});
++
++it('finds no todo to toggle or delete for an unknown id', () => {
++  const todos = listTodos();
++
++  expect(toggleTodo({ id: 'unknown' })).toBeUndefined();
++  expect(deleteTodo({ id: 'unknown' })).toBeUndefined();
++  expect(listTodos()).toEqual(todos);
++});
+diff --git a/showcase/todo-plain-01/api/src/features/todos/application.ts b/showcase/todo-plain-01/api/src/features/todos/application.ts
+new file mode 100644
+index 0000000..05f84ac
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/application.ts
+@@ -0,0 +1,39 @@
++import { newTodo, type Todo, toggleCompleted, withoutTodo } from './domain.ts';
++import { createInMemoryTodos, createTodoId } from './integrations.ts';
++
++export interface CreateTodoRequest {
++  readonly title: Todo['title'];
++}
++
++export interface TodoIdRequest {
++  readonly id: Todo['id'];
++}
++
++const store = createInMemoryTodos();
++
++const findTodo = (id: Todo['id']) => store.read().find((todo) => todo.id === id);
++
++export function listTodos(): readonly Todo[] {
++  return store.read();
++}
++
++export function createTodo(request: CreateTodoRequest): Todo {
++  const todo = newTodo(createTodoId(), request.title);
++  store.write([...store.read(), todo]);
++  return todo;
++}
++
++/** The toggled todo, or `undefined` when no todo has the id. */
++export function toggleTodo(request: TodoIdRequest): Todo | undefined {
++  store.write(toggleCompleted(store.read(), request.id));
++  return findTodo(request.id);
++}
++
++/** The deleted id, or `undefined` when no todo has the id. */
++export function deleteTodo(request: TodoIdRequest): TodoIdRequest | undefined {
++  if (!findTodo(request.id)) {
++    return undefined;
++  }
++  store.write(withoutTodo(store.read(), request.id));
++  return { id: request.id };
++}
+diff --git a/showcase/todo-plain-01/api/src/features/todos/domain.test.ts b/showcase/todo-plain-01/api/src/features/todos/domain.test.ts
+new file mode 100644
+index 0000000..0362922
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/domain.test.ts
+@@ -0,0 +1,28 @@
++import { newTodo, toggleCompleted, withoutTodo } from './domain.ts';
++
++const milk = newTodo('1', 'Buy milk');
++const dog = newTodo('2', 'Walk the dog');
++
++it('starts a todo not completed', () => {
++  expect(milk).toEqual({ id: '1', title: 'Buy milk', completed: false });
++});
++
++it('toggles only the todo with the id, and back again', () => {
++  const toggled = toggleCompleted([milk, dog], '2');
++
++  expect(toggled).toEqual([milk, { ...dog, completed: true }]);
++  expect(toggleCompleted(toggled, '2')).toEqual([milk, dog]);
++});
++
++it('removes only the todo with the id', () => {
++  expect(withoutTodo([milk, dog], '1')).toEqual([dog]);
++});
++
++it('leaves the input array unchanged', () => {
++  const todos = Object.freeze([milk, dog]);
++
++  toggleCompleted(todos, '1');
++  withoutTodo(todos, '1');
++
++  expect(todos).toEqual([milk, dog]);
++});
+diff --git a/showcase/todo-plain-01/api/src/features/todos/domain.ts b/showcase/todo-plain-01/api/src/features/todos/domain.ts
+new file mode 100644
+index 0000000..5dc4e53
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/domain.ts
+@@ -0,0 +1,17 @@
++export interface Todo {
++  readonly id: string;
++  readonly title: string;
++  readonly completed: boolean;
++}
++
++export function newTodo(id: Todo['id'], title: Todo['title']): Todo {
++  return { id, title, completed: false };
++}
++
++export function toggleCompleted(todos: readonly Todo[], id: Todo['id']): readonly Todo[] {
++  return todos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo));
++}
++
++export function withoutTodo(todos: readonly Todo[], id: Todo['id']): readonly Todo[] {
++  return todos.filter((todo) => todo.id !== id);
++}
+diff --git a/showcase/todo-plain-01/api/src/features/todos/index.ts b/showcase/todo-plain-01/api/src/features/todos/index.ts
+new file mode 100644
+index 0000000..4c5cf6a
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/index.ts
+@@ -0,0 +1 @@
++export { todosRouter } from './procedures.ts';
+diff --git a/showcase/todo-plain-01/api/src/features/todos/integrations.test.ts b/showcase/todo-plain-01/api/src/features/todos/integrations.test.ts
+new file mode 100644
+index 0000000..9a884bd
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/integrations.test.ts
+@@ -0,0 +1,21 @@
++import { createInMemoryTodos, createTodoId } from './integrations.ts';
++
++it('starts empty and reads back the todos last written', () => {
++  const store = createInMemoryTodos();
++  const todos = [{ id: '1', title: 'Buy milk', completed: false }];
++
++  expect(store.read()).toEqual([]);
++  store.write(todos);
++  expect(store.read()).toEqual(todos);
++});
++
++it('keeps each store separate', () => {
++  const store = createInMemoryTodos();
++  store.write([{ id: '1', title: 'Buy milk', completed: false }]);
++
++  expect(createInMemoryTodos().read()).toEqual([]);
++});
++
++it('makes a different id each time', () => {
++  expect(createTodoId()).not.toBe(createTodoId());
++});
+diff --git a/showcase/todo-plain-01/api/src/features/todos/integrations.ts b/showcase/todo-plain-01/api/src/features/todos/integrations.ts
+new file mode 100644
+index 0000000..954cd0c
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/integrations.ts
+@@ -0,0 +1,21 @@
++import { randomUUID } from 'node:crypto';
++import type { Todo } from './domain.ts';
++
++interface TodosState {
++  todos: readonly Todo[];
++}
++
++/** The todos live in memory, inside the api process, for as long as it runs. */
++export function createInMemoryTodos() {
++  const state: TodosState = { todos: [] };
++  return {
++    read: (): readonly Todo[] => state.todos,
++    write: (todos: readonly Todo[]): void => {
++      state.todos = todos;
++    },
++  };
++}
++
++export function createTodoId(): Todo['id'] {
++  return randomUUID();
++}
+diff --git a/showcase/todo-plain-01/api/src/features/todos/procedures.test.ts b/showcase/todo-plain-01/api/src/features/todos/procedures.test.ts
+new file mode 100644
+index 0000000..f9dded3
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/procedures.test.ts
+@@ -0,0 +1,40 @@
++import { TRPCError } from '@trpc/server';
++import { createCallerFactory } from '../../trpc.ts';
++import { todosRouter } from './procedures.ts';
++
++const caller = createCallerFactory(todosRouter)({});
++
++it('trims the title, creates the todo and lists it', async () => {
++  const todo = await caller.create({ title: '  Buy milk ' });
++
++  expect(todo).toEqual({ id: expect.any(String), title: 'Buy milk', completed: false });
++  await expect(caller.list()).resolves.toContainEqual(todo);
++});
++
++it.each(['', '   '])('rejects the blank title %j as a bad request', async (title) => {
++  await expect(caller.create({ title })).rejects.toMatchObject({
++    constructor: TRPCError,
++    code: 'BAD_REQUEST',
++  });
++});
++
++it('toggles a todo completed and back', async () => {
++  const todo = await caller.create({ title: 'Walk the dog' });
++
++  await expect(caller.toggle({ id: todo.id })).resolves.toEqual({ ...todo, completed: true });
++  await expect(caller.toggle({ id: todo.id })).resolves.toEqual(todo);
++});
++
++it('deletes a todo and answers with its id', async () => {
++  const { id } = await caller.create({ title: 'Water the plants' });
++
++  await expect(caller.delete({ id })).resolves.toEqual({ id });
++  await expect(caller.list()).resolves.not.toContainEqual(expect.objectContaining({ id }));
++});
++
++it('answers a toggle or a delete of an unknown id as not found', async () => {
++  const notFound = { constructor: TRPCError, code: 'NOT_FOUND' };
++
++  await expect(caller.toggle({ id: 'unknown' })).rejects.toMatchObject(notFound);
++  await expect(caller.delete({ id: 'unknown' })).rejects.toMatchObject(notFound);
++});
+diff --git a/showcase/todo-plain-01/api/src/features/todos/procedures.ts b/showcase/todo-plain-01/api/src/features/todos/procedures.ts
+new file mode 100644
+index 0000000..87a371f
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/features/todos/procedures.ts
+@@ -0,0 +1,39 @@
++import { TRPCError } from '@trpc/server';
++import { Schema } from 'effect';
++import { procedure, router } from '../../trpc.ts';
++import { createTodo, deleteTodo, listTodos, toggleTodo } from './application.ts';
++
++const todoSchema = Schema.Struct({
++  id: Schema.String,
++  title: Schema.String,
++  completed: Schema.Boolean,
++});
++const todoIdSchema = Schema.Struct({ id: Schema.String });
++const createInputSchema = Schema.Struct({ title: Schema.Trim.check(Schema.isNonEmpty()) });
++
++/** Application answers `undefined` when no todo has the id. */
++function found<Value>(value: Value | undefined): Value {
++  if (value === undefined) {
++    throw new TRPCError({ code: 'NOT_FOUND', message: 'Todo not found' });
++  }
++  return value;
++}
++
++export const todosRouter = router({
++  list: procedure
++    .input(Schema.toStandardSchemaV1(Schema.Undefined))
++    .output(Schema.toStandardSchemaV1(Schema.Array(todoSchema)))
++    .query(() => listTodos()),
++  create: procedure
++    .input(Schema.toStandardSchemaV1(createInputSchema))
++    .output(Schema.toStandardSchemaV1(todoSchema))
++    .mutation(({ input }) => createTodo(input)),
++  toggle: procedure
++    .input(Schema.toStandardSchemaV1(todoIdSchema))
++    .output(Schema.toStandardSchemaV1(todoSchema))
++    .mutation(({ input }) => found(toggleTodo(input))),
++  delete: procedure
++    .input(Schema.toStandardSchemaV1(todoIdSchema))
++    .output(Schema.toStandardSchemaV1(todoIdSchema))
++    .mutation(({ input }) => found(deleteTodo(input))),
++});
+diff --git a/showcase/todo-plain-01/api/src/router.test.ts b/showcase/todo-plain-01/api/src/router.test.ts
+new file mode 100644
+index 0000000..7fcf58f
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/router.test.ts
+@@ -0,0 +1,10 @@
++import { appRouter } from './router.ts';
++import { createCallerFactory } from './trpc.ts';
++
++it('serves the todos feature under todos', async () => {
++  const caller = createCallerFactory(appRouter)({});
++
++  const todo = await caller.todos.create({ title: 'Buy milk' });
++
++  await expect(caller.todos.list()).resolves.toContainEqual(todo);
++});
+diff --git a/showcase/todo-plain-01/api/src/router.ts b/showcase/todo-plain-01/api/src/router.ts
+new file mode 100644
+index 0000000..91bd1c1
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/router.ts
+@@ -0,0 +1,6 @@
++import { todosRouter } from './features/todos/index.ts';
++import { router } from './trpc.ts';
++
++export const appRouter = router({ todos: todosRouter });
++
++export type AppRouter = typeof appRouter;
+diff --git a/showcase/todo-plain-01/api/src/server.ts b/showcase/todo-plain-01/api/src/server.ts
+new file mode 100644
+index 0000000..b9880b0
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/server.ts
+@@ -0,0 +1,17 @@
++import { createHTTPServer } from '@trpc/server/adapters/standalone';
++import { Schema } from 'effect';
++import { appRouter } from './router.ts';
++
++const Port = Schema.NumberFromString.check(
++  Schema.isInt(),
++  Schema.isBetween({ minimum: 1, maximum: 65_535 }),
++);
++
++const port = Schema.decodeUnknownSync(Port)(process.env.PORT ?? '3001');
++
++const server = createHTTPServer({ router: appRouter, basePath: '/trpc/' });
++
++server.once('listening', () => {
++  console.log(`api listening on http://127.0.0.1:${port}/trpc`);
++});
++server.listen(port, '127.0.0.1');
+diff --git a/showcase/todo-plain-01/api/src/trpc.ts b/showcase/todo-plain-01/api/src/trpc.ts
+new file mode 100644
+index 0000000..eaf5623
+--- /dev/null
++++ b/showcase/todo-plain-01/api/src/trpc.ts
+@@ -0,0 +1,7 @@
++import { initTRPC } from '@trpc/server';
++
++const t = initTRPC.create();
++
++export const router = t.router;
++export const procedure = t.procedure;
++export const createCallerFactory = t.createCallerFactory;
+diff --git a/showcase/todo-plain-01/web/e2e/accessibility.spec.ts b/showcase/todo-plain-01/web/e2e/accessibility.spec.ts
+new file mode 100644
+index 0000000..a0b65ce
+--- /dev/null
++++ b/showcase/todo-plain-01/web/e2e/accessibility.spec.ts
+@@ -0,0 +1,34 @@
++import { randomUUID } from 'node:crypto';
++import AxeBuilder from '@axe-core/playwright';
++import { expect, type Page, test } from './fixtures';
++
++/**
++ * Real-browser accessibility scan. It runs in Chromium so axe can evaluate
++ * computed styles: colour contrast, focus visibility and real roles.
++ */
++const scan = (page: Page) =>
++  new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
++
++test.describe('Accessibility', () => {
++  test.beforeEach(async ({ page }) => {
++    await page.goto('/');
++  });
++
++  test('the validation error state has no detectable WCAG A/AA violations', async ({ page }) => {
++    await page.getByRole('button', { name: 'Add', exact: true }).click();
++    await expect(page.getByRole('alert')).toHaveText('Enter a title');
++
++    expect((await scan(page)).violations).toEqual([]);
++  });
++
++  test('a completed todo has no detectable WCAG A/AA violations', async ({ page }) => {
++    const title = `Read a book ${randomUUID().slice(0, 8)}`;
++    await page.getByRole('textbox', { name: 'Title' }).fill(title);
++    await page.getByRole('button', { name: 'Add', exact: true }).click();
++    const checkbox = page.getByRole('checkbox', { name: title, exact: true });
++    await checkbox.click();
++    await expect(checkbox).toBeChecked();
++
++    expect((await scan(page)).violations).toEqual([]);
++  });
++});
+diff --git a/showcase/todo-plain-01/web/e2e/fixtures.ts b/showcase/todo-plain-01/web/e2e/fixtures.ts
+new file mode 100644
+index 0000000..d1e40dc
+--- /dev/null
++++ b/showcase/todo-plain-01/web/e2e/fixtures.ts
+@@ -0,0 +1,43 @@
++import { test as base, type ConsoleMessage, expect } from '@playwright/test';
++
++export { expect, type Locator, type Page } from '@playwright/test';
++
++interface ConsoleFixtures {
++  expectedConsole: RegExp[];
++  expectConsole: (pattern: RegExp) => void;
++}
++
++/** Fails a test whose page logs a warning or an error the test did not expect. */
++export const test = base.extend<ConsoleFixtures>({
++  expectedConsole: [[], { option: true }],
++  expectConsole: [
++    async ({ page, expectedConsole }, use) => {
++      const messages: string[] = [];
++      const expected = [...expectedConsole];
++      const recordConsole = (message: ConsoleMessage) => {
++        if (message.type() === 'warning' || message.type() === 'error') {
++          messages.push(`console.${message.type()}: ${message.text()}`);
++        }
++      };
++      const recordError = (error: Error) => {
++        messages.push(`pageerror: ${error.message}`);
++      };
++      page.on('console', recordConsole);
++      page.on('pageerror', recordError);
++      await use((pattern) => {
++        expected.push(pattern);
++      });
++      page.off('console', recordConsole);
++      page.off('pageerror', recordError);
++      expect({
++        unexpected: messages.filter(
++          (message) => !expected.some((pattern) => message.search(pattern) !== -1),
++        ),
++        missing: expected
++          .filter((pattern) => !messages.some((message) => message.search(pattern) !== -1))
++          .map(String),
++      }).toEqual({ unexpected: [], missing: [] });
++    },
++    { auto: true },
++  ],
++});
+diff --git a/showcase/todo-plain-01/web/e2e/todos.spec.ts b/showcase/todo-plain-01/web/e2e/todos.spec.ts
+new file mode 100644
+index 0000000..7cf0ae6
+--- /dev/null
++++ b/showcase/todo-plain-01/web/e2e/todos.spec.ts
+@@ -0,0 +1,129 @@
++import { randomUUID } from 'node:crypto';
++import { expect, type Locator, type Page, test } from './fixtures';
++
++/**
++ * The todo behaviour, end to end: the page in Chromium, the Vite server's
++ * `/trpc` proxy, and the real api process. The tests share one api process,
++ * so each makes its own titles and never counts todos.
++ */
++const newTitle = (label: string) => `${label} ${randomUUID().slice(0, 8)}`;
++
++const todoCheckbox = (page: Page, title: string) =>
++  page.getByRole('list', { name: 'Todos' }).getByRole('checkbox', { name: title, exact: true });
++
++/** Submits the title and waits for the api to answer the create. */
++async function addTodo(page: Page, title: string) {
++  const created = page.waitForResponse((response) => response.url().includes('/trpc/todos.create'));
++  await page.getByRole('textbox', { name: 'Title' }).fill(title);
++  await page.getByRole('button', { name: 'Add', exact: true }).click();
++  return created;
++}
++
++/** Clicks and waits for the api to answer the mutation, so a reload never overtakes it. */
++async function clickAndSave(page: Page, target: Locator) {
++  const saved = page.waitForResponse((response) => response.request().method() === 'POST');
++  await target.click();
++  await saved;
++}
++
++test.describe('Todos', () => {
++  test.beforeEach(async ({ page }) => {
++    await page.goto('/');
++  });
++
++  test('creates a todo through the api with the trimmed title', async ({ page }) => {
++    const title = newTitle('Buy milk');
++
++    const created = await addTodo(page, `  ${title} `);
++
++    expect(created.status()).toBe(200);
++    await expect(todoCheckbox(page, title)).not.toBeChecked();
++    await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('');
++  });
++
++  test('asks for a title and sends no request when the title is blank', async ({ page }) => {
++    const creates: string[] = [];
++    page.on('request', (request) => {
++      if (request.url().includes('/trpc/todos.create')) {
++        creates.push(request.url());
++      }
++    });
++
++    await page.getByRole('textbox', { name: 'Title' }).fill('   ');
++    await page.getByRole('button', { name: 'Add', exact: true }).click();
++
++    await expect(page.getByRole('alert')).toHaveText('Enter a title');
++    await expect(page.getByRole('textbox', { name: 'Title' })).toHaveAttribute(
++      'aria-invalid',
++      'true',
++    );
++    expect(creates).toEqual([]);
++  });
++
++  test('toggles a todo completed and back, and keeps each state across a reload', async ({
++    page,
++  }) => {
++    const title = newTitle('Walk the dog');
++    await addTodo(page, title);
++
++    await clickAndSave(page, todoCheckbox(page, title));
++    await expect(todoCheckbox(page, title)).toBeChecked();
++    await page.reload();
++    await expect(todoCheckbox(page, title)).toBeChecked();
++
++    await clickAndSave(page, todoCheckbox(page, title));
++    await expect(todoCheckbox(page, title)).not.toBeChecked();
++    await page.reload();
++    await expect(todoCheckbox(page, title)).not.toBeChecked();
++  });
++
++  test('deletes a todo, keeps the others, and it stays gone after a reload', async ({ page }) => {
++    const kept = newTitle('Read a book');
++    const title = newTitle('Water the plants');
++    await addTodo(page, kept);
++    await addTodo(page, title);
++
++    await clickAndSave(page, page.getByRole('button', { name: `Delete ${title}`, exact: true }));
++
++    await expect(todoCheckbox(page, title)).toHaveCount(0);
++    await page.reload();
++    await expect(todoCheckbox(page, kept)).toBeVisible();
++    await expect(todoCheckbox(page, title)).toHaveCount(0);
++  });
++
++  test('the api answers a toggle or a delete of an unknown id as not found', async ({
++    request,
++  }) => {
++    const data = { id: randomUUID() };
++
++    const toggled = await request.post('/trpc/todos.toggle', { data });
++    const deleted = await request.post('/trpc/todos.delete', { data });
++
++    expect(toggled.status()).toBe(404);
++    expect(await toggled.json()).toMatchObject({ error: { data: { code: 'NOT_FOUND' } } });
++    expect(deleted.status()).toBe(404);
++    expect(await deleted.json()).toMatchObject({ error: { data: { code: 'NOT_FOUND' } } });
++  });
++
++  test('says so when the todos cannot load', async ({ page, expectConsole }) => {
++    expectConsole(/Failed to load resource: .*500/);
++    await page.route('**/trpc/**', (route) =>
++      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
++    );
++
++    await page.reload();
++
++    await expect(page.getByRole('alert')).toHaveText('Could not load the todos');
++  });
++
++  test('says so when a change cannot be saved', async ({ page, expectConsole }) => {
++    expectConsole(/Failed to load resource: .*500/);
++    await page.route('**/trpc/todos.create**', (route) =>
++      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
++    );
++
++    await addTodo(page, newTitle('Buy milk'));
++
++    await expect(page.getByRole('alert')).toHaveText('Could not save the change');
++  });
++});
+diff --git a/showcase/todo-plain-01/web/index.html b/showcase/todo-plain-01/web/index.html
+new file mode 100644
+index 0000000..08c2ed1
+--- /dev/null
++++ b/showcase/todo-plain-01/web/index.html
+@@ -0,0 +1,12 @@
++<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>Todos</title>
++  </head>
++  <body>
++    <div id="root"></div>
++    <script type="module" src="/src/main.tsx"></script>
++  </body>
++</html>
+diff --git a/showcase/todo-plain-01/web/package.json b/showcase/todo-plain-01/web/package.json
+new file mode 100644
+index 0000000..2f2f275
+--- /dev/null
++++ b/showcase/todo-plain-01/web/package.json
+@@ -0,0 +1,30 @@
++{
++  "name": "@todo-plain-01/web",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "dev": "vite",
++    "build": "vite build",
++    "preview": "vite preview --port 3000"
++  },
++  "dependencies": {
++    "@hookform/resolvers": "^5.9.1",
++    "@repo/ui": "workspace:*",
++    "@tanstack/react-query": "^5.104.3",
++    "@trpc/client": "^11.19.0",
++    "@trpc/server": "^11.19.0",
++    "@trpc/tanstack-react-query": "^11.19.0",
++    "effect": "^4.0.5",
++    "react": "^19.1.0",
++    "react-dom": "^19.1.0",
++    "react-hook-form": "^7.90.0"
++  },
++  "devDependencies": {
++    "@tailwindcss/vite": "^4.3.3",
++    "@todo-plain-01/api": "workspace:*",
++    "@vitejs/plugin-react": "^4.3.4",
++    "tailwindcss": "^4.3.3",
++    "vite": "^6.0.7"
++  }
++}
+diff --git a/showcase/todo-plain-01/web/src/App.tsx b/showcase/todo-plain-01/web/src/App.tsx
+new file mode 100644
+index 0000000..c1f2d9b
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/App.tsx
+@@ -0,0 +1,5 @@
++import { TodosPage } from './routes/todos';
++
++export function App() {
++  return <TodosPage />;
++}
+diff --git a/showcase/todo-plain-01/web/src/api-client/ApiProvider.test.tsx b/showcase/todo-plain-01/web/src/api-client/ApiProvider.test.tsx
+new file mode 100644
+index 0000000..31f9d71
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/ApiProvider.test.tsx
+@@ -0,0 +1,38 @@
++import { useQuery } from '@tanstack/react-query';
++import { render, screen } from '@testing-library/react';
++import { ApiProvider } from './ApiProvider';
++import { useTrpc } from './trpc';
++
++function TodosProbe() {
++  const trpc = useTrpc();
++  const query = useQuery(trpc.todos.list.queryOptions());
++  return <p>{query.data?.map((todo) => todo.title).join(', ') ?? 'waiting'}</p>;
++}
++
++const realFetch = globalThis.fetch;
++afterEach(() => {
++  globalThis.fetch = realFetch;
++});
++
++it('sends procedure calls to /trpc on the same origin and reads the answer', async () => {
++  // jsdom omits Response; use Node's native implementation from its own realm.
++  const NodeResponse: typeof Response = jest.requireActual('node:vm').runInThisContext('Response');
++  const todos = [{ id: '1', title: 'Buy milk', completed: false }];
++  const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>(
++    async () =>
++      new NodeResponse(JSON.stringify([{ result: { data: todos } }]), {
++        headers: { 'content-type': 'application/json' },
++      }),
++  );
++  globalThis.fetch = fetchMock;
++
++  render(
++    <ApiProvider>
++      <TodosProbe />
++    </ApiProvider>,
++  );
++
++  expect(await screen.findByText('Buy milk')).toBeInTheDocument();
++  const [url] = present(fetchMock.mock.calls[0]);
++  expect(String(url)).toMatch(/^\/trpc\/todos\.list\?batch=1&input=/);
++});
+diff --git a/showcase/todo-plain-01/web/src/api-client/ApiProvider.tsx b/showcase/todo-plain-01/web/src/api-client/ApiProvider.tsx
+new file mode 100644
+index 0000000..f96fcf7
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/ApiProvider.tsx
+@@ -0,0 +1,16 @@
++import { QueryClientProvider } from '@tanstack/react-query';
++import type { ReactNode } from 'react';
++import { createQueryClient, createTrpcClient, TrpcProvider } from './trpc';
++
++const queryClient = createQueryClient();
++const trpcClient = createTrpcClient();
++
++export function ApiProvider({ children }: { readonly children: ReactNode }) {
++  return (
++    <QueryClientProvider client={queryClient}>
++      <TrpcProvider trpcClient={trpcClient} queryClient={queryClient}>
++        {children}
++      </TrpcProvider>
++    </QueryClientProvider>
++  );
++}
+diff --git a/showcase/todo-plain-01/web/src/api-client/TestApiProvider.test.tsx b/showcase/todo-plain-01/web/src/api-client/TestApiProvider.test.tsx
+new file mode 100644
+index 0000000..1c3a29f
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/TestApiProvider.test.tsx
+@@ -0,0 +1,36 @@
++import { useQuery } from '@tanstack/react-query';
++import { render, screen } from '@testing-library/react';
++import { TestApiProvider } from './TestApiProvider';
++import { useTrpc } from './trpc';
++
++function TodosProbe() {
++  const trpc = useTrpc();
++  const query = useQuery(trpc.todos.list.queryOptions());
++  return (
++    <p>{query.error?.message ?? query.data?.map((todo) => todo.title).join(', ') ?? 'waiting'}</p>
++  );
++}
++
++it('answers a procedure from its handler', async () => {
++  const todos = [{ id: '1', title: 'Buy milk', completed: false }];
++
++  render(
++    <TestApiProvider handlers={{ 'todos.list': () => todos }}>
++      <TodosProbe />
++    </TestApiProvider>,
++  );
++
++  expect(await screen.findByText('Buy milk')).toBeInTheDocument();
++});
++
++it('fails a procedure that the test gave no handler, naming it', async () => {
++  render(
++    <TestApiProvider handlers={{}}>
++      <TodosProbe />
++    </TestApiProvider>,
++  );
++
++  expect(
++    await screen.findByText('TestApiProvider has no handler for todos.list'),
++  ).toBeInTheDocument();
++});
+diff --git a/showcase/todo-plain-01/web/src/api-client/TestApiProvider.tsx b/showcase/todo-plain-01/web/src/api-client/TestApiProvider.tsx
+new file mode 100644
+index 0000000..d536163
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/TestApiProvider.tsx
+@@ -0,0 +1,22 @@
++import { QueryClientProvider } from '@tanstack/react-query';
++import type { ReactNode } from 'react';
++import type { TestApiHandlers } from './testApiHandlers';
++import { TrpcProvider } from './trpc';
++import { useTestApiClients } from './useTestApiClients';
++
++export interface TestApiProviderProps {
++  readonly handlers: TestApiHandlers;
++  readonly children: ReactNode;
++}
++
++/** The app's providers over a typed in-memory api, for route tests. */
++export function TestApiProvider({ handlers, children }: TestApiProviderProps) {
++  const { queryClient, trpcClient } = useTestApiClients(handlers);
++  return (
++    <QueryClientProvider client={queryClient}>
++      <TrpcProvider trpcClient={trpcClient} queryClient={queryClient}>
++        {children}
++      </TrpcProvider>
++    </QueryClientProvider>
++  );
++}
+diff --git a/showcase/todo-plain-01/web/src/api-client/index.ts b/showcase/todo-plain-01/web/src/api-client/index.ts
+new file mode 100644
+index 0000000..695935d
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/index.ts
+@@ -0,0 +1,4 @@
++export { ApiProvider } from './ApiProvider';
++export { TestApiProvider } from './TestApiProvider';
++export type { TestApiHandlers } from './testApiHandlers';
++export { type RouterInputs, type RouterOutputs, useTrpc } from './trpc';
+diff --git a/showcase/todo-plain-01/web/src/api-client/testApiHandlers.test.ts b/showcase/todo-plain-01/web/src/api-client/testApiHandlers.test.ts
+new file mode 100644
+index 0000000..984f603
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/testApiHandlers.test.ts
+@@ -0,0 +1,24 @@
++import { createTRPCUntypedClient } from '@trpc/client';
++import { handlerLink } from './testApiHandlers';
++
++const todo = { id: '7', title: 'Read the review', completed: false };
++
++it('passes undefined to a procedure with no input', async () => {
++  const list = jest.fn(() => [todo]);
++  const client = createTRPCUntypedClient({ links: [handlerLink({ 'todos.list': list })] });
++
++  await expect(client.query('todos.list')).resolves.toEqual([todo]);
++  expect(list).toHaveBeenCalledWith(undefined);
++});
++
++it('passes a procedure input through unchanged', async () => {
++  const input = { id: todo.id };
++  const toggle = jest.fn((_request: typeof input) => ({ ...todo, completed: true }));
++  const client = createTRPCUntypedClient({ links: [handlerLink({ 'todos.toggle': toggle })] });
++
++  await expect(client.mutation('todos.toggle', input)).resolves.toEqual({
++    ...todo,
++    completed: true,
++  });
++  expect(toggle.mock.calls[0]?.[0]).toBe(input);
++});
+diff --git a/showcase/todo-plain-01/web/src/api-client/testApiHandlers.ts b/showcase/todo-plain-01/web/src/api-client/testApiHandlers.ts
+new file mode 100644
+index 0000000..b984d57
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/testApiHandlers.ts
+@@ -0,0 +1,56 @@
++import type { AppRouter } from '@todo-plain-01/api';
++import { type Operation, TRPCClientError, type TRPCLink } from '@trpc/client';
++import { observable } from '@trpc/server/observable';
++import type { RouterInputs, RouterOutputs } from './trpc';
++
++type ProcedurePath = {
++  [Router in keyof RouterInputs & string]: `${Router}.${keyof RouterInputs[Router] & string}`;
++}[keyof RouterInputs & string];
++
++type Lookup<Tree, Path> = Path extends `${infer Router}.${infer Procedure}`
++  ? Router extends keyof Tree
++    ? Procedure extends keyof Tree[Router]
++      ? Tree[Router][Procedure]
++      : never
++    : never
++  : never;
++
++/** A fake answer per procedure path, such as `'todos.list'`, typed by the router. */
++export type TestApiHandlers = {
++  readonly [Path in ProcedurePath]?: (
++    input: Lookup<RouterInputs, Path>,
++  ) => Lookup<RouterOutputs, Path> | Promise<Lookup<RouterOutputs, Path>>;
++};
++
++// The typed tRPC client pairs each path with its input before the link erases it.
++// Method variance lets this dispatch interface accept each procedure's handler.
++interface TestApiHandler {
++  handle(
++    input: Operation['input'],
++  ): Lookup<RouterOutputs, ProcedurePath> | Promise<Lookup<RouterOutputs, ProcedurePath>>;
++}
++
++/** A tRPC link that answers each call from `handlers` instead of the network. */
++export function handlerLink(handlers: TestApiHandlers): TRPCLink<AppRouter> {
++  return () =>
++    ({ op }) =>
++      observable((observer) => {
++        const handler: TestApiHandler['handle'] | undefined = Object.entries(handlers).find(
++          ([path]) => path === op.path,
++        )?.[1];
++        Promise.resolve(op.input)
++          .then((input) => {
++            if (!handler) {
++              throw new Error(`TestApiProvider has no handler for ${op.path}`);
++            }
++            return handler(input);
++          })
++          .then(
++            (data) => {
++              observer.next({ result: { type: 'data', data } });
++              observer.complete();
++            },
++            (cause: Error) => observer.error(TRPCClientError.from(cause)),
++          );
++      });
++}
+diff --git a/showcase/todo-plain-01/web/src/api-client/trpc.ts b/showcase/todo-plain-01/web/src/api-client/trpc.ts
+new file mode 100644
+index 0000000..76979dc
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/trpc.ts
+@@ -0,0 +1,26 @@
++import { QueryClient } from '@tanstack/react-query';
++import type { AppRouter } from '@todo-plain-01/api';
++import { createTRPCClient, httpBatchLink, type TRPCClient } from '@trpc/client';
++import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
++import { createTRPCContext } from '@trpc/tanstack-react-query';
++
++export type RouterInputs = inferRouterInputs<AppRouter>;
++export type RouterOutputs = inferRouterOutputs<AppRouter>;
++
++export function createTrpcClient(url = '/trpc'): TRPCClient<AppRouter> {
++  return createTRPCClient<AppRouter>({ links: [httpBatchLink({ url })] });
++}
++
++// The annotations name the exported types through AppRouter, so declaration
++// emit (pnpm api:report) never reaches into the api's source files. Biome
++// useNamingConvention runs with strictCase, so the bindings drop the all-caps
++// acronym.
++type TrpcContext = ReturnType<typeof createTRPCContext<AppRouter>>;
++const trpcContext: TrpcContext = createTRPCContext<AppRouter>();
++export const TrpcProvider: TrpcContext['TRPCProvider'] = trpcContext.TRPCProvider;
++export const useTrpc: TrpcContext['useTRPC'] = trpcContext.useTRPC;
++
++/** A failed request shows its error at once; the user retries by submitting again. */
++export function createQueryClient() {
++  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
++}
+diff --git a/showcase/todo-plain-01/web/src/api-client/useTestApiClients.ts b/showcase/todo-plain-01/web/src/api-client/useTestApiClients.ts
+new file mode 100644
+index 0000000..110d0ab
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/api-client/useTestApiClients.ts
+@@ -0,0 +1,18 @@
++import type { QueryClient } from '@tanstack/react-query';
++import type { AppRouter } from '@todo-plain-01/api';
++import { createTRPCClient, type TRPCClient } from '@trpc/client';
++import { useState } from 'react';
++import { handlerLink, type TestApiHandlers } from './testApiHandlers';
++import { createQueryClient } from './trpc';
++
++/** One query client and one handler-backed tRPC client for the life of a test render. */
++export function useTestApiClients(handlers: TestApiHandlers): {
++  readonly queryClient: QueryClient;
++  readonly trpcClient: TRPCClient<AppRouter>;
++} {
++  const [clients] = useState(() => ({
++    queryClient: createQueryClient(),
++    trpcClient: createTRPCClient<AppRouter>({ links: [handlerLink(handlers)] }),
++  }));
++  return clients;
++}
+diff --git a/showcase/todo-plain-01/web/src/index.css b/showcase/todo-plain-01/web/src/index.css
+new file mode 100644
+index 0000000..5172428
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/index.css
+@@ -0,0 +1,2 @@
++@import "@repo/ui/styles.css";
++@source "./";
+diff --git a/showcase/todo-plain-01/web/src/main.tsx b/showcase/todo-plain-01/web/src/main.tsx
+new file mode 100644
+index 0000000..e46c980
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/main.tsx
+@@ -0,0 +1,18 @@
++import { StrictMode } from 'react';
++import { createRoot } from 'react-dom/client';
++import { App } from './App';
++import { ApiProvider } from './api-client';
++import './index.css';
++
++const rootElement = document.getElementById('root');
++if (!rootElement) {
++  throw new Error('Root element #root not found');
++}
++
++createRoot(rootElement).render(
++  <StrictMode>
++    <ApiProvider>
++      <App />
++    </ApiProvider>
++  </StrictMode>,
++);
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/TodoForm.tsx b/showcase/todo-plain-01/web/src/routes/todos/TodoForm.tsx
+new file mode 100644
+index 0000000..5745360
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/TodoForm.tsx
+@@ -0,0 +1,34 @@
++import { Button, TextField } from '@repo/ui';
++import { useTodoForm } from './useTodoForm';
++import type { CreateTodo } from './useTodos';
++
++export interface TodoFormProps {
++  readonly onCreate: (input: CreateTodo) => void;
++  readonly pending: boolean;
++}
++
++export function TodoForm({ onCreate, pending }: TodoFormProps) {
++  const { register, handleSubmit, formState, reset } = useTodoForm();
++  const handleCreate = handleSubmit((input) => {
++    onCreate(input);
++    reset();
++  });
++
++  return (
++    <form className="flex flex-col gap-3" onSubmit={handleCreate} noValidate>
++      <TextField
++        label="Title"
++        autoComplete="off"
++        error={formState.errors.title?.message}
++        {...register('title')}
++      />
++      <Button
++        type="submit"
++        className="disabled:cursor-not-allowed disabled:opacity-50"
++        disabled={pending}
++      >
++        Add
++      </Button>
++    </form>
++  );
++}
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/TodoItem.tsx b/showcase/todo-plain-01/web/src/routes/todos/TodoItem.tsx
+new file mode 100644
+index 0000000..8a895d6
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/TodoItem.tsx
+@@ -0,0 +1,37 @@
++import { Button, cn } from '@repo/ui';
++import type { Todo } from './useTodos';
++
++export interface TodoItemProps {
++  readonly todo: Todo;
++  readonly onToggle: (id: Todo['id']) => void;
++  readonly onDelete: (id: Todo['id']) => void;
++}
++
++export function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
++  function handleToggle() {
++    onToggle(todo.id);
++  }
++
++  function handleDelete() {
++    onDelete(todo.id);
++  }
++
++  return (
++    <li className="flex items-center justify-between gap-3">
++      <label className="flex min-w-0 items-center gap-3">
++        <input
++          type="checkbox"
++          className="size-4 shrink-0 cursor-pointer accent-focus focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
++          checked={todo.completed}
++          onChange={handleToggle}
++        />
++        <span className={cn('wrap-anywhere', todo.completed && 'text-muted line-through')}>
++          {todo.title}
++        </span>
++      </label>
++      <Button aria-label={`Delete ${todo.title}`} onClick={handleDelete}>
++        Delete
++      </Button>
++    </li>
++  );
++}
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/TodoList.tsx b/showcase/todo-plain-01/web/src/routes/todos/TodoList.tsx
+new file mode 100644
+index 0000000..9f32a67
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/TodoList.tsx
+@@ -0,0 +1,22 @@
++import { TodoItem } from './TodoItem';
++import type { Todo } from './useTodos';
++
++export interface TodoListProps {
++  readonly todos: readonly Todo[];
++  readonly onToggle: (id: Todo['id']) => void;
++  readonly onDelete: (id: Todo['id']) => void;
++}
++
++export function TodoList({ todos, onToggle, onDelete }: TodoListProps) {
++  if (todos.length === 0) {
++    return <p className="text-muted">No todos yet</p>;
++  }
++
++  return (
++    <ul className="flex flex-col gap-3" aria-label="Todos">
++      {todos.map((todo) => (
++        <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} />
++      ))}
++    </ul>
++  );
++}
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/TodosPage.test.tsx b/showcase/todo-plain-01/web/src/routes/todos/TodosPage.test.tsx
+new file mode 100644
+index 0000000..6a6ee9e
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/TodosPage.test.tsx
+@@ -0,0 +1,128 @@
++import { render, screen, waitFor, within } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import { axe } from 'jest-axe';
++import { type TestApiHandlers, TestApiProvider } from '../../api-client';
++import { TodosPage } from './TodosPage';
++import type { CreateTodo, Todo } from './useTodos';
++
++const milk: Todo = { id: '1', title: 'Buy milk', completed: false };
++const dog: Todo = { id: '2', title: 'Walk the dog', completed: false };
++
++/** Answers the first list request with `first` and every later one with `refreshed`. */
++const listing = (first: readonly Todo[], refreshed: readonly Todo[]) =>
++  jest.fn<readonly Todo[], []>().mockReturnValueOnce(first).mockReturnValue(refreshed);
++
++function renderPage(handlers: TestApiHandlers) {
++  const view = render(
++    <TestApiProvider handlers={handlers}>
++      <TodosPage />
++    </TestApiProvider>,
++  );
++  return { ...view, user: userEvent.setup() };
++}
++
++async function submitTitle(user: ReturnType<typeof userEvent.setup>, title: string) {
++  if (title) {
++    await user.type(screen.getByRole('textbox', { name: 'Title' }), title);
++  }
++  await user.click(screen.getByRole('button', { name: 'Add' }));
++}
++
++it('keeps loading until the api answers, then says there are no todos yet', async () => {
++  renderPage({ 'todos.list': () => [] });
++
++  expect(screen.getByRole('heading', { level: 1, name: 'Todos' })).toBeInTheDocument();
++  expect(screen.getByRole('status')).toHaveTextContent('Loading…');
++  expect(await screen.findByText('No todos yet')).toBeInTheDocument();
++  expect(screen.queryByRole('status')).not.toBeInTheDocument();
++});
++
++it('creates a todo with the trimmed title, lists it unchecked and clears the field', async () => {
++  const create = jest.fn((_input: CreateTodo) => milk);
++  const { user } = renderPage({ 'todos.list': listing([], [milk]), 'todos.create': create });
++  await screen.findByText('No todos yet');
++
++  await submitTitle(user, '  Buy milk ');
++
++  const list = await screen.findByRole('list', { name: 'Todos' });
++  expect(within(list).getByRole('checkbox', { name: 'Buy milk' })).not.toBeChecked();
++  expect(create).toHaveBeenCalledWith({ title: 'Buy milk' });
++  expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('');
++});
++
++it.each(['', '   '])('asks for a title and sends nothing when the title is %j', async (title) => {
++  const create = jest.fn(() => milk);
++  const { user } = renderPage({ 'todos.list': () => [], 'todos.create': create });
++
++  await submitTitle(user, title);
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Enter a title');
++  expect(screen.getByRole('textbox', { name: 'Title' })).toBeInvalid();
++  expect(create).not.toHaveBeenCalled();
++});
++
++it('disables Add while a create is pending', async () => {
++  const { user } = renderPage({
++    'todos.list': () => [],
++    'todos.create': () => new Promise<Todo>(() => undefined),
++  });
++
++  await submitTitle(user, 'Buy milk');
++
++  await waitFor(() => expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled());
++});
++
++it('toggles a todo through the api and shows the saved state', async () => {
++  const completed = { ...milk, completed: true };
++  const toggle = jest.fn(() => completed);
++  const { user } = renderPage({
++    'todos.list': listing([milk], [completed]),
++    'todos.toggle': toggle,
++  });
++
++  await user.click(await screen.findByRole('checkbox', { name: 'Buy milk', checked: false }));
++
++  expect(await screen.findByRole('checkbox', { name: 'Buy milk', checked: true })).toBeVisible();
++  expect(toggle).toHaveBeenCalledWith({ id: milk.id });
++});
++
++it('deletes a todo through the api and keeps the others', async () => {
++  const remove = jest.fn(() => ({ id: dog.id }));
++  const { user } = renderPage({
++    'todos.list': listing([milk, dog], [milk]),
++    'todos.delete': remove,
++  });
++
++  await user.click(await screen.findByRole('button', { name: 'Delete Walk the dog' }));
++
++  await waitFor(() =>
++    expect(screen.queryByRole('checkbox', { name: 'Walk the dog' })).not.toBeInTheDocument(),
++  );
++  expect(screen.getByRole('checkbox', { name: 'Buy milk' })).toBeVisible();
++  expect(remove).toHaveBeenCalledWith({ id: dog.id });
++});
++
++it('says so when the todos cannot load', async () => {
++  renderPage({ 'todos.list': () => Promise.reject(new Error('api down')) });
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Could not load the todos');
++});
++
++it('says so when a change cannot be saved, and keeps the todos', async () => {
++  const { user } = renderPage({
++    'todos.list': () => [milk],
++    'todos.toggle': () => Promise.reject(new Error('api down')),
++  });
++
++  await user.click(await screen.findByRole('checkbox', { name: 'Buy milk' }));
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Could not save the change');
++  expect(screen.getByRole('checkbox', { name: 'Buy milk' })).not.toBeChecked();
++});
++
++it('has no axe-detectable violations with todos listed', async () => {
++  const { container } = renderPage({ 'todos.list': () => [milk, { ...dog, completed: true }] });
++  await screen.findByRole('list', { name: 'Todos' });
++
++  expect(await axe(container)).toHaveNoViolations();
++});
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/TodosPage.tsx b/showcase/todo-plain-01/web/src/routes/todos/TodosPage.tsx
+new file mode 100644
+index 0000000..b29c002
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/TodosPage.tsx
+@@ -0,0 +1,30 @@
++import { TodoForm } from './TodoForm';
++import { TodoList } from './TodoList';
++import { useTodos } from './useTodos';
++
++export function TodosPage() {
++  const { todos, createPending, saveFailed, createTodo, toggleTodo, deleteTodo } = useTodos();
++
++  return (
++    <main className="mx-auto max-w-160 px-4 py-6 sm:py-12">
++      <h1 className="mb-8 text-3xl font-bold tracking-tight">Todos</h1>
++      <div className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-6">
++        <TodoForm onCreate={createTodo} pending={createPending} />
++        {saveFailed ? (
++          <p role="alert" className="text-danger">
++            Could not save the change
++          </p>
++        ) : null}
++        {todos.status === 'loading' ? <output className="block text-muted">Loading…</output> : null}
++        {todos.status === 'failed' ? (
++          <p role="alert" className="text-danger">
++            Could not load the todos
++          </p>
++        ) : null}
++        {todos.status === 'loaded' ? (
++          <TodoList todos={todos.todos} onToggle={toggleTodo} onDelete={deleteTodo} />
++        ) : null}
++      </div>
++    </main>
++  );
++}
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/index.ts b/showcase/todo-plain-01/web/src/routes/todos/index.ts
+new file mode 100644
+index 0000000..2074783
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/index.ts
+@@ -0,0 +1 @@
++export { TodosPage } from './TodosPage';
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/todoFormSchema.test.ts b/showcase/todo-plain-01/web/src/routes/todos/todoFormSchema.test.ts
+new file mode 100644
+index 0000000..279ac80
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/todoFormSchema.test.ts
+@@ -0,0 +1,13 @@
++import { Schema } from 'effect';
++import { todoFormSchema } from './todoFormSchema';
++
++const validate = (title: string) =>
++  Schema.toStandardSchemaV1(todoFormSchema)['~standard'].validate({ title });
++
++it('trims the title', () => {
++  expect(validate('  Buy milk ')).toEqual({ value: { title: 'Buy milk' } });
++});
++
++it.each(['', '   '])('asks for a title when it is %j', (title) => {
++  expect(validate(title)).toEqual({ issues: [{ path: ['title'], message: 'Enter a title' }] });
++});
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/todoFormSchema.ts b/showcase/todo-plain-01/web/src/routes/todos/todoFormSchema.ts
+new file mode 100644
+index 0000000..da52ab0
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/todoFormSchema.ts
+@@ -0,0 +1,5 @@
++import { Schema } from 'effect';
++
++export const todoFormSchema = Schema.Struct({
++  title: Schema.Trim.check(Schema.isNonEmpty({ message: 'Enter a title' })),
++});
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/useTodoForm.ts b/showcase/todo-plain-01/web/src/routes/todos/useTodoForm.ts
+new file mode 100644
+index 0000000..7581fcd
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/useTodoForm.ts
+@@ -0,0 +1,11 @@
++import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
++import { Schema } from 'effect';
++import { useForm } from 'react-hook-form';
++import { todoFormSchema } from './todoFormSchema';
++
++export function useTodoForm() {
++  return useForm({
++    resolver: standardSchemaResolver(Schema.toStandardSchemaV1(todoFormSchema)),
++    defaultValues: { title: '' },
++  });
++}
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/useTodos.test.tsx b/showcase/todo-plain-01/web/src/routes/todos/useTodos.test.tsx
+new file mode 100644
+index 0000000..8a00f50
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/useTodos.test.tsx
+@@ -0,0 +1,91 @@
++import { act, renderHook, waitFor } from '@testing-library/react';
++import type { ReactNode } from 'react';
++import { type TestApiHandlers, TestApiProvider } from '../../api-client';
++import { type Todo, useTodos } from './useTodos';
++
++const milk: Todo = { id: '1', title: 'Buy milk', completed: false };
++
++function renderTodos(handlers: TestApiHandlers) {
++  const wrapper = ({ children }: { children: ReactNode }) => (
++    <TestApiProvider handlers={handlers}>{children}</TestApiProvider>
++  );
++  return renderHook(() => useTodos(), { wrapper });
++}
++
++it('loads, then holds the todos', async () => {
++  const { result } = renderTodos({ 'todos.list': () => [milk] });
++
++  expect(result.current.todos).toEqual({ status: 'loading' });
++  await waitFor(() => expect(result.current.todos).toEqual({ status: 'loaded', todos: [milk] }));
++});
++
++it('reports a failed load', async () => {
++  const { result } = renderTodos({ 'todos.list': () => Promise.reject(new Error('api down')) });
++
++  await waitFor(() => expect(result.current.todos).toEqual({ status: 'failed' }));
++});
++
++it('stays pending from a create until the refreshed todos arrive', async () => {
++  const pending = { answer: (_todo: Todo): void => undefined };
++  const list = jest.fn<readonly Todo[], []>().mockReturnValueOnce([]).mockReturnValue([milk]);
++  const { result } = renderTodos({
++    'todos.list': list,
++    'todos.create': () =>
++      new Promise((resolve) => {
++        pending.answer = resolve;
++      }),
++  });
++  await waitFor(() => expect(result.current.todos).toEqual({ status: 'loaded', todos: [] }));
++
++  act(() => result.current.createTodo({ title: 'Buy milk' }));
++  await waitFor(() => expect(result.current.createPending).toBe(true));
++  expect(list).toHaveBeenCalledTimes(1);
++
++  await act(async () => pending.answer(milk));
++  await waitFor(() => expect(result.current.createPending).toBe(false));
++  expect(result.current.todos).toEqual({ status: 'loaded', todos: [milk] });
++});
++
++it('refreshes the todos after a toggle and after a delete', async () => {
++  const completed = { ...milk, completed: true };
++  const list = jest
++    .fn<readonly Todo[], []>()
++    .mockReturnValueOnce([milk])
++    .mockReturnValueOnce([completed])
++    .mockReturnValue([]);
++  const toggle = jest.fn(() => completed);
++  const remove = jest.fn(() => ({ id: milk.id }));
++  const { result } = renderTodos({
++    'todos.list': list,
++    'todos.toggle': toggle,
++    'todos.delete': remove,
++  });
++  await waitFor(() => expect(result.current.todos).toEqual({ status: 'loaded', todos: [milk] }));
++
++  act(() => result.current.toggleTodo(milk.id));
++  await waitFor(() =>
++    expect(result.current.todos).toEqual({ status: 'loaded', todos: [completed] }),
++  );
++  expect(toggle).toHaveBeenCalledWith({ id: milk.id });
++
++  act(() => result.current.deleteTodo(milk.id));
++  await waitFor(() => expect(result.current.todos).toEqual({ status: 'loaded', todos: [] }));
++  expect(remove).toHaveBeenCalledWith({ id: milk.id });
++});
++
++it('reports a change that could not be saved until the next change', async () => {
++  const toggle = jest
++    .fn<Promise<Todo>, []>()
++    .mockRejectedValueOnce(new Error('api down'))
++    .mockResolvedValue({ ...milk, completed: true });
++  const { result } = renderTodos({ 'todos.list': () => [milk], 'todos.toggle': toggle });
++  await waitFor(() => expect(result.current.todos.status).toBe('loaded'));
++  expect(result.current.saveFailed).toBe(false);
++
++  act(() => result.current.toggleTodo(milk.id));
++  await waitFor(() => expect(result.current.saveFailed).toBe(true));
++
++  act(() => result.current.toggleTodo(milk.id));
++  await waitFor(() => expect(result.current.saveFailed).toBe(false));
++  await waitFor(() => expect(toggle).toHaveBeenCalledTimes(2));
++});
+diff --git a/showcase/todo-plain-01/web/src/routes/todos/useTodos.ts b/showcase/todo-plain-01/web/src/routes/todos/useTodos.ts
+new file mode 100644
+index 0000000..82b50f6
+--- /dev/null
++++ b/showcase/todo-plain-01/web/src/routes/todos/useTodos.ts
+@@ -0,0 +1,44 @@
++import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
++import { useState } from 'react';
++import { type RouterInputs, type RouterOutputs, useTrpc } from '../../api-client';
++
++export type Todo = RouterOutputs['todos']['list'][number];
++export type CreateTodo = RouterInputs['todos']['create'];
++
++export type TodosState =
++  | { readonly status: 'loading' }
++  | { readonly status: 'failed' }
++  | { readonly status: 'loaded'; readonly todos: readonly Todo[] };
++
++function toTodosState(query: { isError: boolean; data: readonly Todo[] | undefined }): TodosState {
++  if (query.data) return { status: 'loaded', todos: query.data };
++  if (query.isError) return { status: 'failed' };
++  return { status: 'loading' };
++}
++
++/** The todos from the api, and the changes a user makes to them. */
++export function useTodos() {
++  const trpc = useTrpc();
++  const queryClient = useQueryClient();
++  const query = useQuery(trpc.todos.list.queryOptions());
++  const [saveFailed, setSaveFailed] = useState(false);
++
++  // Each change clears the last failure, then refreshes the list once it is saved.
++  const changeOptions = {
++    onMutate: () => setSaveFailed(false),
++    onError: () => setSaveFailed(true),
++    onSuccess: () => queryClient.invalidateQueries({ queryKey: trpc.todos.list.queryKey() }),
++  };
++  const create = useMutation(trpc.todos.create.mutationOptions(changeOptions));
++  const toggle = useMutation(trpc.todos.toggle.mutationOptions(changeOptions));
++  const remove = useMutation(trpc.todos.delete.mutationOptions(changeOptions));
++
++  return {
++    todos: toTodosState(query),
++    createPending: create.isPending,
++    saveFailed,
++    createTodo: (input: CreateTodo) => create.mutate(input),
++    toggleTodo: (id: Todo['id']) => toggle.mutate({ id }),
++    deleteTodo: (id: Todo['id']) => remove.mutate({ id }),
++  };
++}
+diff --git a/showcase/todo-plain-01/web/vite.config.ts b/showcase/todo-plain-01/web/vite.config.ts
+new file mode 100644
+index 0000000..49ff300
+--- /dev/null
++++ b/showcase/todo-plain-01/web/vite.config.ts
+@@ -0,0 +1,15 @@
++import tailwindcss from '@tailwindcss/vite';
++import react from '@vitejs/plugin-react';
++import { defineConfig } from 'vite';
++
++// The web app reaches its api at /trpc. The dev and preview servers proxy that
++// path to the api process, which `pnpm dev` and Playwright start beside Vite.
++const proxy = { '/trpc': process.env.API_ORIGIN ?? 'http://127.0.0.1:3001' };
++
++// Vite is only the carrier that makes this template runnable. The agentic
++// scaffolding (gates, context, skills) is stack-agnostic — see README.md.
++export default defineConfig({
++  plugins: [react(), tailwindcss()],
++  server: { port: 5173, proxy },
++  preview: { port: 3000, proxy },
++});
+-- 
+2.43.0
+
