@@ -381,24 +381,44 @@ function headCommitValue(lines, index) {
  * A body goes stale when commits land after it was written. The Verification
  * Summary's `- Head commit:` line names the commit the whole body was checked
  * against, so a push that moves the PR head fails this gate until the author
- * re-checks the body against the new head and updates the field.
+ * re-checks the body against the new head and updates the field. The one
+ * exception is `updatedHeads`: a head reached only through clean merges from
+ * main adds nothing the body describes, so naming an earlier head on that chain
+ * still counts (ADR 0129).
  *
  * `verificationBody` is the body of the Verification Summary that
  * `locateSections` found, so a decoy heading elsewhere cannot be graded instead.
  * `headSha` must be a full 40-character SHA, or `null` to grade only the field's
  * shape; anything else is an error, so a caller that forgets it fails closed.
+ * Returns `{ errors, checkedSha }`: the full SHA the field names when it names
+ * one on the chain, so the North Star field is read at the same commit.
  */
-function collectHeadCommitErrors(verificationBody, headSha) {
-  const shaErrors = headShaErrors(headSha);
+function readCheckedHead(verificationBody, headSha, updatedHeads) {
+  const shaErrors = [...headShaErrors(headSha), ...updatedHeadsErrors(headSha, updatedHeads)];
   if (shaErrors.length > 0) {
-    return shaErrors;
+    return { errors: shaErrors };
   }
   if (verificationBody === undefined) {
     // The missing section is already reported by `locateSections`.
-    return [];
+    return { errors: [] };
   }
   const field = readHeadCommitField(verificationBody);
-  return field.errors ?? compareHeadCommit(field.value, headSha);
+  return field.errors
+    ? { errors: field.errors }
+    : compareHeadCommit(field.value, headSha, updatedHeads ?? [headSha]);
+}
+
+/** `updatedHeads` is optional; when given it starts at `headSha` and holds only full SHAs. */
+function updatedHeadsErrors(headSha, updatedHeads) {
+  if (updatedHeads === undefined || headSha === null) return [];
+  if (
+    Array.isArray(updatedHeads) &&
+    updatedHeads[0] === headSha &&
+    updatedHeads.every((sha) => typeof sha === 'string' && FULL_SHA_PATTERN.test(sha))
+  ) {
+    return [];
+  }
+  return ['updatedHeads must list full SHAs, starting with the PR head.'];
 }
 
 function headShaErrors(headSha) {
@@ -435,21 +455,30 @@ function readHeadCommitField(verificationBody) {
   return { value: headCommitValue(lines, labelIndexes[0]) };
 }
 
-function compareHeadCommit(value, headSha) {
+function compareHeadCommit(value, headSha, updatedHeads) {
   const named = HEAD_COMMIT_VALUE_PATTERN.exec(value)?.[2];
   if (named === undefined) {
-    return [
-      '`- Head commit:` must be one commit SHA and nothing else (7-40 hex ' +
-        `characters, optionally in backticks), such as \`1a2b3c4d\`; got ${quoteValue(value)}.`,
-    ];
+    return {
+      errors: [
+        '`- Head commit:` must be one commit SHA and nothing else (7-40 hex ' +
+          `characters, optionally in backticks), such as \`1a2b3c4d\`; got ${quoteValue(value)}.`,
+      ],
+    };
   }
-  if (headSha === null || headSha.toLowerCase().startsWith(named.toLowerCase())) {
-    return [];
+  if (headSha === null) {
+    return { errors: [] };
   }
-  return [
-    `\`- Head commit:\` says ${named}, but the PR head is ${headSha.slice(0, 12)}. ` +
-      'Re-check the body against the new head, then update the field.',
-  ];
+  const checkedSha = updatedHeads.find((sha) => sha.toLowerCase().startsWith(named.toLowerCase()));
+  if (checkedSha !== undefined) {
+    return { errors: [], checkedSha };
+  }
+  return {
+    errors: [
+      `\`- Head commit:\` says ${named}, but the PR head is ${headSha.slice(0, 12)}. ` +
+        'Re-check the body against the new head, then update the field. ' +
+        'Only clean merges from main may follow the named commit.',
+    ],
+  };
 }
 
 /** Intent references use one labelled line in the located Verification Summary. */
@@ -528,13 +557,20 @@ function collectNorthStarErrors(value, headSha, northStarCommit) {
   }
 }
 
-function collectReferenceErrors(verificationBody, headSha, listPrdFiles, northStarCommit) {
+/** The North Star is read at the commit the body was checked against, `checkedSha`. */
+function collectReferenceErrors(
+  verificationBody,
+  headSha,
+  checkedSha,
+  listPrdFiles,
+  northStarCommit,
+) {
   if (verificationBody === undefined || headShaErrors(headSha).length > 0) return [];
   const prds = readReferenceField(verificationBody, 'PRDs checked');
   const northStar = readReferenceField(verificationBody, 'North Star commit');
   return [
     ...(prds.errors ?? collectPrdErrors(prds.value, headSha, listPrdFiles)),
-    ...(northStar.errors ?? collectNorthStarErrors(northStar.value, headSha, northStarCommit)),
+    ...(northStar.errors ?? collectNorthStarErrors(northStar.value, checkedSha, northStarCommit)),
   ];
 }
 
@@ -666,7 +702,9 @@ function collectBehaviourReviewErrors(section, prdsChecked, headSha, prdCoverage
  * `headSha` is required: a full 40-character SHA, or `null` to check only the
  * fields' shapes. Repository reads use injected `listPrdFiles()` and
  * `northStarCommit(headSha)` ports. Impact and review use injected
- * `changedFiles` and `prdCoverage` lists. Returns `{ ok, errors }`.
+ * `changedFiles` and `prdCoverage` lists. `updatedHeads` (optional, from
+ * `readUpdatedHeads`) lists the PR head and the earlier heads it reaches through
+ * clean merges from main. Returns `{ ok, errors }`.
  */
 export function validatePullRequest({
   title,
@@ -677,19 +715,27 @@ export function validatePullRequest({
   northStarCommit,
   changedFiles,
   prdCoverage,
+  updatedHeads,
 }) {
   const sections = splitSections(typeof body === 'string' ? body : '');
   const headings = sections.map((section) => section.heading);
   const located = locateSections(headings);
   const verificationBody = sections[located.foundIndexBySection.get('Verification Summary')]?.body;
+  const checked = readCheckedHead(verificationBody, headSha, updatedHeads);
 
   const errors = [
     ...collectTitleErrors(title),
     ...collectBranchErrors(branch),
     ...located.errors,
     ...collectContentErrors(sections, located.foundIndexBySection),
-    ...collectHeadCommitErrors(verificationBody, headSha),
-    ...collectReferenceErrors(verificationBody, headSha, listPrdFiles, northStarCommit),
+    ...checked.errors,
+    ...collectReferenceErrors(
+      verificationBody,
+      headSha,
+      checked.checkedSha ?? headSha,
+      listPrdFiles,
+      northStarCommit,
+    ),
     ...collectPrdImpactErrors(verificationBody, headSha, changedFiles, prdCoverage),
     ...collectBehaviourReviewErrors(
       sections[located.foundIndexBySection.get('PRD Behaviours to Review')]?.body,
@@ -773,6 +819,38 @@ export function readChangedFiles(baseSha, headSha, cwd = process.cwd()) {
     .filter(Boolean);
 }
 
+/**
+ * The PR head, then each earlier head it reaches through clean merges from
+ * main: a commit with exactly two parents whose second parent `baseSha`
+ * contains, and whose tree is exactly the tree Git's own merge of those parents
+ * writes. Such a merge, from GitHub's update-branch or a local `git merge`,
+ * brings in main and nothing else. The walk stops at the first other commit, and
+ * any Git error stops it, so a failure only makes the gate stricter.
+ */
+export function readUpdatedHeads(headSha, baseSha, cwd = process.cwd()) {
+  const git = (...args) =>
+    execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const cleanUpdateParent = (sha) => {
+    try {
+      const [, first, second, ...extra] = git('rev-list', '--parents', '-n', '1', sha).split(' ');
+      if (second === undefined || extra.length > 0) return null;
+      git('merge-base', '--is-ancestor', second, baseSha);
+      const merged = git('merge-tree', '--write-tree', first, second).split('\n')[0];
+      return merged === git('rev-parse', `${sha}^{tree}`) ? first : null;
+    } catch {
+      return null;
+    }
+  };
+  const walk = (heads) => {
+    const parent = heads.length < UPDATED_HEADS_LIMIT ? cleanUpdateParent(heads.at(-1)) : null;
+    return parent === null ? heads : walk([...heads, parent]);
+  };
+  return walk([headSha]);
+}
+
+/** How many heads `readUpdatedHeads` walks before it stops; enough for months of updates. */
+const UPDATED_HEADS_LIMIT = 50;
+
 function readPrdFiles(headSha) {
   return execFileSync('git', ['ls-tree', '-r', '--name-only', '-z', headSha, '--', 'docs/prd/'], {
     encoding: 'utf8',
@@ -819,10 +897,13 @@ function runCli() {
   let headSha;
   let changedFiles;
   let prdCoverage;
+  let updatedHeads;
   try {
     headSha = resolveHeadSha(process.env, readGitHead);
-    changedFiles = readChangedFiles(resolveBaseSha(process.env), headSha);
+    const baseSha = resolveBaseSha(process.env);
+    changedFiles = readChangedFiles(baseSha, headSha);
     prdCoverage = readPrdCoverage(headSha);
+    updatedHeads = readUpdatedHeads(headSha, baseSha);
   } catch (error) {
     console.error(`PR quality contract failed:\n\n  ✗ ${error.message}`);
     process.exit(1);
@@ -833,6 +914,7 @@ function runCli() {
     headSha,
     changedFiles,
     prdCoverage,
+    updatedHeads,
     branch: decodeEnv(process.env.PR_HEAD_REF),
     listPrdFiles: () => readPrdFiles(headSha),
     northStarCommit: (head) =>

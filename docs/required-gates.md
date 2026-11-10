@@ -20,9 +20,9 @@ in `.agents/project/QUALITY_GATES.md` and ADR 0017.
 | End-to-end behaviour map | `ci.yml` `e2e` | `Required gates` | Every run. | `pnpm e2e`, pre-push hook |
 | Security audit | `ci.yml` `security` | `Required gates` | Every run. | Hosted only. Pre-commit scans staged files for secrets. |
 | Analyze (javascript-typescript) | `codeql.yml` `analyze` | Branch protection | All runs; docs-only pull requests skip analysis after classification. | Hosted only. |
-| Lighthouse budgets | `lighthouse.yml` `lighthouse` | Branch protection | Pull requests. Audits run only when `scripts/lighthouse-scope.mjs` finds UI-relevant files; otherwise the job passes without auditing. | `node scripts/lighthouse-scope.mjs origin/main...HEAD`, then `pnpm build && pnpm lhci` |
-| Visual regression | `visual.yml` `visual` | Branch protection | Pull requests. Reference screenshots run on the same UI-relevant changes as Lighthouse; other changes pass without capturing. | `pnpm visual` (Linux Chromium) |
-| Validate PR body and title | `pr-quality.yml` `pr-body` | Branch protection | Pull requests not opened by a bot account. | `pnpm validate:pr` with `PR_TITLE` and `PR_BODY` set |
+| Lighthouse budgets | `lighthouse.yml` `lighthouse` | Branch protection | Pull requests, and the dispatch that re-runs them after an automatic update. Audits run only when `scripts/lighthouse-scope.mjs` finds UI-relevant files, and always in a dispatch; otherwise the job passes without auditing. | `node scripts/lighthouse-scope.mjs origin/main...HEAD`, then `pnpm build && pnpm lhci` |
+| Visual regression | `visual.yml` `visual` | Branch protection | Pull requests, and the dispatch that re-runs them after an automatic update. Reference screenshots run on the same UI-relevant changes as Lighthouse; other changes pass without capturing. | `pnpm visual` (Linux Chromium) |
+| Validate PR body and title | `pr-quality.yml` `pr-body` | Branch protection | Pull requests not opened by a bot account, and the dispatch that re-runs them after an automatic update. | `pnpm validate:pr` with `PR_TITLE` and `PR_BODY` set |
 
 ## Hook steps CI re-runs
 
@@ -64,7 +64,7 @@ Action pins are read from the workflows and composite actions, so a Dependabot b
 | `package.json verify` | `pnpm gates:check` | `ci.yml` `required-gates` | `node scripts/required-gates.mjs --check` |
 | `.husky/pre-commit` | `pnpm arch:gate` | `ci.yml` `fallow` | `pnpm arch:gate` |
 | `package.json verify` | `pnpm arch:check` | `ci.yml` `fallow` | `pnpm arch:gate`<br>`pnpm arch:diagram && git diff --exit-code docs/architecture/roles.mmd`<br>`pnpm api:check` |
-| `package.json verify` | `pnpm coverage:changed` | `ci.yml` `coverage` | `changed="$(git -c core.quotePath=false diff --name-only HEAD^1..."$HEAD_SHA")" && CHANGED="$changed" node scripts/confidence-label.mjs --coverage-gate` |
+| `package.json verify` | `pnpm coverage:changed` | `ci.yml` `coverage` | `changed="$(git -c core.quotePath=false diff --name-only "$BASE"..."$HEAD_SHA")" && CHANGED="$changed" node scripts/confidence-label.mjs --coverage-gate` |
 | `package.json verify` | `pnpm test:coverage` | `ci.yml` `test` | `pnpm test:coverage:app` |
 | `package.json verify` | `pnpm test:coverage` | `ci.yml` `tooling` | `pnpm test:tooling --shard ${{ matrix.shard }}/3` |
 | `package.json verify` | `pnpm build` | `ci.yml` `build` | `pnpm build` |

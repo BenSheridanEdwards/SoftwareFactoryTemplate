@@ -9,7 +9,10 @@
  * tested (ADR 0017).
  *
  * The CLI diffs `HEAD^1..HEAD` by default, which on a `pull_request` checkout is
- * exactly the PR's change. Pass a range to run it locally, for example
+ * exactly the PR's change. Any other CI event, such as the dispatch that
+ * re-runs a PR's checks after an automatic update (ADR 0129), checks out the
+ * branch head, where `HEAD^1` is not main, so every comparison runs in full.
+ * Pass a range to run it locally, for example
  * `node scripts/lighthouse-scope.mjs origin/main...HEAD`. It writes
  * `ui-changed=true|false` to `GITHUB_OUTPUT` and a note to
  * `GITHUB_STEP_SUMMARY` when those are set.
@@ -70,7 +73,8 @@ export function uiRelevantFiles(paths) {
   return paths.filter(isUiRelevant);
 }
 
-function runCli(range) {
+/** @param {string[]} range */
+function scope(range) {
   // --no-renames lists a moved file's old path too; -z keeps non-ASCII names unquoted.
   const changed = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', ...range], {
     encoding: 'utf8',
@@ -78,13 +82,27 @@ function runCli(range) {
     .split('\0')
     .filter(Boolean);
   const files = uiRelevantFiles(changed);
-  const summary =
-    files.length > 0
-      ? `Lighthouse audits run for these UI-relevant files:\n\n\`\`\`\n${files.join('\n')}\n\`\`\`\n`
-      : 'Lighthouse audits skipped: this pull request touches only non-UI files.\n';
+  return {
+    changed: files.length > 0,
+    summary:
+      files.length > 0
+        ? `Lighthouse audits run for these UI-relevant files:\n\n\`\`\`\n${files.join('\n')}\n\`\`\`\n`
+        : 'Lighthouse audits skipped: this pull request touches only non-UI files.\n',
+  };
+}
+
+/** @param {string[]} argv @param {string | undefined} event */
+function runCli(argv, event) {
+  const { changed, summary } =
+    argv.length === 0 && event !== undefined && event !== 'pull_request'
+      ? {
+          changed: true,
+          summary: `Lighthouse audits run in full: a ${event} run has no pull request diff.\n`,
+        }
+      : scope(argv.length > 0 ? argv : ['HEAD^1', 'HEAD']);
   console.log(summary);
   if (process.env.GITHUB_OUTPUT) {
-    appendFileSync(process.env.GITHUB_OUTPUT, `ui-changed=${files.length > 0}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `ui-changed=${changed}\n`);
   }
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
@@ -92,5 +110,5 @@ function runCli(range) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  runCli(process.argv.length > 2 ? process.argv.slice(2) : ['HEAD^1', 'HEAD']);
+  runCli(process.argv.slice(2), process.env.GITHUB_EVENT_NAME);
 }

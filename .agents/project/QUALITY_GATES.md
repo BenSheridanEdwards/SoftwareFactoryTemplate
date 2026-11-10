@@ -50,6 +50,7 @@ rules live in [AGENTS.md](../../AGENTS.md); proof requirements live in
 | Dependency ADR | `scripts/check-dependency-adr.mjs` (`pnpm check:adr`) | New dependency names appear in an ADR added with the change ([ADR 0020](../decisions/0020-pr-process-checks.md)). | `pnpm check:adr` |
 | Required gates | `scripts/required-gates.mjs` (`pnpm gates:check`) | The `Required gates` job fails unless every `ci.yml` lane passed or legitimately did not apply; the workflows and `docs/required-gates.md` match the contract, and every hook command and `verify` step has a required CI equivalent. | `pnpm gates:check` |
 | Enforcement sign-off | `.github/workflows/enforcement-approval.yml` (`scripts/enforcement-approval.mjs`) | Approval for the guarded enforcement or product-intent changes, carried to a new head only while they stay identical; see [Enforcement approval](#enforcement-approval). | `node scripts/enforcement-approval.mjs --git origin/main HEAD` |
+| Behind PRs | `.github/workflows/update-behind-prs.yml` (`scripts/update-behind-prs.mjs`) | On each push to main, merges main into every open, ready, same-repo PR that is behind it, then dispatches that PR's required checks and the enforcement gate; a conflicting PR gets one comment. See [Keeping PRs up to date](#keeping-prs-up-to-date). | GitHub's **Update branch** |
 | Merge confidence | `.github/workflows/confidence.yml` (`scripts/confidence-label.mjs`) | Green, amber or red label from gates, E2E/PRD coverage, unit coverage and import blast radius. Coverage gaps grade red and fail the required coverage lane. | `node scripts/confidence-label.mjs --decide` with head evidence |
 | `pnpm verify`, CI | Lockfile checker | Stable installs | `pnpm check:lockfile` |
 | Unit tests in verify/CI | Jest (`tooling/trial/`) | Result inclusion and trial protocol | `pnpm test` |
@@ -211,6 +212,34 @@ one in the PR ([ADR 0122](../decisions/0122-sign-off-follows-the-guarded-changes
 [ADR 0023](../decisions/0023-protect-only-the-files-that-run-the-gates.md),
 [ADR 0024](../decisions/0024-sign-off-only-loosening-enforcement-changes.md) and
 [ADR 0060](../decisions/0060-product-intent-needs-sign-off.md) record the rules.
+
+## Keeping PRs up to date
+
+Branch protection on `main` is strict, so a PR must contain main to merge.
+`update-behind-prs.yml` keeps every open, ready, same-repo PR current: on each
+push to main it merges main into each PR that is behind, with GitHub's
+update-branch (merge method). The workflow's `GITHUB_TOKEN` push starts no
+`pull_request` run, so it dispatches `ci.yml`, `codeql.yml`, `lighthouse.yml`,
+`visual.yml` and `pr-quality.yml` on the PR branch and `enforcement-approval.yml`
+on main. Their check runs land on the new head under the names branch
+protection requires, and an unchanged sign-off carries
+([ADR 0122](../decisions/0122-sign-off-follows-the-guarded-changes.md)). A
+dispatched CI run on a PR branch runs every lane in full and compares the
+branch with `origin/main`; strict protection itself holds the up-to-date rule.
+The PR body's `- Head commit:` may stay on the commit before clean merges
+from main ([ADR 0129](../decisions/0129-update-behind-pull-requests-automatically.md)).
+
+It skips drafts, forks, bot-authored PRs and PRs into other branches. A PR that
+conflicts with main gets one comment asking for a manual rebase. The token may
+not push a change to `.github/workflows/`, so when main's new commits change a
+workflow the PR gets one comment asking for **Update branch** instead. The
+comment goes once the PR is current. Pull before you push again to a branch the
+workflow updated, and merge main rather than rebase when you update by hand: a
+rebase drops the sign-off and the body's head commit. `pnpm gates:check` fails
+when a required-check workflow is missing from `DISPATCHES` in
+`scripts/update-behind-prs.mjs`. Run `node scripts/update-behind-prs.mjs --dry-run`
+to see what the next run would do; dispatch the workflow with a `pr` number to
+update one PR now.
 
 ## Merge confidence
 
