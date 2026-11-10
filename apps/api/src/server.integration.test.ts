@@ -1,7 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { connect, createServer } from 'node:net';
-import { setTimeout as delay } from 'node:timers/promises';
+import { createServer } from 'node:net';
 import { Schema } from 'effect';
 
 const children = new Set<ChildProcessWithoutNullStreams>();
@@ -62,20 +61,6 @@ async function waitForListening(child: ChildProcessWithoutNullStreams, output: s
   });
 }
 
-// The server logs before Node finishes binding its socket.
-async function waitForSocket(port: number, deadline = Date.now() + 3_000): Promise<void> {
-  const socket = connect(port, '127.0.0.1');
-  try {
-    await once(socket, 'connect');
-  } catch (error) {
-    if (Date.now() >= deadline) throw error;
-    await delay(10);
-    return waitForSocket(port, deadline);
-  } finally {
-    socket.destroy();
-  }
-}
-
 afterEach(async () => {
   await Promise.all(
     [...children].map(async (child) => {
@@ -120,7 +105,6 @@ describe('the API over real HTTP', () => {
     const port = await freePort();
     const { child, output } = startApi(String(port));
     await waitForListening(child, output);
-    await waitForSocket(port);
     const response = await fetch(
       `http://127.0.0.1:${port}/trpc/${procedure}?input=${encodeURIComponent(JSON.stringify(input))}`,
       { signal: AbortSignal.timeout(5_000) },

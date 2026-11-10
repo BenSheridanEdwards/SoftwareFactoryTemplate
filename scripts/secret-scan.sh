@@ -14,5 +14,5 @@ if command -v gitleaks >/dev/null 2>&1; then
 else
   echo "gitleaks not installed — skipping the local staged secret scan."
   echo "  install it for pre-commit coverage:  brew install gitleaks"
-  echo "  (CI still scans the full history on every push and pull request.)"
+  echo "  (CI still scans the full history on every pull request.)"
 fi

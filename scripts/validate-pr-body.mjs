@@ -18,7 +18,9 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { matchesGlob, posix } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { coveredPaths, parseBehaviours } from './check-prd-conflicts.mjs';
 
 /**
@@ -33,8 +35,6 @@ export const REQUIRED_SECTIONS = [
   'Verification Summary',
   'PRD Behaviours to Review',
 ];
-
-/** The proof section must contain one of these, or the PR fails. */
 
 /** The Conventional Commit types, matching `commitlint.config.ts`. */
 export const CONVENTIONAL_COMMIT_TYPES = [
@@ -858,6 +858,6 @@ function runCli() {
 }
 
 // Run the CLI only when invoked directly, not when imported by a test.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   runCli();
 }

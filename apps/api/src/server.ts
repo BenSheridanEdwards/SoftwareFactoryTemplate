@@ -9,6 +9,9 @@ const Port = Schema.NumberFromString.check(
 
 const port = Schema.decodeUnknownSync(Port)(process.env.PORT ?? '3001');
 
-createHTTPServer({ router: appRouter, basePath: '/trpc/' }).listen(port, '127.0.0.1');
+const server = createHTTPServer({ router: appRouter, basePath: '/trpc/' });
 
-console.log(`api listening on http://127.0.0.1:${port}/trpc`);
+server.once('listening', () => {
+  console.log(`api listening on http://127.0.0.1:${port}/trpc`);
+});
+server.listen(port, '127.0.0.1');

@@ -1271,7 +1271,7 @@ function resolveCheckout(scaffold) {
 }
 
 /** Resolve existing ancestors before appending any missing path segments. */
-function located(path) {
+function located(name, path) {
   const absolute = resolve(path);
   try {
     return realpathSync(absolute);
@@ -1280,14 +1280,14 @@ function located(path) {
     try {
       if (lstatSync(absolute).isSymbolicLink())
         throw new Error(
-          'COREPACK_HOME must name a folder inside ~/.cache; dangling symlinks are rejected.',
+          `${name} must name a folder inside ~/.cache; dangling symlinks are rejected.`,
         );
     } catch (missing) {
       if (missing.code !== 'ENOENT') throw missing;
     }
     const parent = dirname(absolute);
     if (parent === absolute) throw error;
-    return join(located(parent), basename(absolute));
+    return join(located(name, parent), basename(absolute));
   }
 }
 
@@ -1298,7 +1298,7 @@ function located(path) {
  */
 function sharedCache(name, path) {
   const bound = join(homedir(), '.cache');
-  if (!located(path).startsWith(`${located(bound)}/`)) {
+  if (!located(name, path).startsWith(`${located(name, bound)}/`)) {
     throw new Error(`${name} must name a folder inside ${bound}, got ${JSON.stringify(path)}.`);
   }
   return resolve(path);
