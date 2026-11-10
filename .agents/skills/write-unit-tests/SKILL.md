@@ -37,9 +37,10 @@ the failing test first); and coverage below `jest.config.ts`'s 80% threshold.
 ## Process
 
 1. Copy `.agents/templates/component.test.tsx.template` beside the unit as
-   `<Name>.test.tsx`. Jest runs three root projects: `web` (jsdom) for
+   `<Name>.test.tsx`. Jest runs five root projects: `web` (jsdom) for
    `{apps,showcase/*}/web/src/**` and `packages/*/src/**`, `api` (node) for
-   `{apps,showcase/*}/api/src/**/*.test.ts`, and `tooling` for `scripts/` and `tooling/`.
+   `{apps,showcase/*}/api/src/**/*.test.ts`, `tooling` for `scripts/` and `tooling/`,
+   and `contract` and `integration` for `*.contract.test.ts` and `*.integration.test.ts`.
 2. Cover the default state, each user action, and edge cases: empty or blank
    input, api error, validation error.
 3. Run coverage and close every gap the threshold reports.

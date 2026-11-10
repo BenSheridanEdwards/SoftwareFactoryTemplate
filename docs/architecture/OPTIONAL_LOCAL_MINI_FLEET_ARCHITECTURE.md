@@ -10,8 +10,7 @@ mini (64 GiB), serving four private repos. Paths, hostnames and pool names below
 are that fleet's; replace them with your own.
 
 Part 1 is the setup in use today. Part 2 is a proposed Dagger layer on top of
-it, with the proof's final measurements. Every number comes from a measurement
-file named beside it.
+it, with the proof's final measurements.
 
 ## 1. Today: the Spaces runner
 
