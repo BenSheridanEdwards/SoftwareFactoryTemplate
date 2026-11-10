@@ -1,6 +1,7 @@
 /** @jest-environment node */
 import { spawnSync } from 'node:child_process';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -1972,7 +1973,7 @@ it('lint:policy runs Oxlint alone', () => {
     'env -u NAPI_RS_NATIVE_LIBRARY_PATH -u VP_VERSION -u OXLINT_TSGOLINT_PATH oxlint --no-ignore --config oxlint.config.ts --deny-warnings',
   );
 });
-it('the repository passes the Oxlint policy and covers every tracked source file', () => {
+it('the repository passes the Oxlint policy and covers every source file git tracks or would track', () => {
   const result = run(ROOT);
   expect(result.stderr).toBe('');
   expect(result.status).toBe(0);
@@ -1983,10 +1984,17 @@ it('the repository passes the Oxlint policy and covers every tracked source file
     ),
   ).toEqual([]);
   expect(report.diagnostics).toEqual([]);
-  const tracked = spawnSync('git', ['ls-files', '-z'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  }).stdout.split('\0');
+  // Oxlint reads the disk, so a new file counts before `git add` and a deleted one stops counting.
+  const tracked = spawnSync(
+    'git',
+    ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+    {
+      cwd: ROOT,
+      encoding: 'utf8',
+    },
+  )
+    .stdout.split('\0')
+    .filter((path) => existsSync(join(ROOT, path)));
   const ignored = [
     '**/dist/**',
     'coverage/**',
