@@ -2,7 +2,7 @@
 
 ## What it is
 
-AgenticRepoTemplate is a software factory template. It is more than a repo skeleton. A
+SoftwareFactoryTemplate is a software factory template. It is more than a repo skeleton. A
 software factory is a repository any agent can operate in, on any model or harness. Its executable
 standards refuse code outside the project's conventions. Downstream repos operate on this
 foundation. The TypeScript, React and tRPC greeting app is the runnable example that gives every gate real
