@@ -113,7 +113,14 @@ const baseline = {
     workflow: readOnly,
     jobs: { decide: [['contents: read', 'pull-requests: read', 'checks: read', 'actions: write']] },
   },
-  'pr-quality.yml': { workflow: readOnly, jobs: { 'pr-body': [] } },
+  'pr-quality.yml': {
+    workflow: [['contents: read', 'pull-requests: read']],
+    jobs: { 'pr-body': [] },
+  },
+  'update-behind-prs.yml': {
+    workflow: [['{}']],
+    jobs: { update: [['contents: write', 'pull-requests: write', 'actions: write']] },
+  },
   'visual.yml': { workflow: readOnly, jobs: { visual: [] } },
 };
 

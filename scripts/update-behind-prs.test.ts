@@ -4,7 +4,7 @@ import {
   NOTICE_MARKER,
   noticeBody,
   planUpdate,
-  run,
+  updateBehindPrs as run,
 } from './update-behind-prs.mjs';
 
 const REPOSITORY = 'owner/repo';
@@ -30,11 +30,12 @@ const pullRequest = (overrides: Partial<PullRequest> = {}): PullRequest => ({
   ...overrides,
 });
 
-const plan = (pr: PullRequest, behindBy: number) =>
+const plan = (pr: PullRequest, behindBy: number, changesWorkflows = false) =>
   planUpdate({
     pullRequest: pr,
     behindBy,
     mergeable: pr.mergeable,
+    changesWorkflows,
     repository: REPOSITORY,
     defaultBranch: 'main',
   });
@@ -57,8 +58,17 @@ describe('planUpdate', () => {
     expect(result.reason).toContain('needs a manual rebase');
   });
 
-  it('leaves a PR that is up to date with main alone', () => {
-    expect(plan(pullRequest(), 0)).toEqual({ action: 'skip', reason: 'is up to date with main' });
+  it('marks a PR that is up to date with main as current', () => {
+    expect(plan(pullRequest(), 0)).toEqual({
+      action: 'current',
+      reason: 'is up to date with main',
+    });
+  });
+
+  it('asks for Update branch when main brings a workflow change the token may not push', () => {
+    const result = plan(pullRequest(), 3, true);
+    expect(result.action).toBe('notify');
+    expect(result.reason).toContain('change a file in `.github/workflows/`');
   });
 
   it('skips forks, bots, other bases, and PRs GitHub has not judged yet', () => {
@@ -101,19 +111,28 @@ interface Comment {
   body: string;
 }
 
-/** An in-memory GitHub: PRs by number, how far each is behind, and the calls made. */
+/**
+ * An in-memory GitHub: PRs by number, how far each is behind and which files
+ * main brings, and the calls made. Like GitHub, update-branch answers first and
+ * moves the head on a later read.
+ */
 function fakeGitHub({
   pulls,
   behind,
+  incomingFiles = [],
   comments = [],
   refuse,
+  moves = true,
 }: {
   pulls: PullRequest[];
   behind: Record<number, number>;
+  incomingFiles?: string[];
   comments?: Comment[];
   refuse?: { status: number; message: string };
+  moves?: boolean;
 }) {
   const state = new Map(pulls.map((pr) => [pr.number, { ...pr }]));
+  const pending = new Set<number>();
   const calls: Calls = { updates: [], dispatches: [], created: [], deleted: [] };
   const github = {
     paginate: async <T>(method: (args: PageRequest) => Promise<{ data: T[] }>, args: PageRequest) =>
@@ -121,21 +140,31 @@ function fakeGitHub({
     rest: {
       pulls: {
         list: async () => ({ data: [...state.values()] }),
-        get: async ({ pull_number }: { pull_number: number }) => ({
-          data: { ...state.get(pull_number) },
-        }),
+        get: async ({ pull_number }: { pull_number: number }) => {
+          const pr = state.get(pull_number);
+          const data = { ...pr };
+          if (pr && pending.delete(pull_number)) {
+            state.set(pull_number, { ...pr, head: { ...pr.head, sha: NEW_HEAD } });
+          }
+          return { data };
+        },
         updateBranch: async ({ pull_number }: { pull_number: number }) => {
           if (refuse) throw Object.assign(new Error(refuse.message), { status: refuse.status });
           calls.updates.push(pull_number);
-          const pr = state.get(pull_number);
-          if (pr) state.set(pull_number, { ...pr, head: { ...pr.head, sha: NEW_HEAD } });
-          return { data: {} };
+          if (moves) pending.add(pull_number);
+          return { data: { message: 'Updating pull request branch.' } };
         },
       },
       repos: {
         compareCommitsWithBasehead: async ({ basehead }: { basehead: string }) => {
-          const number = [...state.values()].find((pr) => basehead.endsWith(pr.head.sha))?.number;
-          return { data: { behind_by: number === undefined ? 0 : (behind[number] ?? 0) } };
+          const number = [...state.values()].find((pr) => basehead.startsWith(pr.head.sha))?.number;
+          const aheadBy = number === undefined ? 0 : (behind[number] ?? 0);
+          return {
+            data: {
+              ahead_by: aheadBy,
+              files: aheadBy > 0 ? incomingFiles.map((filename) => ({ filename })) : [],
+            },
+          };
         },
       },
       actions: {
@@ -165,11 +194,12 @@ const context = (inputs?: Record<string, string>) => ({
   payload: { repository: { default_branch: 'main' }, inputs },
 });
 
-const core = () => ({ info: jest.fn(), setFailed: jest.fn() });
+const core = () => ({ info: jest.fn(), warning: jest.fn(), setFailed: jest.fn() });
 const sleep = async () => undefined;
+const oldNotice = { id: 4, user: { login: NOTICE_AUTHOR }, body: noticeBody('old conflict') };
 
 describe('run', () => {
-  it('updates only the behind, ready, mergeable PR and dispatches its checks', async () => {
+  it('updates only the behind, ready, mergeable PR and dispatches its checks on the new head', async () => {
     const { github, calls } = fakeGitHub({
       pulls: [
         pullRequest({ number: 1 }),
@@ -195,6 +225,7 @@ describe('run', () => {
         inputs: withPr ? { pr: '1' } : {},
       })),
     );
+    expect(log.info).toHaveBeenCalledWith(`#1 updated to ${NEW_HEAD}; dispatched its checks.`);
     expect(log.setFailed).not.toHaveBeenCalled();
   });
 
@@ -214,13 +245,34 @@ describe('run', () => {
     const again = fakeGitHub({
       pulls: [pullRequest({ mergeable: false })],
       behind: { 7: 1 },
-      comments: [{ id: 9, user: { login: NOTICE_AUTHOR }, body: first.calls.created[0] }],
+      comments: [{ id: 9, user: { login: NOTICE_AUTHOR }, body: first.calls.created[0] ?? '' }],
     });
     await run({ github: again.github, context: context(), core: core(), sleep });
     expect(again.calls.created).toEqual([]);
   });
 
-  it('comments when GitHub refuses the update, for example over a workflow file', async () => {
+  it('comments instead of updating when main brings a workflow change', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest()],
+      behind: { 7: 1 },
+      incomingFiles: ['README.md', '.github/workflows/ci.yml'],
+    });
+    await run({ github, context: context(), core: core(), sleep });
+    expect(calls.updates).toEqual([]);
+    expect(calls.created[0]).toContain('Press **Update branch**');
+  });
+
+  it('treats a comparison too long to list every file as a workflow change', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest()],
+      behind: { 7: 1 },
+      incomingFiles: Array.from({ length: 300 }, (_, index) => `docs/${index}.md`),
+    });
+    await run({ github, context: context(), core: core(), sleep });
+    expect(calls.updates).toEqual([]);
+  });
+
+  it('comments when GitHub refuses the update', async () => {
     const { github, calls } = fakeGitHub({
       pulls: [pullRequest()],
       behind: { 7: 1 },
@@ -242,16 +294,27 @@ describe('run', () => {
     expect(calls.dispatches).toEqual([]);
   });
 
-  it('removes its own notice once the PR is updated, and no one else comment', async () => {
+  it('removes only its own notice once the PR is updated', async () => {
     const { github, calls } = fakeGitHub({
       pulls: [pullRequest()],
       behind: { 7: 1 },
       comments: [
-        { id: 4, user: { login: NOTICE_AUTHOR }, body: noticeBody('old conflict') },
+        oldNotice,
         { id: 5, user: { login: 'maintainer' }, body: `${NOTICE_MARKER}\nquoted` },
       ],
     });
     await run({ github, context: context(), core: core(), sleep });
+    expect(calls.deleted).toEqual([4]);
+  });
+
+  it('removes its notice from a PR someone else brought up to date', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest()],
+      behind: { 7: 0 },
+      comments: [oldNotice],
+    });
+    await run({ github, context: context(), core: core(), sleep });
+    expect(calls.updates).toEqual([]);
     expect(calls.deleted).toEqual([4]);
   });
 
@@ -268,11 +331,45 @@ describe('run', () => {
     ).rejects.toThrow('inputs.pr must be a pull request number');
   });
 
-  it('fails the run when GitHub accepts an update but the head never moves', async () => {
-    const { github } = fakeGitHub({ pulls: [pullRequest()], behind: { 7: 1 } });
-    github.rest.pulls.updateBranch = async () => ({ data: {} });
+  it('only reads and reports its plans in a dry run', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest({ number: 1 }), pullRequest({ number: 2, mergeable: false })],
+      behind: { 1: 1, 2: 1 },
+    });
+    const log = core();
+    await run({ github, context: context(), core: log, sleep, dryRun: true });
+    expect(calls).toEqual({ updates: [], dispatches: [], created: [], deleted: [] });
+    expect(log.info.mock.calls.map(([line]) => line)).toEqual([
+      '#1 is 1 commit(s) behind main: update',
+      expect.stringMatching(
+        /^#2 This pull request is behind `main` and conflicts with it.*: notify$/,
+      ),
+    ]);
+  });
+
+  it('comments and fails the run when GitHub accepts an update but the head never moves', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest()],
+      behind: { 7: 1 },
+      moves: false,
+    });
     const log = core();
     await run({ github, context: context(), core: log, sleep });
+    expect(calls.dispatches).toEqual([]);
+    expect(calls.created[0]).toContain('the head never moved');
     expect(log.setFailed).toHaveBeenCalledWith(expect.stringContaining('head did not move'));
+  });
+
+  it('warns when GitHub never computes mergeability for a behind PR', async () => {
+    const { github, calls } = fakeGitHub({
+      pulls: [pullRequest({ mergeable: null })],
+      behind: { 7: 1 },
+    });
+    const log = core();
+    await run({ github, context: context(), core: log, sleep });
+    expect(calls.updates).toEqual([]);
+    expect(log.warning).toHaveBeenCalledWith(
+      expect.stringContaining('has not computed mergeability'),
+    );
   });
 });

@@ -22,15 +22,17 @@ on:
 
 permissions: {}
 
-# Queue rather than cancel: a cancelled run could leave an updated PR with no
-# dispatched checks. GitHub keeps one pending run, the newest.
 concurrency:
+  # Queue rather than cancel: a cancelled run could leave an updated PR with no
+  # dispatched checks. GitHub keeps one pending run, the newest.
   group: update-behind-prs
   cancel-in-progress: false
 
 jobs:
   update:
     name: Bring behind PRs up to date
+    # This copy refuses any ref but the default branch, so a dispatch runs main's script.
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # contents:write for update-branch's merge commit; pull-requests:write to read
@@ -49,5 +51,5 @@ jobs:
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const { run } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/update-behind-prs.mjs`);
-            await run({ github, context, core });
+            const { updateBehindPrs } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/update-behind-prs.mjs`);
+            await updateBehindPrs({ github, context, core });

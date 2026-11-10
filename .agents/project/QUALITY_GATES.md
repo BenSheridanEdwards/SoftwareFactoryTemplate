@@ -230,12 +230,16 @@ The PR body's `- Head commit:` may stay on the commit before clean merges
 from main ([ADR 0129](../decisions/0129-update-behind-pull-requests-automatically.md)).
 
 It skips drafts, forks, bot-authored PRs and PRs into other branches. A PR that
-conflicts with main, or whose update GitHub refuses, gets one comment asking
-for a manual update. GitHub refuses a `GITHUB_TOKEN` push that changes a file in
-`.github/workflows/`, so an update from main that changes a workflow needs
-**Update branch** pressed by a person. Pull before you push again to a branch
-the workflow updated. Dispatch the workflow with a `pr` number to update one
-PR now.
+conflicts with main gets one comment asking for a manual rebase. The token may
+not push a change to `.github/workflows/`, so when main's new commits change a
+workflow the PR gets one comment asking for **Update branch** instead. The
+comment goes once the PR is current. Pull before you push again to a branch the
+workflow updated, and merge main rather than rebase when you update by hand: a
+rebase drops the sign-off and the body's head commit. `pnpm gates:check` fails
+when a required-check workflow is missing from `DISPATCHES` in
+`scripts/update-behind-prs.mjs`. Run `node scripts/update-behind-prs.mjs --dry-run`
+to see what the next run would do; dispatch the workflow with a `pr` number to
+update one PR now.
 
 ## Merge confidence
 

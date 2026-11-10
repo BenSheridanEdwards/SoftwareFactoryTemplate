@@ -26,6 +26,7 @@ import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } fr
 import { dirname, matchesGlob, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { STATUS_CONTEXT } from './enforcement-approval.mjs';
+import { DISPATCHES } from './update-behind-prs.mjs';
 
 export const REQUIRED_STATUSES = [STATUS_CONTEXT];
 
@@ -899,6 +900,39 @@ function checkHookSteps(readFile, jobsByWorkflow, hookSteps, errors) {
  * `compositeActions` lists required repo-relative composite paths to read with `readFile`.
  * Returns error strings.
  */
+/** The workflow that posts the `enforcement-approval` status. */
+const STATUS_WORKFLOW = 'enforcement-approval.yml';
+
+/**
+ * Every workflow that reports a required check, and the enforcement gate, must
+ * be re-run after an automatic update: listed in `DISPATCHES` with a
+ * `workflow_dispatch` trigger, the gate on main and the rest on the PR branch
+ * (ADR 0129). Returns the errors.
+ *
+ * @param {(name: string) => string} readWorkflow
+ * @param {{ workflow: string, onMain: boolean }[]} dispatches
+ */
+export function checkDispatches(readWorkflow, dispatches = DISPATCHES) {
+  const needed = [...new Set([...REQUIRED_GATES.map((gate) => gate.workflow), STATUS_WORKFLOW])];
+  return needed.flatMap((workflow) => {
+    const entry = dispatches.find((dispatch) => dispatch.workflow === workflow);
+    const where = `${workflow} reports a required check, so`;
+    return [
+      ...(entry
+        ? []
+        : [`${where} add it to DISPATCHES in scripts/update-behind-prs.mjs (ADR 0129).`]),
+      ...(/^ {2}workflow_dispatch:/m.test(readWorkflow(workflow))
+        ? []
+        : [`${where} it needs a \`workflow_dispatch\` trigger for automatic updates (ADR 0129).`]),
+      ...(entry && entry.onMain !== (workflow === STATUS_WORKFLOW)
+        ? [
+            `${where} dispatch it ${workflow === STATUS_WORKFLOW ? 'on main' : 'on the PR branch'} in DISPATCHES.`,
+          ]
+        : []),
+    ];
+  });
+}
+
 export function checkContract({
   readWorkflow,
   readFile,
@@ -940,6 +974,7 @@ export function checkContract({
   });
 
   checkHookSteps(readFile, jobsByWorkflow, hookSteps, errors);
+  errors.push(...checkDispatches(readWorkflow));
 
   if (inventory !== renderInventory()) {
     errors.push(`${INVENTORY_PATH} is stale. Run \`pnpm gates:inventory\` and commit the result.`);
