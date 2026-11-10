@@ -42,7 +42,7 @@ tool needs an ADR. [QUALITY_GATES.md](QUALITY_GATES.md) lists where each runs.
 - `@hookform/resolvers` declares an Effect peer of `^3.10.3`, so `effectTsResolver` supports Effect 3 only. Use `standardSchemaResolver(Schema.toStandardSchemaV1(schema))` for Effect 4 forms, with the same adapter as api procedures. The web bundle is about 26 kB smaller than on Effect 3 and fits the 110 kB budget ([ADR 0036](../decisions/0036-effect-4.md)).
 - Node 22.18 is the first Node 22 release to strip types by default. `engines.node` sets that floor; `.nvmrc` stays `22`. If `nvm use` selects an older 22.x, run `nvm install` to get the newest Node 22.
 - The Vite proxy lets the browser call `/trpc` on its own origin, with no CORS setup or api URL in the bundle.
-- The web and api share one workspace, release and `AppRouter` type. Typecheck checks each call against the provider; the behaviour map exercises real HTTP. Pact and other consumer-driven contract tools stay out of scope until a consumer or provider ships from another repository; adding one then needs an ADR.
+- The web and api share one workspace, release and `AppRouter` type. Typecheck checks each call against the provider; the behaviour map exercises real HTTP. Pact records the web consumer contract and verifies the HTTP provider in `pnpm test:contract` ([ADR 0104](../decisions/0104-web-api-contract-tests-with-pact.md)).
 
 ## Boundaries to respect
 

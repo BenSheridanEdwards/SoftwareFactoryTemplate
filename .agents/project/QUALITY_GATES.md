@@ -13,6 +13,9 @@ explicitly enabled may save a store, and only without an exact cache hit.
 The boolean defaults to false; automated main-tree dispatches leave it unset.
 Keep PR runs and automated dispatches read-only for pnpm caches. See
 [CI caches save only from manual main runs](../decisions/0106-ci-caches-save-only-from-manual-main-runs.md).
+The `Fill caches from main` workflow (`.github/workflows/cache-seed.yml`) also
+saves the pnpm store and the Chromium cache from a push to main that changes a
+cache key input ([ADR 0117](../decisions/0117-fill-ci-caches-from-main-on-every-key-change.md)).
 
 ## Benchmark
 
@@ -33,7 +36,7 @@ rules live in [AGENTS.md](../../AGENTS.md); proof requirements live in
 | --- | --- | --- | --- |
 | Claude Code, trusted Codex Bash sessions and Cursor agents | `.agents/hooks/block-gate-bypass.sh` (Cursor uses `.agents/hooks/cursor-gate-bypass.sh`) | Common hook bypasses are refused; scope and gaps are in [ADR 0027](../decisions/0027-block-common-hook-bypasses.md) and [Cursor runs the gate-bypass hook](../decisions/0090-cursor-runs-the-gate-bypass-hook.md). | Command guard; see ADR 0027 for gaps |
 | Commit message | `.husky/commit-msg` | Conventional Commits via commitlint. | commitlint via commit-msg |
-| Pre-commit | `.husky/pre-commit` | `pnpm typecheck` (TypeScript 7.0.2 by path), staged Biome (format, imports, JSON and CSS lint), `pnpm lint:policy` (every Oxlint rule), `pnpm lint:styles`, `pnpm lint:anti-slop`, `pnpm check:suppressions`, `pnpm arch:gate`, `pnpm fallow:audit` (including complexity in touched files), `pnpm secret-scan` (staged gitleaks) ([ADR 0125](../decisions/0125-pre-commit-runs-every-lint-style-and-architecture-gate.md)). Each step must finish in under 30 seconds; review holds this budget ([ADR 0062](../decisions/0062-pre-commit-steps-stay-under-30-seconds.md)). | Run the hook commands below |
+| Pre-commit | `.husky/pre-commit` | `pnpm typecheck` (`bun check`, [ADR 0120](../decisions/0120-bun-checks-types.md)), staged Biome (format, imports, JSON and CSS lint), `pnpm lint:policy` (every Oxlint rule), `pnpm lint:styles`, `pnpm lint:anti-slop`, `pnpm check:suppressions`, `pnpm arch:gate`, `pnpm fallow:audit` (including complexity in touched files), `pnpm secret-scan` (staged gitleaks) ([ADR 0125](../decisions/0125-pre-commit-runs-every-lint-style-and-architecture-gate.md)). Each step must finish in under 30 seconds; review holds this budget ([ADR 0062](../decisions/0062-pre-commit-steps-stay-under-30-seconds.md)). | Run the hook commands below |
 | Pre-push | `.husky/pre-push` | Every pushed branch contains freshly fetched origin/main (the one local up-to-date check), then `pnpm verify` (the full local gate suite, including the production build) and `pnpm e2e` (Playwright E2E and axe scan for every result). A clean merge from main skips pre-commit, so this is where it gets checked. | `pnpm verify` + `pnpm e2e` |
 | Local proof | `pnpm verify` + `pnpm e2e` | Context layer, suppression policy, positive doc phrasing, PRD links, required-gate contract, dependency ADR check, typecheck, Biome formatting and JSON and CSS lint, Oxlint lint, style check, vendored anti-slop rules (Oxlint), React Doctor, Fallow, architecture checks (`pnpm arch:check`), coverage per result and changed source, Web-API contract, API integration, slice E2E mapping, build, size, E2E. Local verify runs contract after coverage and before integration; CI unit, contract, integration and E2E lanes run in parallel, and `Required gates` needs all four. A console warning or error fails a Jest test or a Playwright page ([ADR 0086](../decisions/0086-console-warnings-fail-tests.md)). | `pnpm verify` + `pnpm e2e` |
 | Vendored anti-slop | `.oxlintrc.json` (`pnpm lint:anti-slop`) | Clean generic and Effect tag rules at `error`, with `--deny-warnings`, in pre-commit, `pnpm verify` and the existing CI quality job. `pnpm check:suppressions` rejects every inline suppression and coverage pragma; an exception lives in `ALLOWED_SUPPRESSIONS` in `scripts/check-suppressions.mjs`, which needs sign-off. | `pnpm lint:anti-slop` |
@@ -46,7 +49,7 @@ rules live in [AGENTS.md](../../AGENTS.md); proof requirements live in
 | PRD links | `scripts/check-prd-conflicts.mjs` (`pnpm check:docs`) | PRD behaviours link running E2E tests ([ADR 0045](../decisions/0045-prds-state-intent-and-link-their-specs.md)). | `pnpm check:docs` |
 | Dependency ADR | `scripts/check-dependency-adr.mjs` (`pnpm check:adr`) | New dependency names appear in an ADR added with the change ([ADR 0020](../decisions/0020-pr-process-checks.md)). | `pnpm check:adr` |
 | Required gates | `scripts/required-gates.mjs` (`pnpm gates:check`) | The `Required gates` job fails unless every `ci.yml` lane passed or legitimately did not apply; the workflows and `docs/required-gates.md` match the contract, and every hook command and `verify` step has a required CI equivalent. | `pnpm gates:check` |
-| Enforcement sign-off | `.github/workflows/enforcement-approval.yml` (`scripts/enforcement-approval.mjs`) | Head-specific approval for enforcement or product-intent changes; see [Enforcement approval](#enforcement-approval). | `node scripts/enforcement-approval.mjs --git origin/main HEAD` |
+| Enforcement sign-off | `.github/workflows/enforcement-approval.yml` (`scripts/enforcement-approval.mjs`) | Approval for the guarded enforcement or product-intent changes, carried to a new head only while they stay identical; see [Enforcement approval](#enforcement-approval). | `node scripts/enforcement-approval.mjs --git origin/main HEAD` |
 | Merge confidence | `.github/workflows/confidence.yml` (`scripts/confidence-label.mjs`) | Green, amber or red label from gates, E2E/PRD coverage, unit coverage and import blast radius. Coverage gaps grade red and fail the required coverage lane. | `node scripts/confidence-label.mjs --decide` with head evidence |
 | `pnpm verify`, CI | Lockfile checker | Stable installs | `pnpm check:lockfile` |
 | Unit tests in verify/CI | Jest (`tooling/trial/`) | Result inclusion and trial protocol | `pnpm test` |
@@ -146,7 +149,7 @@ See [ADR 0028](../decisions/0028-pre-push-runs-the-full-local-gate-suite.md).
 - CodeQL, gitleaks, pnpm audit, and the license check own security and
   dependency risk.
 
-Each lint rule has one owner ([ADR 0010](../decisions/0010-lint-engine-ownership.md),
+Each lint rule has one owner ([ADR 0126](../decisions/0126-oxlint-owns-all-lint-biome-only-formats.md),
 [ADR 0102](../decisions/0102-react-doctor-rules-run-as-an-oxlint-plugin.md)).
 
 ## Architecture checks
@@ -157,7 +160,7 @@ See [Architecture](ARCHITECTURE.md) for the roles and result structure.
 
 | Gate | Where it runs | Owning tool | Local mirror |
 | --- | --- | --- | --- |
-| Role boundaries, structure, contracts and diagram freshness | `pnpm verify`, pre-push, CI Fallow job | Fallow, structure and diagram scripts | `pnpm arch:gate` |
+| Role boundaries, structure, contracts and diagram freshness | pre-commit, `pnpm verify`, pre-push, CI Fallow job | Fallow, structure and diagram scripts | `pnpm arch:gate` |
 | Canonical role diagram | Same architecture suite | Diagram script | `pnpm arch:diagram && git diff --exit-code docs/architecture/roles.mmd` |
 | Public API reports | Same architecture suite | API Extractor | `pnpm api:check` |
 

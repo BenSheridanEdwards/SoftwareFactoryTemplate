@@ -86,8 +86,9 @@ policy.
 
 The `Required gates` aggregate covers CI lanes. CodeQL, Lighthouse and PR
 quality are separate checks. The `enforcement-approval` status is separate too:
-its head-specific checkbox must be edited by the designated human approver.
-Complete that checkbox action explicitly for the latest head. Keep an
+its checkbox must be edited by the designated human approver. A tick carries
+to a new head only while the guarded changes stay identical; tick again after
+they change. Keep an
 unavailable security check visibly unresolved.
 
 ## pnpm store caches
@@ -102,8 +103,10 @@ CI policy permits pnpm cache saves only from a run the maintainer starts by hand
 with `save_pnpm_cache` explicitly enabled and no exact hit. The input defaults
 to false; automated main-tree dispatches leave it unset. Keep PR runs and automated
 dispatches read-only for pnpm caches. This confines writers to maintainer-dispatched trusted
-main code. Keep pnpm store caches outside privileged workflow_run and
-pull_request_target workflows.
+main code. The `Fill caches from main` workflow
+(`.github/workflows/cache-seed.yml`) also saves caches from a push to main that
+changes a cache key input. Keep pnpm store caches outside privileged
+workflow_run and pull_request_target workflows.
 
 ## Secret scanning
 
