@@ -16,9 +16,9 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { lstatSync, readdirSync, readFileSync, readlinkSync } from 'node:fs';
+import { lstatSync, readdirSync, readFileSync, readlinkSync, realpathSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /** The repository root: this file lives in `scripts/`, so the root is its parent. */
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -33,7 +33,7 @@ const MINIMUM_NON_EMPTY_LINES = 20;
 const MAXIMUM_CONTRACT_BYTES = 32 * 1024;
 
 /**
- * The six project docs under `.agents/project/` that the start-here guide
+ * The five project docs under `.agents/project/` that the start-here guide
  * and the Definition of Done both promise exist.
  */
 const REQUIRED_PROJECT_DOCS = [
@@ -419,7 +419,7 @@ export function checkContextLayer(filesystem) {
   checkClaudePointer(filesystem, errors);
   checkStartHere(filesystem, errors);
 
-  // The six project docs.
+  // The five project docs.
   REQUIRED_PROJECT_DOCS.forEach((documentName) => {
     assertRegularFile(filesystem, `.agents/project/${documentName}`, errors);
   });
@@ -473,6 +473,6 @@ function runCli() {
 }
 
 // Run the CLI only when invoked directly, not when imported by a test.
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   runCli();
 }

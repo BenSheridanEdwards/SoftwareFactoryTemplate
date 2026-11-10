@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync, realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const LOG_DIRECTORY = '.cache/factory-usage';
 
@@ -146,6 +147,6 @@ export function runCli(argv, dependencies = {}) {
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   runCli(process.argv.slice(2));
 }
