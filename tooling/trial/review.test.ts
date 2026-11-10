@@ -222,6 +222,39 @@ describe('runReview', () => {
     expect(kept()).toBe(before);
   });
 
+  it.each([
+    ['todo-plain', true],
+    ['notes', false],
+  ])('takes a %s run as a to-do run: %s', async (name, reviewed) => {
+    const id = `${name}-01`;
+    put(
+      join(root, `docs/trials/${id}.json`),
+      JSON.stringify({
+        ...RECORD,
+        schema: 2,
+        task: {
+          name,
+          definitionSha256: 'a'.repeat(64),
+          target: null,
+          checks: [],
+          land: 'showcase',
+        },
+        trial: { ...RECORD.trial, id, branch: `trial/${id}` },
+        agent: { ...RECORD.agent, name: 'claude', modelSource: 'stream', reasoningEffort: null },
+        run: { ...RECORD.run, tokenUsage: null },
+      }),
+    );
+    put(join(checkClone(), `showcase/${id}/api/src/domain.ts`), 'export {};\n');
+    const run = runReview(
+      planReview({ id, workdir, root, agent: 'claude', agentCommand: fakeReviewer() }),
+      systemDeps(),
+    );
+
+    await (reviewed
+      ? expect(run).resolves.toMatchObject({ id, judgment: ANSWER })
+      : expect(run).rejects.toThrow(`is not the to-do run ${id}`));
+  });
+
   it('writes nothing when the reviewer gives no valid answer', async () => {
     checkClone();
 

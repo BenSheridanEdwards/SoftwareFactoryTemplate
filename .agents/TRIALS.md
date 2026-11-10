@@ -93,3 +93,51 @@ harness starts a new baseline: run all six trials again.
 
 The review is evidence for the study and changes no run's status. Run it
 only in this loop; pull requests keep their own gates.
+
+## The two-arm test
+
+The two-arm test checks the factory claim: a run with the gates gives code a
+reviewer wants at least as often, with fewer reviewer flags, than a run with
+the written rules alone
+([ADR 0127](decisions/0127-test-the-factory-claim-against-a-plain-arm.md)).
+The gated arm is the three reviewed Todo trials above. The plain arm builds
+the same brief on the plain scaffold, which keeps the written rules and has
+no lint or architecture gate.
+
+1. Run and review the three gated trials at scaffold `<rev>`, as above.
+2. Make the plain scaffold. The command prints its commit and keeps it under
+   `refs/trials/plain-scaffold`:
+
+   ```bash
+   node tooling/trial/arms.mjs scaffold --scaffold <rev>
+   ```
+
+3. Run three plain trials at the printed commit, one at a time:
+
+   ```bash
+   pnpm trial --task tooling/trial/tasks/todo-plain.json --trial 1 --scaffold <plain-rev> --trials-root <dir>
+   ```
+
+4. After each plain trial, put its result on the gated scaffold and review it
+   there, so one reviewer reads both arms in the same tree:
+
+   ```bash
+   node tooling/trial/arms.mjs transplant --id todo-plain-01 --workdir <dir>/todo-plain-01-<stamp>/transplant
+   node tooling/trial/review.mjs --id todo-plain-01 --workdir <dir>/todo-plain-01-<stamp>/transplant
+   ```
+
+   Then fetch the result branch and remove the workdir.
+5. Commit the records, streams, patches and reviews, then write the report:
+
+   ```bash
+   node tooling/trial/arms.mjs report
+   ```
+
+`docs/trials/arms.md` lists each run, the medians per arm and the verdict:
+supported, refuted or inconclusive. The rule is fixed in ADR 0127. The command
+exits non-zero only when the comparison is incomplete: fewer than three runs
+in an arm, a missing review, a second model or reviewer, or a plain scaffold
+that differs from the gated scaffold without its gates. Pass `--agent codex`
+to each command for the Codex arms, `todo-codex-01..03` and
+`todo-plain-codex-01..03`. A change to either prompt, either task or the
+stripped paths starts a new baseline: run all six trials again.

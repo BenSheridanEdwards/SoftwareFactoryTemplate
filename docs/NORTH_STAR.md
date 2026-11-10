@@ -68,6 +68,16 @@ On 26 October 2026, commit `9ee8e71` cleared the 23 October Todo results and the
 The tree records no current Todo result. `docs/trials/superseded/` keeps older Codex runs as evidence only.
 Review holds the senior-engineer judgment on edge cases. It has no gate and stays a target.
 
+## The claim under test
+
+The factory makes one claim that a test can refute. On the same brief, model and scaffold revision, a run
+with the gates gives code a reviewer wants at least as often, with fewer reviewer flags, than a run with
+the written rules alone. The two-arm test runs it
+([ADR 0127](../.agents/decisions/0127-test-the-factory-claim-against-a-plain-arm.md)): three gated Todo
+trials, three plain trials on a scaffold without the lint and architecture gates, one reviewer, and a
+decision rule fixed before any run. `node tooling/trial/arms.mjs report` writes the verdict to
+`docs/trials/arms.md`. The tree records no two-arm result yet. A refuted claim is a reason to remove gates.
+
 ## Sibling tools
 
 The template connects to three tools. None of them is wired into this repo today.
@@ -110,6 +120,7 @@ Installed measures:
 Targets, with no gate yet:
 
 - A recorded reproducibility test on the current scaffold, with a named human's judgment on each divergence.
+- A recorded two-arm test on the current scaffold, with its verdict.
 - A measure of velocity with AI.
 - The open source goal. Its measure sits outside this repo.
 

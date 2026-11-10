@@ -33,6 +33,8 @@ const OUTPUT_TAIL_LINES = 40;
 const SCHEMA_ARG = '{{REVIEW_SCHEMA}}';
 /** What Oxlint prints, before its JSON report, when a path holds no file it lints. */
 const NO_FILES = 'No files found to lint.';
+/** The Todo brief's two arms: the gated task and the plain task (ADR 0127). */
+const TODO_TASKS = ['todo', 'todo-plain'];
 
 /** The configs used by `pnpm lint:anti-slop` and `pnpm lint:policy`. */
 const LINTS = [
@@ -370,7 +372,10 @@ export async function runReview(plan, deps) {
     throw new Error(`${reviewName} exists. Every review counts; keep the first one.`);
   }
   const evidence = validateEvidence(JSON.parse(readFileSync(plan.evidencePath, 'utf8')));
-  if (evidence.trial.id !== plan.id || (evidence.schema === 2 && evidence.task.name !== 'todo')) {
+  if (
+    evidence.trial.id !== plan.id ||
+    (evidence.schema === 2 && !TODO_TASKS.includes(evidence.task.name))
+  ) {
     throw new Error(`${relative(plan.root, plan.evidencePath)} is not the to-do run ${plan.id}.`);
   }
   const { read, cwd } = resultClone(plan);
