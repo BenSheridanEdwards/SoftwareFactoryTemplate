@@ -1,0 +1,53 @@
+# Bring behind pull requests up to date, ADR 0129
+# (.agents/decisions/0129-update-behind-pull-requests-automatically.md).
+#
+# Branch protection on main is strict, so a PR that falls behind main cannot
+# merge. On every push to main this merges main into each open, ready,
+# same-repo PR that is behind it (GitHub's update-branch, merge method). A push
+# made with GITHUB_TOKEN starts no pull_request run, so scripts/update-behind-prs.mjs
+# then dispatches each workflow that reports a required check on the PR branch,
+# and the enforcement gate on main, so the new head is judged and an unchanged
+# sign-off carries. A PR that conflicts with main gets one comment instead.
+name: Update behind PRs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Update only this pull request number; leave empty for every behind PR
+        required: false
+        default: ''
+
+permissions: {}
+
+# Queue rather than cancel: a cancelled run could leave an updated PR with no
+# dispatched checks. GitHub keeps one pending run, the newest.
+concurrency:
+  group: update-behind-prs
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Bring behind PRs up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # contents:write for update-branch's merge commit; pull-requests:write to read
+    # PRs and to comment on one that conflicts; actions:write to dispatch the
+    # checks GITHUB_TOKEN's push does not start.
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/update-behind-prs.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { run } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/update-behind-prs.mjs`);
+            await run({ github, context, core });

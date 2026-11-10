@@ -154,7 +154,7 @@ export const REQUIRED_GATES = [
       when: "steps.changes.outputs.ui-changed == 'true'",
     },
     appliesWhen:
-      'Pull requests. Audits run only when `scripts/lighthouse-scope.mjs` finds UI-relevant files; otherwise the job passes without auditing.',
+      'Pull requests, and the dispatch that re-runs them after an automatic update. Audits run only when `scripts/lighthouse-scope.mjs` finds UI-relevant files, and always in a dispatch; otherwise the job passes without auditing.',
     local: '`node scripts/lighthouse-scope.mjs origin/main...HEAD`, then `pnpm build && pnpm lhci`',
   },
   {
@@ -167,7 +167,7 @@ export const REQUIRED_GATES = [
       when: "steps.changes.outputs.ui-changed == 'true'",
     },
     appliesWhen:
-      'Pull requests. Reference screenshots run on the same UI-relevant changes as Lighthouse; other changes pass without capturing.',
+      'Pull requests, and the dispatch that re-runs them after an automatic update. Reference screenshots run on the same UI-relevant changes as Lighthouse; other changes pass without capturing.',
     local: '`pnpm visual` (Linux Chromium)',
   },
   {
@@ -176,7 +176,8 @@ export const REQUIRED_GATES = [
     job: 'pr-body',
     judgedBy: 'branch protection',
     if: "!endsWith(github.event.pull_request.user.login, '[bot]')",
-    appliesWhen: 'Pull requests not opened by a bot account.',
+    appliesWhen:
+      'Pull requests not opened by a bot account, and the dispatch that re-runs them after an automatic update.',
     local: '`pnpm validate:pr` with `PR_TITLE` and `PR_BODY` set',
   },
 ];
@@ -307,7 +308,7 @@ export const HOOK_STEPS = [
     job: 'coverage',
     steps: [
       {
-        run: 'changed="$(git -c core.quotePath=false diff --name-only HEAD^1..."$HEAD_SHA")" && CHANGED="$changed" node scripts/confidence-label.mjs --coverage-gate',
+        run: 'changed="$(git -c core.quotePath=false diff --name-only "$BASE"..."$HEAD_SHA")" && CHANGED="$changed" node scripts/confidence-label.mjs --coverage-gate',
       },
     ],
   },

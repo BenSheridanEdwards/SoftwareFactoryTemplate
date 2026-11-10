@@ -106,13 +106,18 @@ describe('lighthouse-scope CLI', () => {
     return { directory, git };
   }
 
-  function runScope(directory: string) {
+  function runScope(directory: string, event = 'pull_request') {
     const output = join(directory, 'output');
     const summary = join(directory, 'summary');
     const result = spawnSync('node', [SCRIPT], {
       cwd: directory,
       encoding: 'utf8',
-      env: { ...process.env, GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary },
+      env: {
+        ...process.env,
+        GITHUB_EVENT_NAME: event,
+        GITHUB_OUTPUT: output,
+        GITHUB_STEP_SUMMARY: summary,
+      },
     });
     const read = (path: string) => readFileSync(path, 'utf8');
     const outcome = { status: result.status, output: read(output), summary: read(summary) };
@@ -130,6 +135,13 @@ describe('lighthouse-scope CLI', () => {
     expect(outcome.output).toBe('ui-changed=true\n');
     expect(outcome.summary).toContain('apps/web/src/App.tsx');
     expect(outcome.summary).not.toContain('README.md');
+  });
+
+  it('runs every comparison in a dispatched run, whose HEAD^1 is not main', () => {
+    const outcome = runScope(runInRepository(['README.md']).directory, 'workflow_dispatch');
+    expect(outcome.status).toBe(0);
+    expect(outcome.output).toBe('ui-changed=true\n');
+    expect(outcome.summary).toContain('a workflow_dispatch run has no pull request diff');
   });
 
   it('reports ui-changed=false when the head commit touches only non-UI files', () => {

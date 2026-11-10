@@ -7,7 +7,8 @@
 # checks out main alone, and runs no PR code. It asks for a sign-off only when
 # the PR loosens or rewrites what the gates enforce.
 # Like every pull_request_target and issue_comment workflow, it takes effect once
-# it lands on main.
+# it lands on main. update-behind-prs.yml dispatches it on main with the PR
+# number after it updates a PR, because that push starts no PR event (ADR 0129).
 name: Enforcement approval
 
 on:
@@ -15,6 +16,11 @@ on:
     types: [opened, edited, synchronize, reopened]
   issue_comment:
     types: [edited] # ticking the approval box edits the gate's comment
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to judge at its current head
+        required: true
 
 permissions: {}
 
@@ -23,8 +29,11 @@ jobs:
     # Any edit of the comment this workflow wrote on a PR reaches the script,
     # whoever made it and whether or not it kept the marker, so the script can
     # clear any edit but the approver's fresh tick.
+    # A dispatch counts only on the default branch, so main's copy of this file runs.
     if: >-
       github.event_name == 'pull_request_target' ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) ||
       (github.event.issue.pull_request &&
       github.event.comment.user.login == 'github-actions[bot]' &&
       (startsWith(github.event.comment.body, '<!-- enforcement-approval -->') ||
@@ -34,7 +43,7 @@ jobs:
     # Job-level, so a run whose job is skipped, such as an edit of any other
     # comment, never joins the group and cancels a queued gate run.
     concurrency:
-      group: enforcement-approval-${{ github.event.pull_request.number || github.event.issue.number }}
+      group: enforcement-approval-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr }}
       cancel-in-progress: false
     # contents:read for main's script, the merge base, and the guarded files;
     # pull-requests:write for the head SHA, the files, and the gate's comment (a
