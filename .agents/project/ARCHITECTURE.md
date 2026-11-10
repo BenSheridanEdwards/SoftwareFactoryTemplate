@@ -187,7 +187,10 @@ only the result's own api (types only) and `@repo/ui`.
 
 Every gate includes results through shared globs (`tooling/trial/inclusion.test.ts`).
 Each result must reach 80 percent coverage and pass its own E2E specs plus
-`tooling/trial/acceptance/todo.spec.ts` as `<id>-acceptance`. A recorded result keeps only a duplication and health exception that
+`tooling/trial/acceptance/todo.spec.ts` as `<id>-acceptance`. Code-duplication analysis skips every result under `showcase/`, because a
+result copies the reference's template files
+([ADR 0128](../decisions/0128-warning-findings-and-test-console-warnings-fail.md)).
+A recorded result keeps only a health exception that
 [ADR 0059](../decisions/0059-preserve-recorded-trial-outputs-in-duplication-analysis.md)
 names; none is named today.
 

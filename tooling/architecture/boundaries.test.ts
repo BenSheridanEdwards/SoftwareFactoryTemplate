@@ -1,8 +1,16 @@
 /**
  * @jest-environment node
  */
-import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { type SpawnSyncReturns, spawnSync } from 'node:child_process';
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -469,5 +477,135 @@ describe('Fallow contract over the reference result', () => {
     );
     expect(result.status).toBe(1);
     expect(result.stdout).toContain('suppression is missing a reason');
+  });
+});
+
+describe('A Fallow warning fails the gate', () => {
+  jest.setTimeout(30_000);
+  const archGate: string = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8'))
+    .scripts['arch:gate'];
+  // The Fallow steps of `pnpm arch:gate`, each as words; the structure and diagram checks read the whole repo.
+  const fallowSteps = archGate
+    .slice(0, archGate.indexOf(' && node tooling/architecture/structure.mjs'))
+    .split(' && ')
+    .map((step) => step.split(' '));
+  const config = readFileSync(join(REPOSITORY_ROOT, '.fallowrc.jsonc'), 'utf8');
+  const pack = readFileSync(join(REPOSITORY_ROOT, RULE_PACK), 'utf8');
+  const routeImportsRoute = {
+    [`${WEB}/routes/greeting/index.ts`]:
+      "import { settings } from '../settings';\nexport const greeting = settings;\n",
+  };
+  const warnBoundaries = {
+    '.fallowrc.jsonc': config.replace(
+      '"rules": {',
+      '"rules": {\n    "boundary-violation": "warn",',
+    ),
+  };
+  /** Runs each step without a shell, as `&&` does, from the seeded directory. */
+  const runGate = (directory: string) =>
+    fallowSteps.reduce<SpawnSyncReturns<string> | undefined>(
+      (previous, [command = '', ...args]) =>
+        previous && previous.status !== 0
+          ? previous
+          : spawnSync(
+              command === 'fallow' ? FALLOW_BIN : process.execPath,
+              command === 'fallow' ? args : args.map((arg) => join(REPOSITORY_ROOT, arg)),
+              { cwd: directory, encoding: 'utf8' },
+            ),
+      undefined,
+    ) ?? { status: null, stderr: 'The gate has no Fallow steps' };
+
+  it('runs the severity check before Fallow in the gate', () => {
+    expect(fallowSteps).toEqual([
+      ['node', 'scripts/check-fallow-severity.mjs'],
+      ['fallow', 'architecture', '-q'],
+    ]);
+  });
+
+  it('passes the clean layout under the real config', () => {
+    expect(withSeededRepository({}, runGate).status).toBe(0);
+  });
+
+  it('fails a boundary violation that Fallow reports as a warning and lets pass', () => {
+    const seed = { ...routeImportsRoute, ...warnBoundaries };
+    const fallowAlone = withSeededRepository(seed, (directory) =>
+      spawnSync(FALLOW_BIN, ['architecture', '-q', '--format', 'json'], {
+        cwd: directory,
+        encoding: 'utf8',
+      }),
+    );
+    const report: ArchitectureReport = JSON.parse(fallowAlone.stdout);
+    expect(fallowAlone.status).toBe(0);
+    expect(report.boundary_violations?.map(({ to_zone }) => to_zone)).toEqual([
+      'web-routes/settings',
+    ]);
+
+    const gate = withSeededRepository(seed, runGate);
+    expect(gate.status).toBe(1);
+    expect(gate.stderr).toContain('  - rule boundary-violation');
+  });
+
+  it.each([
+    ['0, its default, which leaves each clone group a warning', '0'],
+    ['5, which lets a clone group under 5% pass as a warning', '5'],
+  ])('fails a duplication threshold of %s', (_case, threshold) => {
+    const seed = {
+      '.fallowrc.jsonc': config.replace('"threshold": 0.001', `"threshold": ${threshold}`),
+    };
+    const gate = withSeededRepository(seed, runGate);
+    expect(gate.status).toBe(1);
+    expect(gate.stderr).toContain(`  - duplicates.threshold ${threshold} `);
+  });
+
+  it('fails the audit on a clone group that Fallow passes as a warning without the threshold', () => {
+    const helper = `function summarise(values: readonly number[]) {\n  const doubled = values.map((value) => value * 2);\n  const kept = doubled.filter((value) => value > 10);\n  const total = kept.reduce((sum, value) => sum + value, 0);\n  const mean = total / Math.max(kept.length, 1);\n  const largest = kept.reduce((top, value) => Math.max(top, value), 0);\n  return { doubled, kept, total, mean, largest };\n}\n`;
+    const clones = {
+      [`${GREETING}/application.ts`]: `${LAYOUT[`${GREETING}/application.ts`]}${helper}`,
+      [`${GREETING}/procedures.ts`]: `${LAYOUT[`${GREETING}/procedures.ts`]}${helper}`,
+    };
+    const audit = (seedConfig: string) =>
+      withSeededRepository({ '.fallowrc.jsonc': seedConfig }, (directory) => {
+        const git = (...args: string[]) =>
+          spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+            cwd: directory,
+            encoding: 'utf8',
+          });
+        git('init', '-q', '-b', 'main');
+        git('add', '-A');
+        git('commit', '-qm', 'base');
+        Object.entries(clones).forEach(([path, source]) => {
+          writeFileSync(join(directory, path), source);
+        });
+        git('commit', '-qam', 'clone');
+        return spawnSync(FALLOW_BIN, ['audit', '--base', 'HEAD~1', '--format', 'json', '-q'], {
+          cwd: directory,
+          encoding: 'utf8',
+        });
+      });
+    const verdict = (run: { stdout: string }) => {
+      const report = JSON.parse(run.stdout);
+      return [
+        report.verdict,
+        report.summary.duplication_clone_groups,
+        report.summary.dead_code_issues,
+      ];
+    };
+
+    const withoutThreshold = audit(config.replace('"threshold": 0.001', '"threshold": 0'));
+    expect([withoutThreshold.status, verdict(withoutThreshold)]).toEqual([0, ['warn', 1, 0]]);
+    const withThreshold = audit(config);
+    expect([withThreshold.status, verdict(withThreshold)]).toEqual([1, ['fail', 1, 0]]);
+  });
+
+  it('fails a rule-pack rule set to warn', () => {
+    const seed = {
+      [RULE_PACK]: pack.replace(
+        '"id": "domain-pure",',
+        '"id": "domain-pure",\n      "severity": "warn",',
+      ),
+    };
+    const gate = withSeededRepository(seed, runGate);
+    expect(gate.status).toBe(1);
+    expect(gate.stderr).toContain(`  - rule pack ${RULE_PACK}`);
   });
 });
