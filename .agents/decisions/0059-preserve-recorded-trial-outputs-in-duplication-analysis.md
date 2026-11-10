@@ -1,7 +1,10 @@
 # 59. Preserve recorded trial outputs in duplication and styling analysis
 
 - **Status:** Accepted on 23 October 2026 (merged in #127); amended on
-  3 November 2026 to remove the dead per-run entries
+  3 November 2026 to remove the dead per-run entries; amended by
+  [0128](0128-warning-findings-and-test-console-warnings-fail.md), which
+  leaves every showcase result out of code-duplication analysis, so the
+  title now holds for styling, complexity and health analysis only
 - **Approval:** On 23 October 2026 the maintainer approved excluding the six
   generated Todo trial outputs from Fallow's duplication and styling scan as
   an exemption, keeping real-code rules, thresholds and severities unchanged
@@ -21,21 +24,26 @@ results also keep separate architecture boundaries.
 
 ## Decision
 
-Use `duplicates.ignore` and `health.ignore` in `.fallowrc.jsonc` only for a
-recorded trial result that is on main and needs the exemption. Name each such
-result by its own path, such as `showcase/todo-01/**`, in both lists, and
-record the maintainer's sign-off for it in this ADR. `.fallowrc.jsonc` is
-outside the enforcement gate's guarded paths, so review holds this rule.
+Use `health.ignore` in `.fallowrc.jsonc` only for a recorded trial result
+that is on main and needs the exemption. Name each such result by its own
+path, such as `showcase/todo-01/**`, and record the maintainer's sign-off for
+it in this ADR. `.fallowrc.jsonc` is outside the enforcement gate's guarded
+paths, so review holds this rule. For code duplication,
+[ADR 0128](0128-warning-findings-and-test-console-warnings-fail.md) replaces
+the per-result `duplicates.ignore` entries with one `showcase/**` entry, so
+add no named duplication entry here.
 
-No showcase result is ignored today. The six Todo results this record first
+No showcase result has a health exception today. The six Todo results this record first
 named were removed in #172, which also listed six Notes results that never
 landed on main. All 24 per-run entries matched no file. This amendment on 3 November 2026
 removes them along with both lists.
 
 Preserve the recorded source, records, streams and comparison byte for byte.
 Keep all Fallow checks on `apps/`, `packages/`, tooling and every other
-result directory, including future trial IDs. Keep the existing thresholds,
-rule severities, architecture rules and ADR 0054 router-export exemption.
+result directory, including future trial IDs, apart from the code-duplication
+exemption ADR 0128 gives every showcase result. Keep the existing thresholds,
+apart from the duplication threshold ADR 0128 sets, and the rule severities,
+architecture rules and ADR 0054 router-export exemption.
 
 Fallow 3.33.1 reports `css-duplicate-block` through its separate styling
 analysis. Its [versioned CSS scanner](https://github.com/fallow-rs/fallow/blob/v3.33.1/crates/engine/src/health/css_analytics/mod.rs)
@@ -48,11 +56,10 @@ when the new-head CI report proves its warning has disappeared.
 
 ## Consequences
 
-Fallow runs code-duplication, styling, complexity and health analysis on
-every showcase result, including future trial IDs, until one gets a named
-entry here. A named result keeps its dead-code and architecture checks.
-Removing a result's `health.ignore` entry restores its styling and complexity
-analysis; removing its `duplicates.ignore` entry restores code-duplication
-reporting. `scripts/bench/generate.mjs` adds its generated
+Fallow runs styling, complexity and health analysis on every showcase
+result, including future trial IDs, until one gets a named entry here, and
+runs code-duplication analysis on none of them (ADR 0128). A named result
+keeps its dead-code and architecture checks. Removing a result's
+`health.ignore` entry restores its styling and complexity analysis. `scripts/bench/generate.mjs` adds its generated
 `showcase/bench-*/**` clones to both lists in a temporary copy, creating the
 lists when they are absent.

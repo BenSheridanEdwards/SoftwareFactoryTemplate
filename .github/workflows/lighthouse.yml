@@ -6,7 +6,11 @@ name: Lighthouse
 # name. Accessibility and layout shift are hard floors; performance,
 # best-practices, and the noisy timing metrics warn. Every assertion uses the
 # median of three runs — see lighthouserc.json.
-on: pull_request
+# update-behind-prs.yml dispatches it on a PR branch it updated (ADR 0129);
+# outside a pull_request run the scope script audits in full.
+on:
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

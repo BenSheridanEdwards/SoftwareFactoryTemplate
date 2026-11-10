@@ -268,7 +268,7 @@ it('collects the PR file list even when main already contains the same Unicode-p
     const result = spawnSync('bash', ['-ec', `${command}\nprintf '%s' "$changed"`], {
       cwd: directory,
       encoding: 'utf8',
-      env: { ...process.env, HEAD_SHA: head },
+      env: { ...process.env, HEAD_SHA: head, BASE: 'HEAD^1' },
     });
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('café.txt');

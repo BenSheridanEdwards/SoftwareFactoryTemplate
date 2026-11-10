@@ -2360,6 +2360,33 @@ describe('guard comment placement and approval carry-over', () => {
     expectCleared(fake);
   });
 
+  it('carries the tick when the update workflow dispatches the gate for the PR it updated', async () => {
+    const fake = setup();
+    await run({ github: fake.github, context: pullRequestContext, core });
+    await run({ github: fake.github, context: fake.editBy(ben, (body) => tick(body)), core });
+    fake.state.head = NEXT;
+    const dispatched = { eventName: 'workflow_dispatch', repo, payload: { inputs: { pr: '7' } } };
+    await run({ github: fake.github, context: dispatched, core });
+    expect(fake.calls.createCommitStatus.at(-1)).toEqual(
+      expect.objectContaining({ sha: NEXT, state: 'success' }),
+    );
+  });
+
+  it('refuses a dispatch that does not name one pull request number', async () => {
+    const fake = setup();
+    await Promise.all(
+      [{}, { pr: '' }, { pr: '7; true' }, { pr: '0' }].map((inputs) =>
+        expect(
+          run({
+            github: fake.github,
+            context: { eventName: 'workflow_dispatch', repo, payload: { inputs } },
+            core,
+          }),
+        ).rejects.toThrow('names no pull request'),
+      ),
+    );
+  });
+
   it('rebuilds the carried label from checked parts only', async () => {
     const fake = setup();
     await run({ github: fake.github, context: pullRequestContext, core });

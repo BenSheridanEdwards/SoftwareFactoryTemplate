@@ -2208,13 +2208,33 @@ async function writeComment({ github, repo, number, existing, older, body, repos
 }
 
 /**
+ * The PR a run judges: from its event, or from `inputs.pr` when
+ * `update-behind-prs` dispatches the gate after it updates a PR (ADR 0129).
+ * A dispatch is judged exactly like a PR event for the PR's current head.
+ *
+ * @param {any} context
+ * @returns {number}
+ */
+function pullRequestNumber(context) {
+  const fromEvent = context.payload.pull_request?.number ?? context.payload.issue?.number;
+  if (fromEvent !== undefined) return fromEvent;
+  const input = String(context.payload.inputs?.pr ?? '');
+  if (!/^[1-9]\d*$/.test(input)) {
+    throw new Error(
+      `The ${context.eventName} run names no pull request: inputs.pr is ${JSON.stringify(input)}.`,
+    );
+  }
+  return Number(input);
+}
+
+/**
  * The `actions/github-script` entry point. It reads the head, the files and the
  * comment live, so a rerun or a late run judges the PR as it is now, and posts
  * the status on that head. A rerun with nothing new makes no comment write.
  */
 export async function run({ github, context, core }) {
   const repo = context.repo;
-  const number = context.payload.pull_request?.number ?? context.payload.issue?.number;
+  const number = pullRequestNumber(context);
   const { data: pullRequest } = await github.rest.pulls.get({ ...repo, pull_number: number });
   const head = pullRequest.head.sha;
 

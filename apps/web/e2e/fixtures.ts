@@ -1,4 +1,5 @@
-import { test as base, type ConsoleMessage, expect } from '@playwright/test';
+import { format } from 'node:util';
+import { test as base, type ConsoleMessage, expect, type WebError } from '@playwright/test';
 
 export { expect, type Page } from '@playwright/test';
 
@@ -7,35 +8,69 @@ interface ConsoleFixtures {
   expectConsole: (pattern: RegExp) => void;
 }
 
+type RunnerMethod = 'warn' | 'error';
+
+const RUNNER_METHODS: RunnerMethod[] = ['warn', 'error'];
+// Node prints its own process warnings through console.error; the warning listener records them.
+const NODE_WARNING = `(node:${process.pid}) `;
+
 export const test = base.extend<ConsoleFixtures>({
   expectedConsole: [[], { option: true }],
   expectConsole: [
-    async ({ page, expectedConsole }, use) => {
+    async ({ context, expectedConsole }, use, testInfo) => {
       const messages: string[] = [];
       const expected = [...expectedConsole];
+      // The context hears every page, popup and worker the test opens.
       const recordConsole = (message: ConsoleMessage) => {
         if (message.type() === 'warning' || message.type() === 'error') {
           messages.push(`console.${message.type()}: ${message.text()}`);
         }
       };
-      const recordError = (error: Error) => {
-        messages.push(`pageerror: ${error.message}`);
+      const recordError = (error: WebError) => {
+        messages.push(`pageerror: ${error.error().message}`);
       };
-      page.on('console', recordConsole);
-      page.on('pageerror', recordError);
+      // The test's own Node process: spec code, Playwright and Node warnings.
+      const originals = RUNNER_METHODS.map((method) => [method, console[method]] as const);
+      const recordWarning = (warning: Error) => {
+        messages.push(`runner warning: ${warning.message}`);
+      };
+      context.on('console', recordConsole);
+      context.on('weberror', recordError);
+      process.on('warning', recordWarning);
+      originals.forEach(([method, original]) => {
+        console[method] = (...args: unknown[]) => {
+          const text = format(...args);
+          if (!text.startsWith(NODE_WARNING)) {
+            messages.push(`runner console.${method}: ${text}`);
+          }
+          original(...args);
+        };
+      });
       await use((pattern) => {
         expected.push(pattern);
       });
-      page.off('console', recordConsole);
-      page.off('pageerror', recordError);
-      expect({
+      await new Promise((resolve) => setImmediate(resolve));
+      originals.forEach(([method, original]) => {
+        console[method] = original;
+      });
+      process.off('warning', recordWarning);
+      context.off('console', recordConsole);
+      context.off('weberror', recordError);
+      const guard = {
         unexpected: messages.filter(
           (message) => !expected.some((pattern) => message.search(pattern) !== -1),
         ),
         missing: expected
           .filter((pattern) => !messages.some((message) => message.search(pattern) !== -1))
           .map(String),
-      }).toEqual({ unexpected: [], missing: [] });
+      };
+      if (guard.unexpected.length > 0 || guard.missing.length > 0) {
+        await testInfo.attach('console-guard.json', {
+          body: JSON.stringify(guard),
+          contentType: 'application/json',
+        });
+      }
+      expect(guard).toEqual({ unexpected: [], missing: [] });
     },
     { auto: true },
   ],

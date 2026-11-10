@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import {
   AGGREGATE,
   checkContract,
+  checkDispatches,
   compareLiveProtection,
   compareProtection,
   decideRequiredGates,
@@ -63,6 +64,7 @@ const REAL_FILES = {
   'lighthouse.yml': repoFile('.github/workflows/lighthouse.yml'),
   'visual.yml': repoFile('.github/workflows/visual.yml'),
   'pr-quality.yml': repoFile('.github/workflows/pr-quality.yml'),
+  'enforcement-approval.yml': repoFile('.github/workflows/enforcement-approval.yml'),
 };
 
 function runCheckIn(files: Record<string, string>) {
@@ -373,6 +375,31 @@ describe('checkContract', () => {
     expect(repoFile('docs/required-gates.md')).toBe(renderInventory());
   });
 
+  it('fails when a required-check workflow cannot be re-run after an automatic update', () => {
+    const errors = contractErrors((files) => ({
+      'lighthouse.yml': files['lighthouse.yml'].replace('  workflow_dispatch:\n', ''),
+    }));
+    expect(errors).toContain(
+      'lighthouse.yml reports a required check, so it needs a `workflow_dispatch` trigger for automatic updates (ADR 0129).',
+    );
+  });
+
+  it('fails when DISPATCHES drops a required-check workflow or runs the gate off main', () => {
+    const read = (name: string) => repoFile(`.github/workflows/${name}`);
+    expect(
+      checkDispatches(read, [
+        { workflow: 'ci.yml', onMain: false },
+        { workflow: 'codeql.yml', onMain: false },
+        { workflow: 'lighthouse.yml', onMain: false },
+        { workflow: 'visual.yml', onMain: false },
+        { workflow: 'enforcement-approval.yml', onMain: false },
+      ]),
+    ).toEqual([
+      'pr-quality.yml reports a required check, so add it to DISPATCHES in scripts/update-behind-prs.mjs (ADR 0129).',
+      'enforcement-approval.yml reports a required check, so dispatch it on main in DISPATCHES.',
+    ]);
+  });
+
   it('names the pre-commit gate when its CI command is removed', () => {
     const errors = contractErrors((files) => ({
       'ci.yml': files['ci.yml'].replace('      - run: pnpm lint:anti-slop\n', ''),
@@ -656,6 +683,7 @@ describe('checkContract', () => {
             : REAL_FILES['ci.yml'].replace('      - run: pnpm lint:anti-slop\n', ''),
       'scripts/required-gates.mjs': repoFile('scripts/required-gates.mjs'),
       'scripts/enforcement-approval.mjs': repoFile('scripts/enforcement-approval.mjs'),
+      'scripts/update-behind-prs.mjs': repoFile('scripts/update-behind-prs.mjs'),
       'docs/required-gates.md': renderInventory(),
     };
     const result = runCheckIn(files);
@@ -675,6 +703,7 @@ describe('checkContract', () => {
       ...bumpWorkflows([[SN_OLD, SN_NEW]], true)(REAL_FILES),
       'scripts/required-gates.mjs': repoFile('scripts/required-gates.mjs'),
       'scripts/enforcement-approval.mjs': repoFile('scripts/enforcement-approval.mjs'),
+      'scripts/update-behind-prs.mjs': repoFile('scripts/update-behind-prs.mjs'),
       'docs/required-gates.md': renderInventory(),
     };
     const result = runCheckIn(files);
@@ -688,6 +717,7 @@ describe('checkContract', () => {
       ...bumpWorkflows([[SN_OLD, SN_NEW]])(REAL_FILES),
       'scripts/required-gates.mjs': repoFile('scripts/required-gates.mjs'),
       'scripts/enforcement-approval.mjs': repoFile('scripts/enforcement-approval.mjs'),
+      'scripts/update-behind-prs.mjs': repoFile('scripts/update-behind-prs.mjs'),
       'docs/required-gates.md': renderInventory(),
     };
     const result = runCheckIn(files);

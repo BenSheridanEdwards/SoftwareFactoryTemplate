@@ -25,7 +25,7 @@
     "lint:policy": "env -u NAPI_RS_NATIVE_LIBRARY_PATH -u VP_VERSION -u OXLINT_TSGOLINT_PATH oxlint --no-ignore --config oxlint.config.ts --deny-warnings",
     "react-doctor": "react-doctor . --no-lint --no-supply-chain --no-telemetry --blocking warning --yes",
     "fallow:audit": "bash scripts/fallow-audit.sh",
-    "arch:gate": "fallow architecture -q && node tooling/architecture/structure.mjs && node tooling/architecture/diagram.mjs --check",
+    "arch:gate": "node scripts/check-fallow-severity.mjs && fallow architecture -q && node tooling/architecture/structure.mjs && node tooling/architecture/diagram.mjs --check",
     "arch:diagram": "node tooling/architecture/diagram.mjs",
     "arch:check": "pnpm arch:gate && pnpm arch:diagram && git diff --exit-code docs/architecture/roles.mmd && pnpm api:check",
     "api:report": "node scripts/api-report.mjs --local",

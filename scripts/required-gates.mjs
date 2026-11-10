@@ -26,6 +26,7 @@ import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } fr
 import { dirname, matchesGlob, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { STATUS_CONTEXT } from './enforcement-approval.mjs';
+import { DISPATCHES } from './update-behind-prs.mjs';
 
 export const REQUIRED_STATUSES = [STATUS_CONTEXT];
 
@@ -154,7 +155,7 @@ export const REQUIRED_GATES = [
       when: "steps.changes.outputs.ui-changed == 'true'",
     },
     appliesWhen:
-      'Pull requests. Audits run only when `scripts/lighthouse-scope.mjs` finds UI-relevant files; otherwise the job passes without auditing.',
+      'Pull requests, and the dispatch that re-runs them after an automatic update. Audits run only when `scripts/lighthouse-scope.mjs` finds UI-relevant files, and always in a dispatch; otherwise the job passes without auditing.',
     local: '`node scripts/lighthouse-scope.mjs origin/main...HEAD`, then `pnpm build && pnpm lhci`',
   },
   {
@@ -167,7 +168,7 @@ export const REQUIRED_GATES = [
       when: "steps.changes.outputs.ui-changed == 'true'",
     },
     appliesWhen:
-      'Pull requests. Reference screenshots run on the same UI-relevant changes as Lighthouse; other changes pass without capturing.',
+      'Pull requests, and the dispatch that re-runs them after an automatic update. Reference screenshots run on the same UI-relevant changes as Lighthouse; other changes pass without capturing.',
     local: '`pnpm visual` (Linux Chromium)',
   },
   {
@@ -176,7 +177,8 @@ export const REQUIRED_GATES = [
     job: 'pr-body',
     judgedBy: 'branch protection',
     if: "!endsWith(github.event.pull_request.user.login, '[bot]')",
-    appliesWhen: 'Pull requests not opened by a bot account.',
+    appliesWhen:
+      'Pull requests not opened by a bot account, and the dispatch that re-runs them after an automatic update.',
     local: '`pnpm validate:pr` with `PR_TITLE` and `PR_BODY` set',
   },
 ];
@@ -307,7 +309,7 @@ export const HOOK_STEPS = [
     job: 'coverage',
     steps: [
       {
-        run: 'changed="$(git -c core.quotePath=false diff --name-only HEAD^1..."$HEAD_SHA")" && CHANGED="$changed" node scripts/confidence-label.mjs --coverage-gate',
+        run: 'changed="$(git -c core.quotePath=false diff --name-only "$BASE"..."$HEAD_SHA")" && CHANGED="$changed" node scripts/confidence-label.mjs --coverage-gate',
       },
     ],
   },
@@ -892,6 +894,39 @@ function checkHookSteps(readFile, jobsByWorkflow, hookSteps, errors) {
   });
 }
 
+/** The workflow that posts the `enforcement-approval` status. */
+const STATUS_WORKFLOW = 'enforcement-approval.yml';
+
+/**
+ * Every workflow that reports a required check, and the enforcement gate, must
+ * be re-run after an automatic update: listed in `DISPATCHES` with a
+ * `workflow_dispatch` trigger, the gate on main and the rest on the PR branch
+ * (ADR 0129). Returns the errors.
+ *
+ * @param {(name: string) => string} readWorkflow
+ * @param {{ workflow: string, onMain: boolean }[]} dispatches
+ */
+export function checkDispatches(readWorkflow, dispatches = DISPATCHES) {
+  const needed = [...new Set([...REQUIRED_GATES.map((gate) => gate.workflow), STATUS_WORKFLOW])];
+  return needed.flatMap((workflow) => {
+    const entry = dispatches.find((dispatch) => dispatch.workflow === workflow);
+    const where = `${workflow} reports a required check, so`;
+    return [
+      ...(entry
+        ? []
+        : [`${where} add it to DISPATCHES in scripts/update-behind-prs.mjs (ADR 0129).`]),
+      ...(/^ {2}workflow_dispatch:/m.test(readWorkflow(workflow))
+        ? []
+        : [`${where} it needs a \`workflow_dispatch\` trigger for automatic updates (ADR 0129).`]),
+      ...(entry && entry.onMain !== (workflow === STATUS_WORKFLOW)
+        ? [
+            `${where} dispatch it ${workflow === STATUS_WORKFLOW ? 'on main' : 'on the PR branch'} in DISPATCHES.`,
+          ]
+        : []),
+    ];
+  });
+}
+
 /**
  * Check workflows, composites and the generated inventory against the contract.
  * `readWorkflow(fileName)` reads workflows; `readFile(path)` reads other repo files.
@@ -939,6 +974,7 @@ export function checkContract({
   });
 
   checkHookSteps(readFile, jobsByWorkflow, hookSteps, errors);
+  errors.push(...checkDispatches(readWorkflow));
 
   if (inventory !== renderInventory()) {
     errors.push(`${INVENTORY_PATH} is stale. Run \`pnpm gates:inventory\` and commit the result.`);

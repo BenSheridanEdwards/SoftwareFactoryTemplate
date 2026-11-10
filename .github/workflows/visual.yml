@@ -1,6 +1,10 @@
 name: Visual regression
 
-on: pull_request
+# update-behind-prs.yml dispatches it on a PR branch it updated (ADR 0129);
+# outside a pull_request run the scope script compares in full.
+on:
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

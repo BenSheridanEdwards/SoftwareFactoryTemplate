@@ -7,6 +7,7 @@ import {
   CONVENTIONAL_COMMIT_TYPES,
   REQUIRED_SECTIONS,
   readChangedFiles,
+  readUpdatedHeads,
   resolveBaseSha,
   resolveHeadSha,
   validatePullRequest,
@@ -308,8 +309,71 @@ describe('validatePullRequest', () => {
   it('fails when the head commit is older than the PR head (#57: body at 16b1728, head 0a21f68)', () => {
     expect(headErrors('- Head commit: 16b1728', HEAD)).toEqual([
       '`- Head commit:` says 16b1728, but the PR head is 0a21f68d4a57. ' +
-        'Re-check the body against the new head, then update the field.',
+        'Re-check the body against the new head, then update the field. ' +
+        'Only clean merges from main may follow the named commit.',
     ]);
+  });
+
+  describe('a head brought up to date with main', () => {
+    const EARLIER = '16b1728000000000000000000000000000000000';
+    const OLDER_NORTH_STAR = '1111111aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const updated = (
+      field: string,
+      updatedHeads: string[] | string,
+      northStarCommit = () => NORTH_STAR,
+    ) =>
+      validatePullRequest({
+        ...INTENT_PORTS,
+        northStarCommit,
+        title: VALID_TITLE,
+        body: withHeadCommit(field),
+        headSha: HEAD,
+        updatedHeads,
+      }).errors;
+
+    it('accepts the earlier head when only clean merges from main follow it', () => {
+      expect(updated('- Head commit: 16b1728', [HEAD, EARLIER])).toEqual([]);
+    });
+
+    it('still accepts the PR head itself', () => {
+      expect(updated('- Head commit: 0a21f68', [HEAD, EARLIER])).toEqual([]);
+    });
+
+    it('fails a commit that is not on the clean-merge chain', () => {
+      expect(updated('- Head commit: 2222222', [HEAD, EARLIER]).join('\n')).toContain(
+        'says 2222222, but the PR head is 0a21f68d4a57',
+      );
+    });
+
+    it('reads the North Star at the commit the body names, not at the merged head', () => {
+      const atCommit = (sha: string) => (sha === EARLIER ? OLDER_NORTH_STAR : NORTH_STAR);
+      const body = '- Head commit: 16b1728';
+      const older = withHeadCommit(body).replace(
+        '- North Star commit: abcdef1',
+        '- North Star commit: 1111111',
+      );
+      expect(
+        validatePullRequest({
+          ...INTENT_PORTS,
+          northStarCommit: atCommit,
+          title: VALID_TITLE,
+          body: older,
+          headSha: HEAD,
+          updatedHeads: [HEAD, EARLIER],
+        }).errors,
+      ).toEqual([]);
+      expect(updated(body, [HEAD, EARLIER], atCommit).join('\n')).toContain(
+        'North Star commit:` says abcdef1',
+      );
+    });
+
+    it('fails closed when updatedHeads does not start at the PR head or holds a short SHA', () => {
+      [[EARLIER], [HEAD, '16b1728'], 'not a list'].forEach((updatedHeads) => {
+        expect(updated('- Head commit: 0a21f68', updatedHeads)).toEqual([
+          'updatedHeads must list full SHAs, starting with the PR head.',
+        ]);
+      });
+    });
   });
 
   it('compares a label variant too, so a note in the label cannot skip the check', () => {
@@ -1413,6 +1477,76 @@ describe('PRD impact git and CLI', () => {
       [source, destination].sort(),
     );
   });
+  describe('readUpdatedHeads', () => {
+    const asAuthor = [
+      '-c',
+      'user.name=Ben Sheridan-Edwards',
+      '-c',
+      'user.email=bensheridanedwards@gmail.com',
+    ];
+    // A PR head on its own file, with main moved on in another file.
+    const diverge = () => {
+      write('README.md', 'base\n');
+      commit();
+      git('checkout', '-qb', 'feature');
+      write('feature.txt', 'feature\n');
+      const feature = commit();
+      git('checkout', '-q', 'main');
+      write('README.md', 'main moved\n');
+      const main = commit();
+      git('checkout', '-q', 'feature');
+      return { feature, main };
+    };
+    const mergeMain = () => {
+      git(...asAuthor, 'merge', '-q', '--no-ff', '--no-edit', 'main');
+      return git('rev-parse', 'HEAD');
+    };
+
+    it('walks back through a clean merge from main to the head the body was checked at', () => {
+      const { feature, main } = diverge();
+      const merged = mergeMain();
+      expect(readUpdatedHeads(merged, main, directory)).toEqual([merged, feature]);
+    });
+
+    it('walks back through two updates in a row', () => {
+      const { feature } = diverge();
+      const first = mergeMain();
+      git('checkout', '-q', 'main');
+      write('CHANGELOG.md', 'later\n');
+      const later = commit();
+      git('checkout', '-q', 'feature');
+      const second = mergeMain();
+      expect(readUpdatedHeads(second, later, directory)).toEqual([second, first, feature]);
+    });
+
+    it('stops at a merge that also edits the PR', () => {
+      const { main } = diverge();
+      git(...asAuthor, 'merge', '--quiet', '--no-ff', '--no-commit', 'main');
+      write('feature.txt', 'edited during the merge\n');
+      const edited = commit();
+      expect(readUpdatedHeads(edited, main, directory)).toEqual([edited]);
+    });
+
+    it('stops at a merge of a branch that is not on main', () => {
+      const { main } = diverge();
+      git('checkout', '-qb', 'side');
+      write('side.txt', 'side\n');
+      commit();
+      git('checkout', '-q', 'feature');
+      git(...asAuthor, 'merge', '-q', '--no-ff', '--no-edit', 'side');
+      const merged = git('rev-parse', 'HEAD');
+      expect(readUpdatedHeads(merged, main, directory)).toEqual([merged]);
+    });
+
+    it('stops at an ordinary commit after the update', () => {
+      const { main } = diverge();
+      mergeMain();
+      write('feature.txt', 'more work\n');
+      const work = commit();
+      expect(readUpdatedHeads(work, main, directory)).toEqual([work]);
+    });
+  });
+
   it('includes deleted covered files', () => {
     const { base } = prepare();
     git('rm', covered);
