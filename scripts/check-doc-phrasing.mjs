@@ -107,7 +107,9 @@ function runCli() {
     process.exitCode = 1;
   }
   if (failures.length === 0) {
-    console.log(`OK: ${paths.length} guidance docs state their rules positively.`);
+    if (slop.length === 0) {
+      console.log(`OK: ${paths.length} guidance docs state their rules positively.`);
+    }
     return;
   }
   console.error('Guidance docs phrase these rules as what to skip:\n');

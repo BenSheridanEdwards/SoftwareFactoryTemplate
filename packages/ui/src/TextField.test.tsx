@@ -38,6 +38,32 @@ it('keeps the error tied to the input when the caller passes its own description
   expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription('Enter a name');
 });
 
+it('keeps the caller description and invalid state when it has no error', () => {
+  render(
+    <>
+      <TextField label="Name" aria-describedby="hint" aria-invalid />
+      <p id="hint">As on your passport</p>
+    </>,
+  );
+
+  const field = screen.getByRole('textbox', { name: 'Name' });
+  expect(field).toHaveAccessibleDescription('As on your passport');
+  expect(field).toBeInvalid();
+});
+
+it('describes the input with the caller description and the error together', () => {
+  render(
+    <>
+      <TextField label="Name" error="Enter a name" aria-describedby="hint" />
+      <p id="hint">As on your passport</p>
+    </>,
+  );
+
+  expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAccessibleDescription(
+    'As on your passport Enter a name',
+  );
+});
+
 it('adds a caller class name to its own', () => {
   render(<TextField label="Name" className="wide" />);
 
