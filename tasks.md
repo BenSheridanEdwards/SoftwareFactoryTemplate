@@ -17,6 +17,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## Waiting
 
+- Two-arm test of the factory claim (ADR 0127) and its pilot of 10 November 2026, waiting on the maintainer for a pull request and the North Star sign-off. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet.
 - To-do reference app that replaces the greeting (draft), parked until the other issues close. T3 thread 15a5d0fa. PR [#335](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/335)
 - Page tests run the real feature router, stacked on `feat/todo-example-app` and waiting for PR #335. No thread recorded. PR [#343](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/343), issue [#339](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/339)
 - Share a feature's validation rules between api and web (draft), stacked on `feat/todo-example-app` and waiting for PR #335. No thread recorded. PR [#344](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/344), issue [#338](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/338)
