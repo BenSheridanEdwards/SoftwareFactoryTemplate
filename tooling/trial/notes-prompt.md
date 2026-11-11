@@ -20,6 +20,7 @@ Read it this way.
 
 - `showcase/{{ID}}/web` is the web package `@{{ID}}/web`, and `showcase/{{ID}}/api` is the api package `@{{ID}}/api`. Give them the same layout, roles, scripts and dependencies as `apps/web` and `apps/api`, which hold the reference greeting feature. Use `@repo/ui` for the primitives it has.
 - Read only inside this clone. Write only inside `showcase/{{ID}}/`. `pnpm install` may update `pnpm-lock.yaml` for your two packages. Leave every other file as it is.
+- Read nothing under `tooling/trial/fixtures/` or `docs/trials/`. They hold the results of earlier trials.
 - Use only dependencies that `apps/web` and `apps/api` already declare, at the same ranges.
 - Follow `.agents/templates/list-route.md` for the exact Notes route files, components, props and state owners.
 - Each `package.json` equals its reference package except the name and the dependencies.

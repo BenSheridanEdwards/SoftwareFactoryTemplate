@@ -729,6 +729,43 @@ export const hooks = [usePages, useClassic];
       'policy(one-status-from-hooks)',
     ],
   },
+  // A less capable builder maps two flags through a function and returns the data beside it.
+  {
+    path: 'apps/web/src/routes/todos/useTodos.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+declare const create: { isError: boolean };
+declare function toStatus(pending: boolean, failed: boolean): 'loading' | 'failed' | 'ready';
+export function useTodos() {
+  const list = useQuery(options);
+  const failed = list.isError || create.isError;
+  const status = toStatus(list.isPending, failed);
+  return { status, todos: list.data ?? [] };
+}
+`,
+    code: 'policy(one-status-from-hooks)',
+    message: statusMessage('useTodos', '`isPending`, `data`', 'list'),
+  },
+  // One function that maps the query to one state passes, whatever it reads.
+  {
+    path: 'apps/web/src/routes/todos/useMapped.ts',
+    source: `
+import { useQuery } from '@tanstack/react-query';
+declare const options: never;
+declare function toState(pending: boolean, failed: boolean, todos?: string[]): { status: string };
+declare function sorted(todos?: string[]): string[];
+export function useMapped() {
+  const list = useQuery(options);
+  return { state: toState(list.isPending, list.isError, list.data), refresh: list.refetch };
+}
+function useSorted() {
+  const list = useQuery(options);
+  return { first: sorted(list.data), again: sorted(list.data) };
+}
+export const hooks = [useSorted];
+`,
+  },
   // Reads that are not two states of one query pass.
   {
     path: 'apps/web/src/routes/todos/useRefreshing.ts',

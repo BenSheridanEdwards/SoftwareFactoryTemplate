@@ -1205,6 +1205,19 @@ function statusField(context, node) {
   return QUERY_STATUS_FIELDS.has(read?.field) ? read : null;
 }
 
+/** The query states a property reads: its own, or one per query from the arguments of the call that makes it, as in `toStatus(list.isPending, failed)`. */
+function statusFields(context, node) {
+  const own = statusField(context, node);
+  const value = own ? null : readExpression(context, node, true);
+  const reads = (value?.type === 'CallExpression' ? value.arguments : [])
+    .map((argument) => statusField(context, argument))
+    .filter(Boolean);
+
+  return own
+    ? [own]
+    : reads.filter((read, index) => reads.findIndex(({ root }) => root === read.root) === index);
+}
+
 /** The object a function returns: a `return { ... }` or an arrow's `({ ... })` body. */
 const returnedObject = (node) =>
   node.type === 'ReturnStatement'
@@ -1237,8 +1250,7 @@ const oneStatusFromHooks = {
 
       const reads = object.properties
         .filter((property) => property.type === 'Property')
-        .map((property) => statusField(context, property.value))
-        .filter(Boolean);
+        .flatMap((property) => statusFields(context, property.value));
 
       [...new Set(reads.map(({ root }) => root))]
         .map((root) => [
