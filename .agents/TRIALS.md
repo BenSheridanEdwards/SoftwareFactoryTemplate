@@ -148,3 +148,15 @@ sessions. Its report and result patches are in
 is a pilot: the harness runs above remain the evidence the report command reads.
 A second pilot the same day used a less capable builder; its report is in
 [`docs/trials/pilot-2026-11-10-weaker-model/`](../docs/trials/pilot-2026-11-10-weaker-model/README.md).
+
+## The drift test
+
+The drift test checks the claim over a result that grows
+([ADR 0130](decisions/0130-measure-the-two-arm-test-by-defects-and-test-drift.md)). Four
+fresh builders change one result in turn, in two chains per arm, and each final tree gets a
+defect score: hidden checks failed, checklist items answered no, and gate findings. The
+follow-up prompts, the briefs and the checklist are in `tooling/trial/drift/`. The first
+run, a pilot with sub-agents, is in
+[`docs/trials/pilot-2026-11-11-drift/`](../docs/trials/pilot-2026-11-11-drift/README.md).
+The harness starts each trial from a scaffold commit, so a harness version of a chain needs
+a task that starts from a result branch.

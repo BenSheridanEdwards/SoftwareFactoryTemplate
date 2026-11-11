@@ -37,6 +37,11 @@ reports the one that got past it.
 
 - The rule still reads one file with no type information. A status computed in another
   module from the query object, or through two `const` bindings, passes.
+- A call that takes the whole query passes too. In the drift test of
+  [0130](0130-measure-the-two-arm-test-by-defects-and-test-drift.md) a gated builder
+  returned `{ todos: list.data ?? [], status: queryStatus(list) }`. The reference shape,
+  `{ list: toTodoList(list), count: list.data?.length }`, has the same form to a rule with
+  no types, and a fixture holds that it passes. Review holds this case.
 - The prompt line is an instruction and has no check. The harness records reads outside the
   clone; a check for these two folders inside the clone is a follow-up.
 - `tooling/oxlint-plugin-policy.js` is a guarded file, so this change waits for sign-off.

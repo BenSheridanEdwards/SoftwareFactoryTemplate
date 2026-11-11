@@ -1,0 +1,2681 @@
+From c7b7d66c2f50b1d1196d41e2397b898f0e398d89 Mon Sep 17 00:00:00 2001
+From: pilot <pilot@users.noreply.github.com>
+Date: Wed, 11 Nov 2026 14:35:46 +0000
+Subject: [PATCH 1/4] feat(showcase): drift-plain-01 step 1
+
+---
+ pnpm-lock.yaml                                |  61 +++++++++
+ showcase/drift-plain-01/api/package.json      |  19 +++
+ .../src/features/todos/application.test.ts    |  26 ++++
+ .../api/src/features/todos/application.ts     |  24 ++++
+ .../api/src/features/todos/domain.test.ts     |  13 ++
+ .../api/src/features/todos/domain.ts          |  15 ++
+ .../api/src/features/todos/index.ts           |   1 +
+ .../api/src/features/todos/integrations.ts    |  17 +++
+ .../api/src/features/todos/procedures.test.ts |  37 +++++
+ .../api/src/features/todos/procedures.ts      |  42 ++++++
+ .../drift-plain-01/api/src/router.test.ts     |   8 ++
+ showcase/drift-plain-01/api/src/router.ts     |   8 ++
+ showcase/drift-plain-01/api/src/server.ts     |  17 +++
+ showcase/drift-plain-01/api/src/trpc.ts       |   7 +
+ showcase/drift-plain-01/web/e2e/fixtures.ts   |  93 +++++++++++++
+ showcase/drift-plain-01/web/e2e/todos.spec.ts |  68 +++++++++
+ showcase/drift-plain-01/web/index.html        |  12 ++
+ showcase/drift-plain-01/web/package.json      |  31 +++++
+ showcase/drift-plain-01/web/src/App.tsx       |   5 +
+ .../web/src/api-client/ApiProvider.test.tsx   |  37 +++++
+ .../web/src/api-client/ApiProvider.tsx        |  16 +++
+ .../src/api-client/TestApiProvider.test.tsx   |  32 +++++
+ .../web/src/api-client/TestApiProvider.tsx    |  22 +++
+ .../web/src/api-client/index.ts               |   4 +
+ .../src/api-client/testApiHandlers.test.ts    |  23 ++++
+ .../web/src/api-client/testApiHandlers.ts     |  56 ++++++++
+ .../drift-plain-01/web/src/api-client/trpc.ts |  26 ++++
+ .../web/src/api-client/useTestApiClients.ts   |  18 +++
+ showcase/drift-plain-01/web/src/index.css     |   2 +
+ showcase/drift-plain-01/web/src/main.tsx      |  18 +++
+ .../web/src/routes/todos/TodoForm.tsx         |  30 ++++
+ .../web/src/routes/todos/TodoItem.test.tsx    |  26 ++++
+ .../web/src/routes/todos/TodoItem.tsx         |  27 ++++
+ .../web/src/routes/todos/TodoList.tsx         |  18 +++
+ .../web/src/routes/todos/TodosPage.test.tsx   | 129 ++++++++++++++++++
+ .../web/src/routes/todos/TodosPage.tsx        |  30 ++++
+ .../web/src/routes/todos/index.ts             |   1 +
+ .../src/routes/todos/todoFormSchema.test.ts   |  13 ++
+ .../web/src/routes/todos/todoFormSchema.ts    |   5 +
+ .../web/src/routes/todos/useTodoForm.ts       |  11 ++
+ .../web/src/routes/todos/useTodos.ts          |  34 +++++
+ showcase/drift-plain-01/web/vite.config.ts    |  15 ++
+ 42 files changed, 1097 insertions(+)
+ create mode 100644 showcase/drift-plain-01/api/package.json
+ create mode 100644 showcase/drift-plain-01/api/src/features/todos/application.test.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/todos/application.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/todos/domain.test.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/todos/domain.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/todos/index.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/todos/integrations.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/todos/procedures.test.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/todos/procedures.ts
+ create mode 100644 showcase/drift-plain-01/api/src/router.test.ts
+ create mode 100644 showcase/drift-plain-01/api/src/router.ts
+ create mode 100644 showcase/drift-plain-01/api/src/server.ts
+ create mode 100644 showcase/drift-plain-01/api/src/trpc.ts
+ create mode 100644 showcase/drift-plain-01/web/e2e/fixtures.ts
+ create mode 100644 showcase/drift-plain-01/web/e2e/todos.spec.ts
+ create mode 100644 showcase/drift-plain-01/web/index.html
+ create mode 100644 showcase/drift-plain-01/web/package.json
+ create mode 100644 showcase/drift-plain-01/web/src/App.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/ApiProvider.test.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/ApiProvider.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/TestApiProvider.test.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/TestApiProvider.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/index.ts
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/testApiHandlers.test.ts
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/testApiHandlers.ts
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/trpc.ts
+ create mode 100644 showcase/drift-plain-01/web/src/api-client/useTestApiClients.ts
+ create mode 100644 showcase/drift-plain-01/web/src/index.css
+ create mode 100644 showcase/drift-plain-01/web/src/main.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/TodoForm.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/TodoItem.test.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/TodoItem.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/TodoList.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/index.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/todoFormSchema.test.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/todoFormSchema.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/useTodoForm.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
+ create mode 100644 showcase/drift-plain-01/web/vite.config.ts
+
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 708b462..9f23067 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -235,6 +235,67 @@ importers:
+         specifier: ^4.3.3
+         version: 4.3.3
+ 
++  showcase/drift-plain-01/api:
++    dependencies:
++      '@trpc/server':
++        specifier: ^11.19.0
++        version: 11.19.0(typescript@5.9.3)
++      effect:
++        specifier: ^4.0.5
++        version: 4.0.5
++
++  showcase/drift-plain-01/web:
++    dependencies:
++      '@hookform/resolvers':
++        specifier: ^5.9.1
++        version: 5.9.1(@sinclair/typebox@0.34.49)(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@4.0.5)(react-hook-form@7.90.0(@types/react@19.2.17)(react@19.2.7))(valibot@1.5.0(typescript@5.9.3))(zod@4.6.6)
++      '@repo/ui':
++        specifier: workspace:*
++        version: link:../../../packages/ui
++      '@tanstack/react-query':
++        specifier: ^5.104.3
++        version: 5.104.3(react@19.2.7)
++      '@trpc/client':
++        specifier: ^11.19.0
++        version: 11.19.0(@trpc/server@11.19.0(typescript@5.9.3))(typescript@5.9.3)
++      '@trpc/server':
++        specifier: ^11.19.0
++        version: 11.19.0(typescript@5.9.3)
++      '@trpc/tanstack-react-query':
++        specifier: ^11.19.0
++        version: 11.19.0(@tanstack/react-query@5.104.3(react@19.2.7))(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.19.0(typescript@5.9.3))(react@19.2.7)(typescript@5.9.3)
++      effect:
++        specifier: ^4.0.5
++        version: 4.0.5
++      react:
++        specifier: ^19.1.0
++        version: 19.2.7
++      react-dom:
++        specifier: ^19.1.0
++        version: 19.2.7(react@19.2.7)
++      react-hook-form:
++        specifier: ^7.90.0
++        version: 7.90.0(@types/react@19.2.17)(react@19.2.7)
++    devDependencies:
++      '@drift-plain-01/api':
++        specifier: workspace:*
++        version: link:../api
++      '@standard-schema/spec':
++        specifier: ^1.1.0
++        version: 1.1.0
++      '@tailwindcss/vite':
++        specifier: ^4.3.3
++        version: 4.3.3(vite@6.4.4(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
++      '@vitejs/plugin-react':
++        specifier: ^4.3.4
++        version: 4.7.0(vite@6.4.4(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1))
++      tailwindcss:
++        specifier: ^4.3.3
++        version: 4.3.3
++      vite:
++        specifier: ^6.0.7
++        version: 6.4.4(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
++
+ packages:
+ 
+   '@adobe/css-tools@4.5.0':
+diff --git a/showcase/drift-plain-01/api/package.json b/showcase/drift-plain-01/api/package.json
+new file mode 100644
+index 0000000..77c1414
+--- /dev/null
++++ b/showcase/drift-plain-01/api/package.json
+@@ -0,0 +1,19 @@
++{
++  "name": "@drift-plain-01/api",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "exports": {
++    ".": {
++      "types": "./src/router.ts"
++    }
++  },
++  "scripts": {
++    "dev": "node --watch src/server.ts",
++    "start": "node src/server.ts"
++  },
++  "dependencies": {
++    "@trpc/server": "^11.19.0",
++    "effect": "^4.0.5"
++  }
++}
+diff --git a/showcase/drift-plain-01/api/src/features/todos/application.test.ts b/showcase/drift-plain-01/api/src/features/todos/application.test.ts
+new file mode 100644
+index 0000000..06ff4bc
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/todos/application.test.ts
+@@ -0,0 +1,26 @@
++beforeEach(() => jest.resetModules());
++
++it('starts empty, then adds and lists todos in creation order', async () => {
++  const { addTodo, listTodos } = await import('./application.ts');
++  expect(listTodos()).toEqual([]);
++  const first = addTodo({ title: 'Buy milk' });
++  const second = addTodo({ title: 'Walk the dog' });
++  expect(listTodos()).toEqual([first, second]);
++  expect(first.id).not.toBe(second.id);
++});
++
++it('flips completed on the stored todo, and returns undefined for an unknown id', async () => {
++  const { addTodo, flipTodo, listTodos } = await import('./application.ts');
++  const todo = addTodo({ title: 'Buy milk' });
++  expect(flipTodo(todo.id)).toEqual({ ...todo, completed: true });
++  expect(listTodos()).toEqual([{ ...todo, completed: true }]);
++  expect(flipTodo('missing')).toBeUndefined();
++});
++
++it('removes a todo and returns its id, or undefined when it is already gone', async () => {
++  const { addTodo, listTodos, removeTodo } = await import('./application.ts');
++  const todo = addTodo({ title: 'Buy milk' });
++  expect(removeTodo(todo.id)).toEqual({ id: todo.id });
++  expect(listTodos()).toEqual([]);
++  expect(removeTodo(todo.id)).toBeUndefined();
++});
+diff --git a/showcase/drift-plain-01/api/src/features/todos/application.ts b/showcase/drift-plain-01/api/src/features/todos/application.ts
+new file mode 100644
+index 0000000..1d7ef4b
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/todos/application.ts
+@@ -0,0 +1,24 @@
++import { createTodo, toggleTodo, type Todo } from './domain.ts';
++import { createTodoStore } from './integrations.ts';
++
++const store = createTodoStore();
++
++export function listTodos(): readonly Todo[] {
++  return store.list();
++}
++
++export function addTodo(request: { readonly title: string }): Todo {
++  return store.save(createTodo(store.nextId(), request.title));
++}
++
++/** The toggled todo, or undefined when no todo has the id. */
++export function flipTodo(id: string): Todo | undefined {
++  const todo = store.find(id);
++  if (!todo) return undefined;
++  return store.save(toggleTodo(todo));
++}
++
++/** The deleted todo's id, or undefined when no todo has the id. */
++export function removeTodo(id: string): { readonly id: string } | undefined {
++  return store.remove(id) ? { id } : undefined;
++}
+diff --git a/showcase/drift-plain-01/api/src/features/todos/domain.test.ts b/showcase/drift-plain-01/api/src/features/todos/domain.test.ts
+new file mode 100644
+index 0000000..f5eada8
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/todos/domain.test.ts
+@@ -0,0 +1,13 @@
++import { createTodo, toggleTodo } from './domain.ts';
++
++it('creates an incomplete todo with the given id and title', () => {
++  expect(createTodo('1', 'Buy milk')).toEqual({ id: '1', title: 'Buy milk', completed: false });
++});
++
++it('toggles completed and leaves the input unchanged', () => {
++  const todo = Object.freeze(createTodo('1', 'Buy milk'));
++  const done = toggleTodo(todo);
++  expect(done).toEqual({ id: '1', title: 'Buy milk', completed: true });
++  expect(toggleTodo(done)).toEqual(todo);
++  expect(todo.completed).toBe(false);
++});
+diff --git a/showcase/drift-plain-01/api/src/features/todos/domain.ts b/showcase/drift-plain-01/api/src/features/todos/domain.ts
+new file mode 100644
+index 0000000..737d232
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/todos/domain.ts
+@@ -0,0 +1,15 @@
++export interface Todo {
++  readonly id: string;
++  readonly title: string;
++  readonly completed: boolean;
++}
++
++/** A new todo that is not yet complete. The caller supplies the id and the trimmed title. */
++export function createTodo(id: string, title: string): Todo {
++  return { id, title, completed: false };
++}
++
++/** The same todo with its completed flag inverted. */
++export function toggleTodo(todo: Todo): Todo {
++  return { ...todo, completed: !todo.completed };
++}
+diff --git a/showcase/drift-plain-01/api/src/features/todos/index.ts b/showcase/drift-plain-01/api/src/features/todos/index.ts
+new file mode 100644
+index 0000000..4c5cf6a
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/todos/index.ts
+@@ -0,0 +1 @@
++export { todosRouter } from './procedures.ts';
+diff --git a/showcase/drift-plain-01/api/src/features/todos/integrations.ts b/showcase/drift-plain-01/api/src/features/todos/integrations.ts
+new file mode 100644
+index 0000000..bcbe681
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/todos/integrations.ts
+@@ -0,0 +1,17 @@
++import { randomUUID } from 'node:crypto';
++import type { Todo } from './domain.ts';
++
++/** In-memory todo storage, kept for the life of the api process. Insertion order is list order. */
++export function createTodoStore() {
++  const todos = new Map<string, Todo>();
++  return {
++    nextId: (): string => randomUUID(),
++    list: (): readonly Todo[] => [...todos.values()],
++    find: (id: string): Todo | undefined => todos.get(id),
++    save: (todo: Todo): Todo => {
++      todos.set(todo.id, todo);
++      return todo;
++    },
++    remove: (id: string): boolean => todos.delete(id),
++  };
++}
+diff --git a/showcase/drift-plain-01/api/src/features/todos/procedures.test.ts b/showcase/drift-plain-01/api/src/features/todos/procedures.test.ts
+new file mode 100644
+index 0000000..7b5e0f7
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/todos/procedures.test.ts
+@@ -0,0 +1,37 @@
++import { TRPCError } from '@trpc/server';
++import { createCallerFactory } from '../../trpc.ts';
++import { todosRouter } from './procedures.ts';
++
++const caller = createCallerFactory(todosRouter)({});
++
++it('creates a trimmed, incomplete todo and lists it', async () => {
++  const created = await caller.create({ title: '  Buy milk  ' });
++  expect(created).toEqual({ id: expect.any(String), title: 'Buy milk', completed: false });
++  await expect(caller.list()).resolves.toContainEqual(created);
++});
++
++it.each(['', '   '])('rejects the blank title %j as a bad request', async (title) => {
++  await expect(caller.create({ title })).rejects.toMatchObject({
++    constructor: TRPCError,
++    code: 'BAD_REQUEST',
++  });
++});
++
++it('toggles a todo complete and back', async () => {
++  const created = await caller.create({ title: 'Walk the dog' });
++  await expect(caller.toggle({ id: created.id })).resolves.toEqual({
++    ...created,
++    completed: true,
++  });
++  await expect(caller.toggle({ id: created.id })).resolves.toEqual(created);
++});
++
++it('deletes a todo and returns its id, then reports it missing', async () => {
++  const created = await caller.create({ title: 'Water the plants' });
++  await expect(caller.delete({ id: created.id })).resolves.toEqual({ id: created.id });
++  await expect(caller.list()).resolves.not.toContainEqual(
++    expect.objectContaining({ id: created.id }),
++  );
++  await expect(caller.delete({ id: created.id })).rejects.toMatchObject({ code: 'NOT_FOUND' });
++  await expect(caller.toggle({ id: created.id })).rejects.toMatchObject({ code: 'NOT_FOUND' });
++});
+diff --git a/showcase/drift-plain-01/api/src/features/todos/procedures.ts b/showcase/drift-plain-01/api/src/features/todos/procedures.ts
+new file mode 100644
+index 0000000..d0d2fc2
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/todos/procedures.ts
+@@ -0,0 +1,42 @@
++import { TRPCError } from '@trpc/server';
++import { Schema } from 'effect';
++import { procedure, router } from '../../trpc.ts';
++import { addTodo, flipTodo, listTodos, removeTodo } from './application.ts';
++
++const todoSchema = Schema.Struct({
++  id: Schema.String,
++  title: Schema.String,
++  completed: Schema.Boolean,
++});
++const createInputSchema = Schema.Struct({ title: Schema.Trim.check(Schema.isNonEmpty()) });
++const idInputSchema = Schema.Struct({ id: Schema.String });
++const deletedSchema = Schema.Struct({ id: Schema.String });
++
++/** Maps a missing todo to NOT_FOUND; the application returns undefined for it. */
++function found<Value>(value: Value | undefined): Value {
++  if (value === undefined) {
++    throw new TRPCError({ code: 'NOT_FOUND', message: 'Todo not found' });
++  }
++  return value;
++}
++
++const todoProcedures = {
++  list: procedure
++    .output(Schema.toStandardSchemaV1(Schema.Array(todoSchema)))
++    .query(() => listTodos()),
++  create: procedure
++    .input(Schema.toStandardSchemaV1(createInputSchema))
++    .output(Schema.toStandardSchemaV1(todoSchema))
++    .mutation(({ input }) => addTodo(input)),
++  toggle: procedure
++    .input(Schema.toStandardSchemaV1(idInputSchema))
++    .output(Schema.toStandardSchemaV1(todoSchema))
++    .mutation(({ input }) => found(flipTodo(input.id))),
++  delete: procedure
++    .input(Schema.toStandardSchemaV1(idInputSchema))
++    .output(Schema.toStandardSchemaV1(deletedSchema))
++    .mutation(({ input }) => found(removeTodo(input.id))),
++};
++
++export const todosRouter: ReturnType<typeof router<typeof todoProcedures>> =
++  router(todoProcedures);
+diff --git a/showcase/drift-plain-01/api/src/router.test.ts b/showcase/drift-plain-01/api/src/router.test.ts
+new file mode 100644
+index 0000000..884f016
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/router.test.ts
+@@ -0,0 +1,8 @@
++import { appRouter } from './router.ts';
++import { createCallerFactory } from './trpc.ts';
++
++it('serves the todo feature under todos', async () => {
++  const caller = createCallerFactory(appRouter)({});
++  const created = await caller.todos.create({ title: 'Read the review' });
++  await expect(caller.todos.list()).resolves.toContainEqual(created);
++});
+diff --git a/showcase/drift-plain-01/api/src/router.ts b/showcase/drift-plain-01/api/src/router.ts
+new file mode 100644
+index 0000000..38d204c
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/router.ts
+@@ -0,0 +1,8 @@
++import { todosRouter } from './features/todos/index.ts';
++import { router } from './trpc.ts';
++
++export const appRouter = router({
++  todos: todosRouter,
++});
++
++export type AppRouter = typeof appRouter;
+diff --git a/showcase/drift-plain-01/api/src/server.ts b/showcase/drift-plain-01/api/src/server.ts
+new file mode 100644
+index 0000000..b9880b0
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/server.ts
+@@ -0,0 +1,17 @@
++import { createHTTPServer } from '@trpc/server/adapters/standalone';
++import { Schema } from 'effect';
++import { appRouter } from './router.ts';
++
++const Port = Schema.NumberFromString.check(
++  Schema.isInt(),
++  Schema.isBetween({ minimum: 1, maximum: 65_535 }),
++);
++
++const port = Schema.decodeUnknownSync(Port)(process.env.PORT ?? '3001');
++
++const server = createHTTPServer({ router: appRouter, basePath: '/trpc/' });
++
++server.once('listening', () => {
++  console.log(`api listening on http://127.0.0.1:${port}/trpc`);
++});
++server.listen(port, '127.0.0.1');
+diff --git a/showcase/drift-plain-01/api/src/trpc.ts b/showcase/drift-plain-01/api/src/trpc.ts
+new file mode 100644
+index 0000000..eaf5623
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/trpc.ts
+@@ -0,0 +1,7 @@
++import { initTRPC } from '@trpc/server';
++
++const t = initTRPC.create();
++
++export const router = t.router;
++export const procedure = t.procedure;
++export const createCallerFactory = t.createCallerFactory;
+diff --git a/showcase/drift-plain-01/web/e2e/fixtures.ts b/showcase/drift-plain-01/web/e2e/fixtures.ts
+new file mode 100644
+index 0000000..3bbf77b
+--- /dev/null
++++ b/showcase/drift-plain-01/web/e2e/fixtures.ts
+@@ -0,0 +1,93 @@
++import { format } from 'node:util';
++import { test as base, type ConsoleMessage, expect, type WebError } from '@playwright/test';
++
++export { expect, type Page } from '@playwright/test';
++
++interface ConsoleFixtures {
++  expectedConsole: RegExp[];
++  expectConsole: (pattern: RegExp) => void;
++}
++
++type RunnerMethod = 'warn' | 'error';
++
++const RUNNER_METHODS: RunnerMethod[] = ['warn', 'error'];
++// Node prints its own process warnings through console.error; the warning listener records them.
++const NODE_WARNING = `(node:${process.pid}) `;
++
++export const test = base.extend<ConsoleFixtures>({
++  expectedConsole: [[], { option: true }],
++  expectConsole: [
++    async ({ context, expectedConsole }, use, testInfo) => {
++      const messages: string[] = [];
++      const expected = [...expectedConsole];
++      // The context hears every page, popup and worker the test opens.
++      const recordConsole = (message: ConsoleMessage) => {
++        if (message.type() === 'warning' || message.type() === 'error') {
++          messages.push(`console.${message.type()}: ${message.text()}`);
++        }
++      };
++      const recordError = (error: WebError) => {
++        messages.push(`pageerror: ${error.error().message}`);
++      };
++      // The test's own Node process: spec code, Playwright and Node warnings.
++      const originals = RUNNER_METHODS.map((method) => [method, console[method]] as const);
++      const recordWarning = (warning: Error) => {
++        messages.push(`runner warning: ${warning.message}`);
++      };
++      context.on('console', recordConsole);
++      context.on('weberror', recordError);
++      process.on('warning', recordWarning);
++      originals.forEach(([method, original]) => {
++        console[method] = (...args: unknown[]) => {
++          const text = format(...args);
++          if (!text.startsWith(NODE_WARNING)) {
++            messages.push(`runner console.${method}: ${text}`);
++          }
++          original(...args);
++        };
++      });
++      await use((pattern) => {
++        expected.push(pattern);
++      });
++      await new Promise((resolve) => setImmediate(resolve));
++      originals.forEach(([method, original]) => {
++        console[method] = original;
++      });
++      process.off('warning', recordWarning);
++      context.off('console', recordConsole);
++      context.off('weberror', recordError);
++      const guard = {
++        unexpected: messages.filter(
++          (message) => !expected.some((pattern) => message.search(pattern) !== -1),
++        ),
++        missing: expected
++          .filter((pattern) => !messages.some((message) => message.search(pattern) !== -1))
++          .map(String),
++      };
++      if (guard.unexpected.length > 0 || guard.missing.length > 0) {
++        await testInfo.attach('console-guard.json', {
++          body: JSON.stringify(guard),
++          contentType: 'application/json',
++        });
++      }
++      expect(guard).toEqual({ unexpected: [], missing: [] });
++    },
++    { auto: true },
++  ],
++});
++
++/** The value a step expects to be there; a missing one fails the test where it is read. */
++export function present<Value>(value: Value | null | undefined): Value {
++  if (value === undefined || value === null) {
++    throw new Error(`Expected a value, received ${value}`);
++  }
++  return value;
++}
++
++/** The value of a success; a failure fails the test where the value is read. */
++export function unwrap<Value>(outcome: { ok: true; value: Value } | { ok: false }): Value {
++  if (!outcome.ok) {
++    throw new Error(`Expected a success, received ${JSON.stringify(outcome)}`);
++  }
++  return outcome.value;
++}
+diff --git a/showcase/drift-plain-01/web/e2e/todos.spec.ts b/showcase/drift-plain-01/web/e2e/todos.spec.ts
+new file mode 100644
+index 0000000..d4b798a
+--- /dev/null
++++ b/showcase/drift-plain-01/web/e2e/todos.spec.ts
+@@ -0,0 +1,68 @@
++import { randomUUID } from 'node:crypto';
++import { expect, type Page, test } from './fixtures';
++
++/**
++ * The Todo behaviour, end to end: the page in Chromium, the Vite server's
++ * `/trpc` proxy, and the real api process.
++ */
++const newTitle = (label: string) => `${label} ${randomUUID().slice(0, 8)}`;
++
++async function addTodo(page: Page, title: string) {
++  await page.goto('/');
++  await page.getByRole('textbox', { name: 'Title' }).fill(title);
++  await page.getByRole('button', { name: 'Add', exact: true }).click();
++}
++
++test.describe('Todos', () => {
++  test('adds a todo and lists it unchecked', async ({ page }) => {
++    const title = newTitle('Buy milk');
++    const created = page.waitForResponse((response) =>
++      response.url().includes('/trpc/todos.create'),
++    );
++
++    await addTodo(page, title);
++
++    expect((await created).status()).toBe(200);
++    await expect(page.getByRole('checkbox', { name: title, exact: true })).not.toBeChecked();
++  });
++
++  test('asks for a title and sends no request when the title is blank', async ({ page }) => {
++    const apiCalls: string[] = [];
++    await page.goto('/');
++    page.on('request', (request) => {
++      if (new URL(request.url()).pathname.startsWith('/trpc/todos.create')) {
++        apiCalls.push(request.url());
++      }
++    });
++
++    await page.getByRole('textbox', { name: 'Title' }).fill('   ');
++    await page.getByRole('button', { name: 'Add', exact: true }).click();
++
++    await expect(page.getByRole('alert')).toHaveText('Enter a title');
++    await expect(page.getByRole('textbox', { name: 'Title' })).toHaveAttribute(
++      'aria-invalid',
++      'true',
++    );
++    expect(apiCalls).toEqual([]);
++  });
++
++  test('the api rejects a blank title as a bad request', async ({ request }) => {
++    const response = await request.post('/trpc/todos.create?batch=1', {
++      data: { 0: { title: '   ' } },
++    });
++
++    expect(response.status()).toBe(400);
++    expect(await response.json()).toMatchObject([{ error: { data: { code: 'BAD_REQUEST' } } }]);
++  });
++
++  test('says so when the api fails to load the list', async ({ page, expectConsole }) => {
++    expectConsole(/Failed to load resource: .*500/);
++    await page.route('**/trpc/todos.list**', (route) =>
++      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
++    );
++
++    await page.goto('/');
++
++    await expect(page.getByRole('alert')).toHaveText('Could not load todos');
++  });
++});
+diff --git a/showcase/drift-plain-01/web/index.html b/showcase/drift-plain-01/web/index.html
+new file mode 100644
+index 0000000..08c2ed1
+--- /dev/null
++++ b/showcase/drift-plain-01/web/index.html
+@@ -0,0 +1,12 @@
++<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>Todos</title>
++  </head>
++  <body>
++    <div id="root"></div>
++    <script type="module" src="/src/main.tsx"></script>
++  </body>
++</html>
+diff --git a/showcase/drift-plain-01/web/package.json b/showcase/drift-plain-01/web/package.json
+new file mode 100644
+index 0000000..0376675
+--- /dev/null
++++ b/showcase/drift-plain-01/web/package.json
+@@ -0,0 +1,31 @@
++{
++  "name": "@drift-plain-01/web",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "dev": "vite",
++    "build": "vite build",
++    "preview": "vite preview --port 3000"
++  },
++  "dependencies": {
++    "@hookform/resolvers": "^5.9.1",
++    "@repo/ui": "workspace:*",
++    "@tanstack/react-query": "^5.104.3",
++    "@trpc/client": "^11.19.0",
++    "@trpc/server": "^11.19.0",
++    "@trpc/tanstack-react-query": "^11.19.0",
++    "effect": "^4.0.5",
++    "react": "^19.1.0",
++    "react-dom": "^19.1.0",
++    "react-hook-form": "^7.90.0"
++  },
++  "devDependencies": {
++    "@drift-plain-01/api": "workspace:*",
++    "@standard-schema/spec": "^1.1.0",
++    "@tailwindcss/vite": "^4.3.3",
++    "@vitejs/plugin-react": "^4.3.4",
++    "tailwindcss": "^4.3.3",
++    "vite": "^6.0.7"
++  }
++}
+diff --git a/showcase/drift-plain-01/web/src/App.tsx b/showcase/drift-plain-01/web/src/App.tsx
+new file mode 100644
+index 0000000..c1f2d9b
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/App.tsx
+@@ -0,0 +1,5 @@
++import { TodosPage } from './routes/todos';
++
++export function App() {
++  return <TodosPage />;
++}
+diff --git a/showcase/drift-plain-01/web/src/api-client/ApiProvider.test.tsx b/showcase/drift-plain-01/web/src/api-client/ApiProvider.test.tsx
+new file mode 100644
+index 0000000..5ee5774
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/ApiProvider.test.tsx
+@@ -0,0 +1,37 @@
++import { useQuery } from '@tanstack/react-query';
++import { render, screen } from '@testing-library/react';
++import { ApiProvider } from './ApiProvider';
++import { useTrpc } from './trpc';
++
++function TodosProbe() {
++  const trpc = useTrpc();
++  const query = useQuery(trpc.todos.list.queryOptions());
++  return <p>{query.data ? `${query.data.length} todos` : 'waiting'}</p>;
++}
++
++const realFetch = globalThis.fetch;
++afterEach(() => {
++  globalThis.fetch = realFetch;
++});
++
++it('sends procedure calls to /trpc on the same origin and reads the answer', async () => {
++  // jsdom omits Response; use Node's native implementation from its own realm.
++  const NodeResponse: typeof Response = jest.requireActual('node:vm').runInThisContext('Response');
++  const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>(
++    async () =>
++      new NodeResponse(JSON.stringify([{ result: { data: [] } }]), {
++        headers: { 'content-type': 'application/json' },
++      }),
++  );
++  globalThis.fetch = fetchMock;
++
++  render(
++    <ApiProvider>
++      <TodosProbe />
++    </ApiProvider>,
++  );
++
++  expect(await screen.findByText('0 todos')).toBeInTheDocument();
++  const [url] = fetchMock.mock.calls[0] ?? [''];
++  expect(String(url)).toMatch(/^\/trpc\/todos\.list\?batch=1/);
++});
+diff --git a/showcase/drift-plain-01/web/src/api-client/ApiProvider.tsx b/showcase/drift-plain-01/web/src/api-client/ApiProvider.tsx
+new file mode 100644
+index 0000000..f96fcf7
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/ApiProvider.tsx
+@@ -0,0 +1,16 @@
++import { QueryClientProvider } from '@tanstack/react-query';
++import type { ReactNode } from 'react';
++import { createQueryClient, createTrpcClient, TrpcProvider } from './trpc';
++
++const queryClient = createQueryClient();
++const trpcClient = createTrpcClient();
++
++export function ApiProvider({ children }: { readonly children: ReactNode }) {
++  return (
++    <QueryClientProvider client={queryClient}>
++      <TrpcProvider trpcClient={trpcClient} queryClient={queryClient}>
++        {children}
++      </TrpcProvider>
++    </QueryClientProvider>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/api-client/TestApiProvider.test.tsx b/showcase/drift-plain-01/web/src/api-client/TestApiProvider.test.tsx
+new file mode 100644
+index 0000000..9e41804
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/TestApiProvider.test.tsx
+@@ -0,0 +1,32 @@
++import { useQuery } from '@tanstack/react-query';
++import { render, screen } from '@testing-library/react';
++import { TestApiProvider } from './TestApiProvider';
++import { useTrpc } from './trpc';
++
++function TodosProbe() {
++  const trpc = useTrpc();
++  const query = useQuery(trpc.todos.list.queryOptions());
++  return <p>{query.error?.message ?? (query.data ? `${query.data.length} todos` : 'waiting')}</p>;
++}
++
++it('answers a procedure from its handler', async () => {
++  render(
++    <TestApiProvider handlers={{ 'todos.list': () => [] }}>
++      <TodosProbe />
++    </TestApiProvider>,
++  );
++
++  expect(await screen.findByText('0 todos')).toBeInTheDocument();
++});
++
++it('fails a procedure that the test gave no handler, naming it', async () => {
++  render(
++    <TestApiProvider handlers={{}}>
++      <TodosProbe />
++    </TestApiProvider>,
++  );
++
++  expect(
++    await screen.findByText('TestApiProvider has no handler for todos.list'),
++  ).toBeInTheDocument();
++});
+diff --git a/showcase/drift-plain-01/web/src/api-client/TestApiProvider.tsx b/showcase/drift-plain-01/web/src/api-client/TestApiProvider.tsx
+new file mode 100644
+index 0000000..d536163
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/TestApiProvider.tsx
+@@ -0,0 +1,22 @@
++import { QueryClientProvider } from '@tanstack/react-query';
++import type { ReactNode } from 'react';
++import type { TestApiHandlers } from './testApiHandlers';
++import { TrpcProvider } from './trpc';
++import { useTestApiClients } from './useTestApiClients';
++
++export interface TestApiProviderProps {
++  readonly handlers: TestApiHandlers;
++  readonly children: ReactNode;
++}
++
++/** The app's providers over a typed in-memory api, for route tests. */
++export function TestApiProvider({ handlers, children }: TestApiProviderProps) {
++  const { queryClient, trpcClient } = useTestApiClients(handlers);
++  return (
++    <QueryClientProvider client={queryClient}>
++      <TrpcProvider trpcClient={trpcClient} queryClient={queryClient}>
++        {children}
++      </TrpcProvider>
++    </QueryClientProvider>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/api-client/index.ts b/showcase/drift-plain-01/web/src/api-client/index.ts
+new file mode 100644
+index 0000000..695935d
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/index.ts
+@@ -0,0 +1,4 @@
++export { ApiProvider } from './ApiProvider';
++export { TestApiProvider } from './TestApiProvider';
++export type { TestApiHandlers } from './testApiHandlers';
++export { type RouterInputs, type RouterOutputs, useTrpc } from './trpc';
+diff --git a/showcase/drift-plain-01/web/src/api-client/testApiHandlers.test.ts b/showcase/drift-plain-01/web/src/api-client/testApiHandlers.test.ts
+new file mode 100644
+index 0000000..350f212
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/testApiHandlers.test.ts
+@@ -0,0 +1,23 @@
++import { createTRPCUntypedClient } from '@trpc/client';
++import { handlerLink } from './testApiHandlers';
++
++it('passes undefined to a procedure with no input', async () => {
++  const list = jest.fn(() => []);
++  const client = createTRPCUntypedClient({ links: [handlerLink({ 'todos.list': list })] });
++
++  await expect(client.query('todos.list')).resolves.toEqual([]);
++  expect(list).toHaveBeenCalledWith(undefined);
++});
++
++it('passes a procedure input through unchanged', async () => {
++  const input = { id: 'a1' };
++  const toggle = jest.fn((request: typeof input) => ({ ...request, title: 'Read', completed: true }));
++  const client = createTRPCUntypedClient({ links: [handlerLink({ 'todos.toggle': toggle })] });
++
++  await expect(client.mutation('todos.toggle', input)).resolves.toEqual({
++    id: 'a1',
++    title: 'Read',
++    completed: true,
++  });
++  expect(toggle.mock.calls[0]?.[0]).toBe(input);
++});
+diff --git a/showcase/drift-plain-01/web/src/api-client/testApiHandlers.ts b/showcase/drift-plain-01/web/src/api-client/testApiHandlers.ts
+new file mode 100644
+index 0000000..7b5084b
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/testApiHandlers.ts
+@@ -0,0 +1,56 @@
++import type { AppRouter } from '@drift-plain-01/api';
++import { type Operation, TRPCClientError, type TRPCLink } from '@trpc/client';
++import { observable } from '@trpc/server/observable';
++import type { RouterInputs, RouterOutputs } from './trpc';
++
++type ProcedurePath = {
++  [Router in keyof RouterInputs & string]: `${Router}.${keyof RouterInputs[Router] & string}`;
++}[keyof RouterInputs & string];
++
++type Lookup<Tree, Path> = Path extends `${infer Router}.${infer Procedure}`
++  ? Router extends keyof Tree
++    ? Procedure extends keyof Tree[Router]
++      ? Tree[Router][Procedure]
++      : never
++    : never
++  : never;
++
++/** A fake answer per procedure path, such as `'greeting.greet'`, typed by the router. */
++export type TestApiHandlers = {
++  readonly [Path in ProcedurePath]?: (
++    input: Lookup<RouterInputs, Path>,
++  ) => Lookup<RouterOutputs, Path> | Promise<Lookup<RouterOutputs, Path>>;
++};
++
++// The typed tRPC client pairs each path with its input before the link erases it.
++// Method variance lets this dispatch interface accept each procedure's handler.
++interface TestApiHandler {
++  handle(
++    input: Operation['input'],
++  ): Lookup<RouterOutputs, ProcedurePath> | Promise<Lookup<RouterOutputs, ProcedurePath>>;
++}
++
++/** A tRPC link that answers each call from `handlers` instead of the network. */
++export function handlerLink(handlers: TestApiHandlers): TRPCLink<AppRouter> {
++  return () =>
++    ({ op }) =>
++      observable((observer) => {
++        const handler: TestApiHandler['handle'] | undefined = Object.entries(handlers).find(
++          ([path]) => path === op.path,
++        )?.[1];
++        Promise.resolve(op.input)
++          .then((input) => {
++            if (!handler) {
++              throw new Error(`TestApiProvider has no handler for ${op.path}`);
++            }
++            return handler(input);
++          })
++          .then(
++            (data) => {
++              observer.next({ result: { type: 'data', data } });
++              observer.complete();
++            },
++            (cause: Error) => observer.error(TRPCClientError.from(cause)),
++          );
++      });
++}
+diff --git a/showcase/drift-plain-01/web/src/api-client/trpc.ts b/showcase/drift-plain-01/web/src/api-client/trpc.ts
+new file mode 100644
+index 0000000..3097007
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/trpc.ts
+@@ -0,0 +1,26 @@
++import type { AppRouter } from '@drift-plain-01/api';
++import { QueryClient } from '@tanstack/react-query';
++import { createTRPCClient, httpBatchLink, type TRPCClient } from '@trpc/client';
++import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
++import { createTRPCContext } from '@trpc/tanstack-react-query';
++
++export type RouterInputs = inferRouterInputs<AppRouter>;
++export type RouterOutputs = inferRouterOutputs<AppRouter>;
++
++export function createTrpcClient(url = '/trpc'): TRPCClient<AppRouter> {
++  return createTRPCClient<AppRouter>({ links: [httpBatchLink({ url })] });
++}
++
++// The annotations name the exported types through AppRouter, so declaration
++// emit (pnpm api:report) never reaches into the api's source files. Biome
++// useNamingConvention runs with strictCase, so the bindings drop the all-caps
++// acronym.
++type TrpcContext = ReturnType<typeof createTRPCContext<AppRouter>>;
++const trpcContext: TrpcContext = createTRPCContext<AppRouter>();
++export const TrpcProvider: TrpcContext['TRPCProvider'] = trpcContext.TRPCProvider;
++export const useTrpc: TrpcContext['useTRPC'] = trpcContext.useTRPC;
++
++/** A failed request shows its error at once; the user retries by submitting again. */
++export function createQueryClient() {
++  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
++}
+diff --git a/showcase/drift-plain-01/web/src/api-client/useTestApiClients.ts b/showcase/drift-plain-01/web/src/api-client/useTestApiClients.ts
+new file mode 100644
+index 0000000..b2a4c51
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/api-client/useTestApiClients.ts
+@@ -0,0 +1,18 @@
++import type { AppRouter } from '@drift-plain-01/api';
++import type { QueryClient } from '@tanstack/react-query';
++import { createTRPCClient, type TRPCClient } from '@trpc/client';
++import { useState } from 'react';
++import { handlerLink, type TestApiHandlers } from './testApiHandlers';
++import { createQueryClient } from './trpc';
++
++/** One query client and one handler-backed tRPC client for the life of a test render. */
++export function useTestApiClients(handlers: TestApiHandlers): {
++  readonly queryClient: QueryClient;
++  readonly trpcClient: TRPCClient<AppRouter>;
++} {
++  const [clients] = useState(() => ({
++    queryClient: createQueryClient(),
++    trpcClient: createTRPCClient<AppRouter>({ links: [handlerLink(handlers)] }),
++  }));
++  return clients;
++}
+diff --git a/showcase/drift-plain-01/web/src/index.css b/showcase/drift-plain-01/web/src/index.css
+new file mode 100644
+index 0000000..5172428
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/index.css
+@@ -0,0 +1,2 @@
++@import "@repo/ui/styles.css";
++@source "./";
+diff --git a/showcase/drift-plain-01/web/src/main.tsx b/showcase/drift-plain-01/web/src/main.tsx
+new file mode 100644
+index 0000000..e46c980
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/main.tsx
+@@ -0,0 +1,18 @@
++import { StrictMode } from 'react';
++import { createRoot } from 'react-dom/client';
++import { App } from './App';
++import { ApiProvider } from './api-client';
++import './index.css';
++
++const rootElement = document.getElementById('root');
++if (!rootElement) {
++  throw new Error('Root element #root not found');
++}
++
++createRoot(rootElement).render(
++  <StrictMode>
++    <ApiProvider>
++      <App />
++    </ApiProvider>
++  </StrictMode>,
++);
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodoForm.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodoForm.tsx
+new file mode 100644
+index 0000000..006071d
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodoForm.tsx
+@@ -0,0 +1,30 @@
++import { Button, TextField } from '@repo/ui';
++import type { CreateTodo } from './useTodos';
++import { useTodoForm } from './useTodoForm';
++
++export interface TodoFormProps {
++  readonly onCreate: (input: CreateTodo) => void;
++  readonly pending: boolean;
++}
++
++export function TodoForm({ onCreate, pending }: TodoFormProps) {
++  const { register, handleSubmit, reset, formState } = useTodoForm();
++  const handleCreate = handleSubmit(({ title }) => {
++    onCreate({ title });
++    reset();
++  });
++
++  return (
++    <form className="flex flex-col gap-3" onSubmit={handleCreate} noValidate>
++      <TextField
++        label="Title"
++        autoComplete="off"
++        error={formState.errors.title?.message}
++        {...register('title')}
++      />
++      <Button type="submit" disabled={pending}>
++        Add
++      </Button>
++    </form>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodoItem.test.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodoItem.test.tsx
+new file mode 100644
+index 0000000..a6197ed
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodoItem.test.tsx
+@@ -0,0 +1,26 @@
++import { render, screen } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import { TodoItem } from './TodoItem';
++
++const todo = { id: 'a1', title: 'Buy milk', completed: false };
++
++it('names its checkbox and delete button after the todo', () => {
++  render(<TodoItem todo={todo} onToggle={jest.fn()} onDelete={jest.fn()} />);
++
++  expect(screen.getByRole('checkbox', { name: 'Buy milk' })).not.toBeChecked();
++  expect(screen.getByRole('button', { name: 'Delete Buy milk' })).toBeInTheDocument();
++});
++
++it('reports the id of the todo it toggles and deletes', async () => {
++  const onToggle = jest.fn();
++  const onDelete = jest.fn();
++  const user = userEvent.setup();
++  render(<TodoItem todo={{ ...todo, completed: true }} onToggle={onToggle} onDelete={onDelete} />);
++
++  expect(screen.getByRole('checkbox', { name: 'Buy milk' })).toBeChecked();
++  await user.click(screen.getByRole('checkbox', { name: 'Buy milk' }));
++  await user.click(screen.getByRole('button', { name: 'Delete Buy milk' }));
++
++  expect(onToggle).toHaveBeenCalledWith('a1');
++  expect(onDelete).toHaveBeenCalledWith('a1');
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodoItem.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodoItem.tsx
+new file mode 100644
+index 0000000..418c245
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodoItem.tsx
+@@ -0,0 +1,27 @@
++import { Button, cn } from '@repo/ui';
++import type { Todo } from './useTodos';
++
++export interface TodoItemProps {
++  readonly todo: Todo;
++  readonly onToggle: (id: Todo['id']) => void;
++  readonly onDelete: (id: Todo['id']) => void;
++}
++
++export function TodoItem({ todo, onToggle, onDelete }: TodoItemProps) {
++  return (
++    <li className="flex items-center justify-between gap-3 rounded-lg border border-line bg-raised px-4 py-3">
++      <label className="flex min-w-0 flex-1 items-center gap-3">
++        <input
++          type="checkbox"
++          className="size-4 accent-focus"
++          checked={todo.completed}
++          onChange={() => onToggle(todo.id)}
++        />
++        <span className={cn('break-words', todo.completed && 'text-muted line-through')}>
++          {todo.title}
++        </span>
++      </label>
++      <Button onClick={() => onDelete(todo.id)}>{`Delete ${todo.title}`}</Button>
++    </li>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodoList.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodoList.tsx
+new file mode 100644
+index 0000000..2f432fb
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodoList.tsx
+@@ -0,0 +1,18 @@
++import { TodoItem } from './TodoItem';
++import type { Todo } from './useTodos';
++
++export interface TodoListProps {
++  readonly todos: readonly Todo[];
++  readonly onToggle: (id: Todo['id']) => void;
++  readonly onDelete: (id: Todo['id']) => void;
++}
++
++export function TodoList({ todos, onToggle, onDelete }: TodoListProps) {
++  return (
++    <ul aria-label="Todos" className="flex flex-col gap-2">
++      {todos.map((todo) => (
++        <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} />
++      ))}
++    </ul>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
+new file mode 100644
+index 0000000..53b68eb
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
+@@ -0,0 +1,129 @@
++import { render, screen, waitFor, within } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import { axe } from 'jest-axe';
++import { type TestApiHandlers, TestApiProvider } from '../../api-client';
++import { TodosPage } from './TodosPage';
++
++type Todo = { id: string; title: string; completed: boolean };
++
++/** An in-memory fake of the todos api, so the page sees a real create, toggle and delete sequence. */
++function fakeTodosApi(initial: readonly Todo[] = []) {
++  const todos = new Map(initial.map((todo) => [todo.id, todo]));
++  const handlers: TestApiHandlers = {
++    'todos.list': () => [...todos.values()],
++    'todos.create': ({ title }) => {
++      const todo = { id: `id-${todos.size + 1}`, title, completed: false };
++      todos.set(todo.id, todo);
++      return todo;
++    },
++    'todos.toggle': ({ id }) => {
++      const current = todos.get(id);
++      if (!current) throw new Error(`no todo ${id}`);
++      const todo = { ...current, completed: !current.completed };
++      todos.set(id, todo);
++      return todo;
++    },
++    'todos.delete': ({ id }) => {
++      todos.delete(id);
++      return { id };
++    },
++  };
++  return { handlers };
++}
++
++function renderPage(handlers: TestApiHandlers) {
++  const view = render(
++    <TestApiProvider handlers={handlers}>
++      <TodosPage />
++    </TestApiProvider>,
++  );
++  return { ...view, user: userEvent.setup() };
++}
++
++const todoList = () => screen.getByRole('list', { name: 'Todos' });
++
++it('shows the heading, the title field and the add button', async () => {
++  renderPage(fakeTodosApi().handlers);
++
++  expect(screen.getByRole('heading', { level: 1, name: 'Todos' })).toBeInTheDocument();
++  expect(screen.getByRole('textbox', { name: 'Title' })).toBeInTheDocument();
++  expect(await screen.findByText('No todos yet')).toBeInTheDocument();
++});
++
++it('adds a todo, lists it unchecked and clears the field', async () => {
++  const { handlers } = fakeTodosApi();
++  const { user } = renderPage(handlers);
++  await screen.findByText('No todos yet');
++
++  await user.type(screen.getByRole('textbox', { name: 'Title' }), '  Buy milk ');
++  await user.click(screen.getByRole('button', { name: 'Add' }));
++
++  expect(await within(todoList()).findByRole('checkbox', { name: 'Buy milk' })).not.toBeChecked();
++  expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('');
++});
++
++it.each(['', '   '])('adds nothing and alerts for the title %j', async (title) => {
++  const create = jest.fn(() => ({ id: 'x', title: 'unused', completed: false }));
++  const { handlers } = fakeTodosApi();
++  const { user } = renderPage({ ...handlers, 'todos.create': create });
++  await screen.findByText('No todos yet');
++
++  const field = screen.getByRole('textbox', { name: 'Title' });
++  if (title) await user.type(field, title);
++  await user.click(screen.getByRole('button', { name: 'Add' }));
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Enter a title');
++  expect(create).not.toHaveBeenCalled();
++});
++
++it('toggles a todo complete and back', async () => {
++  const { handlers } = fakeTodosApi([{ id: 'a1', title: 'Walk the dog', completed: false }]);
++  const { user } = renderPage(handlers);
++  const checkbox = await screen.findByRole('checkbox', { name: 'Walk the dog' });
++
++  await user.click(checkbox);
++  await waitFor(() => expect(checkbox).toBeChecked());
++  await user.click(checkbox);
++  await waitFor(() => expect(checkbox).not.toBeChecked());
++});
++
++it('deletes a todo and leaves the others listed', async () => {
++  const { handlers } = fakeTodosApi([
++    { id: 'a1', title: 'Keep me', completed: false },
++    { id: 'a2', title: 'Remove me', completed: false },
++  ]);
++  const { user } = renderPage(handlers);
++
++  await user.click(await screen.findByRole('button', { name: 'Delete Remove me' }));
++
++  await waitFor(() =>
++    expect(screen.queryByRole('checkbox', { name: 'Remove me' })).not.toBeInTheDocument(),
++  );
++  expect(screen.getByRole('checkbox', { name: 'Keep me' })).toBeInTheDocument();
++});
++
++it('says so when the list cannot load', async () => {
++  renderPage({ 'todos.list': () => Promise.reject(new Error('api down')) });
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Could not load todos');
++});
++
++it('says so when a change cannot be saved', async () => {
++  const { handlers } = fakeTodosApi([{ id: 'a1', title: 'Walk the dog', completed: false }]);
++  const { user } = renderPage({
++    ...handlers,
++    'todos.toggle': () => Promise.reject(new Error('api down')),
++  });
++
++  await user.click(await screen.findByRole('checkbox', { name: 'Walk the dog' }));
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Could not save your change');
++});
++
++it('has no axe-detectable violations with a todo listed', async () => {
++  const { handlers } = fakeTodosApi([{ id: 'a1', title: 'Read a book', completed: false }]);
++  const { container } = renderPage(handlers);
++  await screen.findByRole('checkbox', { name: 'Read a book' });
++
++  expect(await axe(container)).toHaveNoViolations();
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
+new file mode 100644
+index 0000000..eeb3dcc
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
+@@ -0,0 +1,30 @@
++import { TodoForm } from './TodoForm';
++import { TodoList } from './TodoList';
++import { useTodos } from './useTodos';
++
++export function TodosPage() {
++  const { todos, listStatus, isCreating, hasMutationError, createTodo, toggleTodo, deleteTodo } =
++    useTodos();
++
++  return (
++    <main className="mx-auto flex max-w-160 flex-col gap-6 px-4 py-6 sm:py-12">
++      <h1 className="text-3xl font-bold tracking-tight">Todos</h1>
++      <TodoForm onCreate={createTodo} pending={isCreating} />
++      {listStatus === 'loading' ? <p className="text-muted">Loading…</p> : null}
++      {listStatus === 'error' ? (
++        <p role="alert" className="text-danger">
++          Could not load todos
++        </p>
++      ) : null}
++      {hasMutationError ? (
++        <p role="alert" className="text-danger">
++          Could not save your change
++        </p>
++      ) : null}
++      {listStatus === 'success' && todos.length === 0 ? <p>No todos yet</p> : null}
++      {listStatus === 'success' && todos.length > 0 ? (
++        <TodoList todos={todos} onToggle={toggleTodo} onDelete={deleteTodo} />
++      ) : null}
++    </main>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/index.ts b/showcase/drift-plain-01/web/src/routes/todos/index.ts
+new file mode 100644
+index 0000000..2074783
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/index.ts
+@@ -0,0 +1 @@
++export { TodosPage } from './TodosPage';
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/todoFormSchema.test.ts b/showcase/drift-plain-01/web/src/routes/todos/todoFormSchema.test.ts
+new file mode 100644
+index 0000000..279ac80
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/todoFormSchema.test.ts
+@@ -0,0 +1,13 @@
++import { Schema } from 'effect';
++import { todoFormSchema } from './todoFormSchema';
++
++const validate = (title: string) =>
++  Schema.toStandardSchemaV1(todoFormSchema)['~standard'].validate({ title });
++
++it('trims the title', () => {
++  expect(validate('  Buy milk ')).toEqual({ value: { title: 'Buy milk' } });
++});
++
++it.each(['', '   '])('asks for a title when it is %j', (title) => {
++  expect(validate(title)).toEqual({ issues: [{ path: ['title'], message: 'Enter a title' }] });
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/todoFormSchema.ts b/showcase/drift-plain-01/web/src/routes/todos/todoFormSchema.ts
+new file mode 100644
+index 0000000..da52ab0
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/todoFormSchema.ts
+@@ -0,0 +1,5 @@
++import { Schema } from 'effect';
++
++export const todoFormSchema = Schema.Struct({
++  title: Schema.Trim.check(Schema.isNonEmpty({ message: 'Enter a title' })),
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/useTodoForm.ts b/showcase/drift-plain-01/web/src/routes/todos/useTodoForm.ts
+new file mode 100644
+index 0000000..7581fcd
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/useTodoForm.ts
+@@ -0,0 +1,11 @@
++import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
++import { Schema } from 'effect';
++import { useForm } from 'react-hook-form';
++import { todoFormSchema } from './todoFormSchema';
++
++export function useTodoForm() {
++  return useForm({
++    resolver: standardSchemaResolver(Schema.toStandardSchemaV1(todoFormSchema)),
++    defaultValues: { title: '' },
++  });
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts b/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
+new file mode 100644
+index 0000000..bd4e7c1
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
+@@ -0,0 +1,34 @@
++import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
++import { type RouterInputs, type RouterOutputs, useTrpc } from '../../api-client';
++
++export type Todo = RouterOutputs['todos']['list'][number];
++export type CreateTodo = RouterInputs['todos']['create'];
++
++export type TodoListStatus = 'loading' | 'error' | 'success';
++
++/** The todos on the server, and the create, toggle and delete calls that change them. */
++export function useTodos() {
++  const trpc = useTrpc();
++  const queryClient = useQueryClient();
++  const list = useQuery(trpc.todos.list.queryOptions());
++  const refresh = () => queryClient.invalidateQueries({ queryKey: trpc.todos.list.queryKey() });
++  const create = useMutation(trpc.todos.create.mutationOptions({ onSuccess: refresh }));
++  const toggle = useMutation(trpc.todos.toggle.mutationOptions({ onSuccess: refresh }));
++  const remove = useMutation(trpc.todos.delete.mutationOptions({ onSuccess: refresh }));
++
++  return {
++    todos: list.data ?? [],
++    listStatus: toListStatus(list),
++    isCreating: create.isPending,
++    hasMutationError: create.isError || toggle.isError || remove.isError,
++    createTodo: (input: CreateTodo) => create.mutate(input),
++    toggleTodo: (id: Todo['id']) => toggle.mutate({ id }),
++    deleteTodo: (id: Todo['id']) => remove.mutate({ id }),
++  };
++}
++
++function toListStatus(list: { isError: boolean; isPending: boolean }): TodoListStatus {
++  if (list.isError) return 'error';
++  if (list.isPending) return 'loading';
++  return 'success';
++}
+diff --git a/showcase/drift-plain-01/web/vite.config.ts b/showcase/drift-plain-01/web/vite.config.ts
+new file mode 100644
+index 0000000..49ff300
+--- /dev/null
++++ b/showcase/drift-plain-01/web/vite.config.ts
+@@ -0,0 +1,15 @@
++import tailwindcss from '@tailwindcss/vite';
++import react from '@vitejs/plugin-react';
++import { defineConfig } from 'vite';
++
++// The web app reaches its api at /trpc. The dev and preview servers proxy that
++// path to the api process, which `pnpm dev` and Playwright start beside Vite.
++const proxy = { '/trpc': process.env.API_ORIGIN ?? 'http://127.0.0.1:3001' };
++
++// Vite is only the carrier that makes this template runnable. The agentic
++// scaffolding (gates, context, skills) is stack-agnostic — see README.md.
++export default defineConfig({
++  plugins: [react(), tailwindcss()],
++  server: { port: 5173, proxy },
++  preview: { port: 3000, proxy },
++});
+-- 
+2.43.0
+
+
+From cc96373fc5ef8fdb8f0c59922964b752cbbff7fc Mon Sep 17 00:00:00 2001
+From: pilot <pilot@users.noreply.github.com>
+Date: Wed, 11 Nov 2026 15:04:36 +0000
+Subject: [PATCH 2/4] feat(showcase): drift-plain-01 step 2
+
+---
+ .../api/src/features/tags/application.test.ts |  26 ++++
+ .../api/src/features/tags/application.ts      |  19 +++
+ .../api/src/features/tags/domain.test.ts      |  13 ++
+ .../api/src/features/tags/domain.ts           |  15 +++
+ .../api/src/features/tags/index.ts            |   1 +
+ .../api/src/features/tags/integrations.ts     |  16 +++
+ .../api/src/features/tags/procedures.test.ts  |  35 ++++++
+ .../api/src/features/tags/procedures.ts       |  45 +++++++
+ .../drift-plain-01/api/src/router.test.ts     |   6 +
+ showcase/drift-plain-01/api/src/router.ts     |   2 +
+ showcase/drift-plain-01/web/e2e/tags.spec.ts  |  88 +++++++++++++
+ showcase/drift-plain-01/web/e2e/todos.spec.ts |   3 +-
+ showcase/drift-plain-01/web/src/App.tsx       |   8 +-
+ .../web/src/routes/tags/TagForm.tsx           |  30 +++++
+ .../web/src/routes/tags/TagItem.test.tsx      |  22 ++++
+ .../web/src/routes/tags/TagItem.tsx           |  16 +++
+ .../web/src/routes/tags/TagList.tsx           |  17 +++
+ .../web/src/routes/tags/TagsPage.test.tsx     | 119 ++++++++++++++++++
+ .../web/src/routes/tags/TagsPage.tsx          |  35 ++++++
+ .../web/src/routes/tags/index.ts              |   1 +
+ .../web/src/routes/tags/tagFormSchema.test.ts |  13 ++
+ .../web/src/routes/tags/tagFormSchema.ts      |   5 +
+ .../web/src/routes/tags/useTagForm.ts         |  11 ++
+ .../web/src/routes/tags/useTags.ts            |  34 +++++
+ 24 files changed, 578 insertions(+), 2 deletions(-)
+ create mode 100644 showcase/drift-plain-01/api/src/features/tags/application.test.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/tags/application.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/tags/domain.test.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/tags/domain.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/tags/index.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/tags/integrations.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/tags/procedures.test.ts
+ create mode 100644 showcase/drift-plain-01/api/src/features/tags/procedures.ts
+ create mode 100644 showcase/drift-plain-01/web/e2e/tags.spec.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/TagForm.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/TagItem.test.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/TagItem.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/TagList.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/TagsPage.test.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/TagsPage.tsx
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/index.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/tagFormSchema.test.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/tagFormSchema.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/useTagForm.ts
+ create mode 100644 showcase/drift-plain-01/web/src/routes/tags/useTags.ts
+
+diff --git a/showcase/drift-plain-01/api/src/features/tags/application.test.ts b/showcase/drift-plain-01/api/src/features/tags/application.test.ts
+new file mode 100644
+index 0000000..0de09ce
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/tags/application.test.ts
+@@ -0,0 +1,26 @@
++beforeEach(() => jest.resetModules());
++
++it('starts empty, then adds and lists tags in creation order', async () => {
++  const { addTag, listTags } = await import('./application.ts');
++  expect(listTags()).toEqual([]);
++  const first = addTag({ name: 'urgent' });
++  const second = addTag({ name: 'home' });
++  expect(listTags()).toEqual([first, second]);
++  expect(first?.id).not.toBe(second?.id);
++});
++
++it('adds nothing when a tag already has the name, whatever its letter case', async () => {
++  const { addTag, listTags } = await import('./application.ts');
++  const first = addTag({ name: 'Urgent' });
++  expect(addTag({ name: 'urgent' })).toBeUndefined();
++  expect(listTags()).toEqual([first]);
++});
++
++it('removes a tag and returns its id, or undefined when it is already gone', async () => {
++  const { addTag, listTags, removeTag } = await import('./application.ts');
++  const tag = addTag({ name: 'urgent' });
++  if (!tag) throw new Error('expected a tag');
++  expect(removeTag(tag.id)).toEqual({ id: tag.id });
++  expect(listTags()).toEqual([]);
++  expect(removeTag(tag.id)).toBeUndefined();
++});
+diff --git a/showcase/drift-plain-01/api/src/features/tags/application.ts b/showcase/drift-plain-01/api/src/features/tags/application.ts
+new file mode 100644
+index 0000000..3757144
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/tags/application.ts
+@@ -0,0 +1,19 @@
++import { createTag, isTagNameTaken, type Tag } from './domain.ts';
++import { createTagStore } from './integrations.ts';
++
++const store = createTagStore();
++
++export function listTags(): readonly Tag[] {
++  return store.list();
++}
++
++/** The stored tag, or undefined when a tag already has the name. */
++export function addTag(request: { readonly name: string }): Tag | undefined {
++  if (isTagNameTaken(store.list(), request.name)) return undefined;
++  return store.save(createTag(store.nextId(), request.name));
++}
++
++/** The deleted tag's id, or undefined when no tag has the id. */
++export function removeTag(id: string): { readonly id: string } | undefined {
++  return store.remove(id) ? { id } : undefined;
++}
+diff --git a/showcase/drift-plain-01/api/src/features/tags/domain.test.ts b/showcase/drift-plain-01/api/src/features/tags/domain.test.ts
+new file mode 100644
+index 0000000..e17c162
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/tags/domain.test.ts
+@@ -0,0 +1,13 @@
++import { createTag, isTagNameTaken } from './domain.ts';
++
++it('creates a tag with the given id and name', () => {
++  expect(createTag('1', 'urgent')).toEqual({ id: '1', name: 'urgent' });
++});
++
++it('finds a name already taken, without regard to letter case', () => {
++  const tags = [createTag('1', 'Urgent')];
++  expect(isTagNameTaken(tags, 'urgent')).toBe(true);
++  expect(isTagNameTaken(tags, 'URGENT')).toBe(true);
++  expect(isTagNameTaken(tags, 'home')).toBe(false);
++  expect(isTagNameTaken([], 'urgent')).toBe(false);
++});
+diff --git a/showcase/drift-plain-01/api/src/features/tags/domain.ts b/showcase/drift-plain-01/api/src/features/tags/domain.ts
+new file mode 100644
+index 0000000..9bd931e
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/tags/domain.ts
+@@ -0,0 +1,15 @@
++export interface Tag {
++  readonly id: string;
++  readonly name: string;
++}
++
++/** A new tag. The caller supplies the id and the trimmed name. */
++export function createTag(id: string, name: string): Tag {
++  return { id, name };
++}
++
++/** True when a stored tag already has the name, compared without regard to letter case. */
++export function isTagNameTaken(tags: readonly Tag[], name: string): boolean {
++  const wanted = name.toLowerCase();
++  return tags.some((tag) => tag.name.toLowerCase() === wanted);
++}
+diff --git a/showcase/drift-plain-01/api/src/features/tags/index.ts b/showcase/drift-plain-01/api/src/features/tags/index.ts
+new file mode 100644
+index 0000000..658f3f9
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/tags/index.ts
+@@ -0,0 +1 @@
++export { tagsRouter } from './procedures.ts';
+diff --git a/showcase/drift-plain-01/api/src/features/tags/integrations.ts b/showcase/drift-plain-01/api/src/features/tags/integrations.ts
+new file mode 100644
+index 0000000..b489c4f
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/tags/integrations.ts
+@@ -0,0 +1,16 @@
++import { randomUUID } from 'node:crypto';
++import type { Tag } from './domain.ts';
++
++/** In-memory tag storage, kept for the life of the api process. Insertion order is list order. */
++export function createTagStore() {
++  const tags = new Map<string, Tag>();
++  return {
++    nextId: (): string => randomUUID(),
++    list: (): readonly Tag[] => [...tags.values()],
++    save: (tag: Tag): Tag => {
++      tags.set(tag.id, tag);
++      return tag;
++    },
++    remove: (id: string): boolean => tags.delete(id),
++  };
++}
+diff --git a/showcase/drift-plain-01/api/src/features/tags/procedures.test.ts b/showcase/drift-plain-01/api/src/features/tags/procedures.test.ts
+new file mode 100644
+index 0000000..fe5e47b
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/tags/procedures.test.ts
+@@ -0,0 +1,35 @@
++import { TRPCError } from '@trpc/server';
++import { createCallerFactory } from '../../trpc.ts';
++import { tagsRouter } from './procedures.ts';
++
++const caller = createCallerFactory(tagsRouter)({});
++
++it('creates a trimmed tag and lists it', async () => {
++  const created = await caller.create({ name: '  Errands  ' });
++  expect(created).toEqual({ id: expect.any(String), name: 'Errands' });
++  await expect(caller.list()).resolves.toContainEqual(created);
++});
++
++it.each(['', '   '])('rejects the blank name %j as a bad request', async (name) => {
++  await expect(caller.create({ name })).rejects.toMatchObject({
++    constructor: TRPCError,
++    code: 'BAD_REQUEST',
++  });
++});
++
++it('rejects a name that a tag already has, whatever its letter case, as a conflict', async () => {
++  await caller.create({ name: 'Shopping' });
++  await expect(caller.create({ name: ' shopping ' })).rejects.toMatchObject({
++    constructor: TRPCError,
++    code: 'CONFLICT',
++  });
++});
++
++it('deletes a tag and returns its id, then reports it missing', async () => {
++  const created = await caller.create({ name: 'Water' });
++  await expect(caller.delete({ id: created.id })).resolves.toEqual({ id: created.id });
++  await expect(caller.list()).resolves.not.toContainEqual(
++    expect.objectContaining({ id: created.id }),
++  );
++  await expect(caller.delete({ id: created.id })).rejects.toMatchObject({ code: 'NOT_FOUND' });
++});
+diff --git a/showcase/drift-plain-01/api/src/features/tags/procedures.ts b/showcase/drift-plain-01/api/src/features/tags/procedures.ts
+new file mode 100644
+index 0000000..d198b4e
+--- /dev/null
++++ b/showcase/drift-plain-01/api/src/features/tags/procedures.ts
+@@ -0,0 +1,45 @@
++import { TRPCError } from '@trpc/server';
++import { Schema } from 'effect';
++import { procedure, router } from '../../trpc.ts';
++import { addTag, listTags, removeTag } from './application.ts';
++import type { Tag } from './domain.ts';
++
++const tagSchema = Schema.Struct({
++  id: Schema.String,
++  name: Schema.String,
++});
++const createInputSchema = Schema.Struct({ name: Schema.Trim.check(Schema.isNonEmpty()) });
++const idInputSchema = Schema.Struct({ id: Schema.String });
++const deletedSchema = Schema.Struct({ id: Schema.String });
++
++/** Maps a name that a tag already has to CONFLICT; the application returns undefined for it. */
++function added(tag: Tag | undefined): Tag {
++  if (tag === undefined) {
++    throw new TRPCError({ code: 'CONFLICT', message: 'That tag exists' });
++  }
++  return tag;
++}
++
++/** Maps a missing tag to NOT_FOUND; the application returns undefined for it. */
++function found<Value>(value: Value | undefined): Value {
++  if (value === undefined) {
++    throw new TRPCError({ code: 'NOT_FOUND', message: 'Tag not found' });
++  }
++  return value;
++}
++
++const tagProcedures = {
++  list: procedure
++    .output(Schema.toStandardSchemaV1(Schema.Array(tagSchema)))
++    .query(() => listTags()),
++  create: procedure
++    .input(Schema.toStandardSchemaV1(createInputSchema))
++    .output(Schema.toStandardSchemaV1(tagSchema))
++    .mutation(({ input }) => added(addTag(input))),
++  delete: procedure
++    .input(Schema.toStandardSchemaV1(idInputSchema))
++    .output(Schema.toStandardSchemaV1(deletedSchema))
++    .mutation(({ input }) => found(removeTag(input.id))),
++};
++
++export const tagsRouter: ReturnType<typeof router<typeof tagProcedures>> = router(tagProcedures);
+diff --git a/showcase/drift-plain-01/api/src/router.test.ts b/showcase/drift-plain-01/api/src/router.test.ts
+index 884f016..1f89d28 100644
+--- a/showcase/drift-plain-01/api/src/router.test.ts
++++ b/showcase/drift-plain-01/api/src/router.test.ts
+@@ -6,3 +6,9 @@ it('serves the todo feature under todos', async () => {
+   const created = await caller.todos.create({ title: 'Read the review' });
+   await expect(caller.todos.list()).resolves.toContainEqual(created);
+ });
++
++it('serves the tag feature under tags', async () => {
++  const caller = createCallerFactory(appRouter)({});
++  const created = await caller.tags.create({ name: 'Read the review' });
++  await expect(caller.tags.list()).resolves.toContainEqual(created);
++});
+diff --git a/showcase/drift-plain-01/api/src/router.ts b/showcase/drift-plain-01/api/src/router.ts
+index 38d204c..054aa5f 100644
+--- a/showcase/drift-plain-01/api/src/router.ts
++++ b/showcase/drift-plain-01/api/src/router.ts
+@@ -1,8 +1,10 @@
++import { tagsRouter } from './features/tags/index.ts';
+ import { todosRouter } from './features/todos/index.ts';
+ import { router } from './trpc.ts';
+ 
+ export const appRouter = router({
+   todos: todosRouter,
++  tags: tagsRouter,
+ });
+ 
+ export type AppRouter = typeof appRouter;
+diff --git a/showcase/drift-plain-01/web/e2e/tags.spec.ts b/showcase/drift-plain-01/web/e2e/tags.spec.ts
+new file mode 100644
+index 0000000..34e5bcf
+--- /dev/null
++++ b/showcase/drift-plain-01/web/e2e/tags.spec.ts
+@@ -0,0 +1,88 @@
++import { randomUUID } from 'node:crypto';
++import { expect, type Page, test } from './fixtures';
++
++/**
++ * The Tag behaviour, end to end: the page in Chromium, the Vite server's
++ * `/trpc` proxy, and the real api process. The api keeps tags in memory, so
++ * each test makes its own names and never counts tags.
++ */
++const newName = (label: string) => `${label} ${randomUUID().slice(0, 8)}`;
++
++const tagRegion = (page: Page) => page.getByRole('region', { name: 'Tags' });
++const tagList = (page: Page) => tagRegion(page).getByRole('list', { name: 'Tags' });
++const tagItem = (page: Page, name: string) =>
++  tagList(page).getByRole('listitem').filter({ hasText: name });
++
++async function addTag(page: Page, name: string) {
++  await page.getByRole('textbox', { name: 'Tag name' }).fill(name);
++  await page.getByRole('button', { name: 'Add tag', exact: true }).click();
++  await expect(tagItem(page, name)).toBeVisible();
++}
++
++test.describe('Tags', () => {
++  test.beforeEach(async ({ page }) => {
++    await page.goto('/');
++  });
++
++  test('adds a tag and lists it below the todos', async ({ page }) => {
++    const name = newName('Errands');
++
++    await addTag(page, name);
++
++    await expect(tagRegion(page)).toBeVisible();
++    await expect(tagItem(page, name)).toBeVisible();
++  });
++
++  test('asks for a name and sends no request when the name is blank', async ({ page }) => {
++    const apiCalls: string[] = [];
++    page.on('request', (request) => {
++      if (new URL(request.url()).pathname.startsWith('/trpc/tags.create')) {
++        apiCalls.push(request.url());
++      }
++    });
++
++    await page.getByRole('textbox', { name: 'Tag name' }).fill('   ');
++    await page.getByRole('button', { name: 'Add tag', exact: true }).click();
++
++    await expect(tagRegion(page).getByRole('alert')).toHaveText('Enter a tag name');
++    expect(apiCalls).toEqual([]);
++  });
++
++  test('says the tag exists, adds nothing, and ignores letter case', async ({
++    page,
++    expectConsole,
++  }) => {
++    expectConsole(/Failed to load resource: .*409/);
++    const name = newName('Shopping');
++    await addTag(page, name);
++
++    await page.getByRole('textbox', { name: 'Tag name' }).fill(name.toUpperCase());
++    await page.getByRole('button', { name: 'Add tag', exact: true }).click();
++
++    await expect(tagRegion(page).getByRole('alert')).toHaveText('That tag exists');
++    await expect(tagList(page).getByRole('listitem').filter({ hasText: name })).toHaveCount(1);
++  });
++
++  test('deletes a tag, and it stays gone after a reload', async ({ page }) => {
++    const kept = newName('Keep');
++    const name = newName('Water');
++    await addTag(page, kept);
++    await addTag(page, name);
++
++    await page.getByRole('button', { name: `Delete tag ${name}`, exact: true }).click();
++
++    await expect(tagItem(page, name)).toHaveCount(0);
++    await page.reload();
++    await expect(tagItem(page, kept)).toBeVisible();
++    await expect(tagItem(page, name)).toHaveCount(0);
++  });
++
++  test('keeps tags across a reload while the api runs', async ({ page }) => {
++    const name = newName('Home');
++    await addTag(page, name);
++
++    await page.reload();
++
++    await expect(tagItem(page, name)).toBeVisible();
++  });
++});
+diff --git a/showcase/drift-plain-01/web/e2e/todos.spec.ts b/showcase/drift-plain-01/web/e2e/todos.spec.ts
+index d4b798a..de5f45c 100644
+--- a/showcase/drift-plain-01/web/e2e/todos.spec.ts
++++ b/showcase/drift-plain-01/web/e2e/todos.spec.ts
+@@ -63,6 +63,7 @@ test.describe('Todos', () => {
+ 
+     await page.goto('/');
+ 
+-    await expect(page.getByRole('alert')).toHaveText('Could not load todos');
++    // The todos and tags queries share one batched request, so the tags list fails too.
++    await expect(page.getByRole('main').getByRole('alert')).toHaveText('Could not load todos');
+   });
+ });
+diff --git a/showcase/drift-plain-01/web/src/App.tsx b/showcase/drift-plain-01/web/src/App.tsx
+index c1f2d9b..addad0b 100644
+--- a/showcase/drift-plain-01/web/src/App.tsx
++++ b/showcase/drift-plain-01/web/src/App.tsx
+@@ -1,5 +1,11 @@
++import { TagsPage } from './routes/tags';
+ import { TodosPage } from './routes/todos';
+ 
+ export function App() {
+-  return <TodosPage />;
++  return (
++    <>
++      <TodosPage />
++      <TagsPage />
++    </>
++  );
+ }
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/TagForm.tsx b/showcase/drift-plain-01/web/src/routes/tags/TagForm.tsx
+new file mode 100644
+index 0000000..1799b58
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/TagForm.tsx
+@@ -0,0 +1,30 @@
++import { Button, TextField } from '@repo/ui';
++import type { CreateTag } from './useTags';
++import { useTagForm } from './useTagForm';
++
++export interface TagFormProps {
++  readonly onCreate: (input: CreateTag) => void;
++  readonly pending: boolean;
++}
++
++export function TagForm({ onCreate, pending }: TagFormProps) {
++  const { register, handleSubmit, reset, formState } = useTagForm();
++  const handleCreate = handleSubmit(({ name }) => {
++    onCreate({ name });
++    reset();
++  });
++
++  return (
++    <form className="flex flex-col gap-3" onSubmit={handleCreate} noValidate>
++      <TextField
++        label="Tag name"
++        autoComplete="off"
++        error={formState.errors.name?.message}
++        {...register('name')}
++      />
++      <Button type="submit" disabled={pending}>
++        Add tag
++      </Button>
++    </form>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/TagItem.test.tsx b/showcase/drift-plain-01/web/src/routes/tags/TagItem.test.tsx
+new file mode 100644
+index 0000000..873b118
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/TagItem.test.tsx
+@@ -0,0 +1,22 @@
++import { render, screen } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import { TagItem } from './TagItem';
++
++const tag = { id: 't1', name: 'Errands' };
++
++it('shows the tag name and a delete button named after it', () => {
++  render(<TagItem tag={tag} onDelete={jest.fn()} />);
++
++  expect(screen.getByText('Errands')).toBeInTheDocument();
++  expect(screen.getByRole('button', { name: 'Delete tag Errands' })).toBeInTheDocument();
++});
++
++it('reports the id of the tag it deletes', async () => {
++  const onDelete = jest.fn();
++  const user = userEvent.setup();
++  render(<TagItem tag={tag} onDelete={onDelete} />);
++
++  await user.click(screen.getByRole('button', { name: 'Delete tag Errands' }));
++
++  expect(onDelete).toHaveBeenCalledWith('t1');
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/TagItem.tsx b/showcase/drift-plain-01/web/src/routes/tags/TagItem.tsx
+new file mode 100644
+index 0000000..4192811
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/TagItem.tsx
+@@ -0,0 +1,16 @@
++import { Button } from '@repo/ui';
++import type { Tag } from './useTags';
++
++export interface TagItemProps {
++  readonly tag: Tag;
++  readonly onDelete: (id: Tag['id']) => void;
++}
++
++export function TagItem({ tag, onDelete }: TagItemProps) {
++  return (
++    <li className="flex items-center justify-between gap-3 rounded-lg border border-line bg-raised px-4 py-3">
++      <span className="min-w-0 flex-1 break-words">{tag.name}</span>
++      <Button onClick={() => onDelete(tag.id)}>{`Delete tag ${tag.name}`}</Button>
++    </li>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/TagList.tsx b/showcase/drift-plain-01/web/src/routes/tags/TagList.tsx
+new file mode 100644
+index 0000000..1b65637
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/TagList.tsx
+@@ -0,0 +1,17 @@
++import { TagItem } from './TagItem';
++import type { Tag } from './useTags';
++
++export interface TagListProps {
++  readonly tags: readonly Tag[];
++  readonly onDelete: (id: Tag['id']) => void;
++}
++
++export function TagList({ tags, onDelete }: TagListProps) {
++  return (
++    <ul aria-label="Tags" className="flex flex-col gap-2">
++      {tags.map((tag) => (
++        <TagItem key={tag.id} tag={tag} onDelete={onDelete} />
++      ))}
++    </ul>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/TagsPage.test.tsx b/showcase/drift-plain-01/web/src/routes/tags/TagsPage.test.tsx
+new file mode 100644
+index 0000000..b219edf
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/TagsPage.test.tsx
+@@ -0,0 +1,119 @@
++import { render, screen, waitFor, within } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import { axe } from 'jest-axe';
++import { type TestApiHandlers, TestApiProvider } from '../../api-client';
++import { TagsPage } from './TagsPage';
++
++type Tag = { id: string; name: string };
++
++/** An in-memory fake of the tags api, so the page sees a real create and delete sequence. */
++function fakeTagsApi(initial: readonly Tag[] = []) {
++  const tags = new Map(initial.map((tag) => [tag.id, tag]));
++  const handlers: TestApiHandlers = {
++    'tags.list': () => [...tags.values()],
++    'tags.create': ({ name }) => {
++      const tag = { id: `id-${tags.size + 1}`, name };
++      tags.set(tag.id, tag);
++      return tag;
++    },
++    'tags.delete': ({ id }) => {
++      tags.delete(id);
++      return { id };
++    },
++  };
++  return { handlers };
++}
++
++function renderPage(handlers: TestApiHandlers) {
++  const view = render(
++    <TestApiProvider handlers={handlers}>
++      <TagsPage />
++    </TestApiProvider>,
++  );
++  return { ...view, user: userEvent.setup() };
++}
++
++const tagRegion = () => screen.getByRole('region', { name: 'Tags' });
++const tagList = () => within(tagRegion()).getByRole('list', { name: 'Tags' });
++
++it('shows the tags region, the name field and the add button', async () => {
++  renderPage(fakeTagsApi().handlers);
++
++  expect(tagRegion()).toBeInTheDocument();
++  expect(screen.getByRole('textbox', { name: 'Tag name' })).toBeInTheDocument();
++  expect(screen.getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
++  expect(await screen.findByText('No tags yet')).toBeInTheDocument();
++});
++
++it('adds a tag, lists it and clears the field', async () => {
++  const { handlers } = fakeTagsApi();
++  const { user } = renderPage(handlers);
++  await screen.findByText('No tags yet');
++
++  await user.type(screen.getByRole('textbox', { name: 'Tag name' }), '  Errands ');
++  await user.click(screen.getByRole('button', { name: 'Add tag' }));
++
++  expect(await within(tagList()).findByText('Errands')).toBeInTheDocument();
++  expect(screen.getByRole('textbox', { name: 'Tag name' })).toHaveValue('');
++});
++
++it.each(['', '   '])('adds nothing and alerts for the name %j', async (name) => {
++  const create = jest.fn(() => ({ id: 'x', name: 'unused' }));
++  const { handlers } = fakeTagsApi();
++  const { user } = renderPage({ ...handlers, 'tags.create': create });
++  await screen.findByText('No tags yet');
++
++  const field = screen.getByRole('textbox', { name: 'Tag name' });
++  if (name) await user.type(field, name);
++  await user.click(screen.getByRole('button', { name: 'Add tag' }));
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Enter a tag name');
++  expect(create).not.toHaveBeenCalled();
++});
++
++it('alerts and adds nothing when the name already exists, whatever its case', async () => {
++  const { handlers } = fakeTagsApi([{ id: 'a1', name: 'Errands' }]);
++  const { user } = renderPage({
++    ...handlers,
++    'tags.create': () =>
++      Promise.reject({
++        error: { code: -32009, message: 'That tag exists', data: { code: 'CONFLICT' } },
++      }),
++  });
++  await screen.findByText('Errands');
++
++  await user.type(screen.getByRole('textbox', { name: 'Tag name' }), 'errands');
++  await user.click(screen.getByRole('button', { name: 'Add tag' }));
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('That tag exists');
++  expect(within(tagList()).getAllByRole('listitem')).toHaveLength(1);
++});
++
++it('deletes a tag and leaves the others listed', async () => {
++  const { handlers } = fakeTagsApi([
++    { id: 'a1', name: 'Keep' },
++    { id: 'a2', name: 'Remove' },
++  ]);
++  const { user } = renderPage(handlers);
++
++  await user.click(await screen.findByRole('button', { name: 'Delete tag Remove' }));
++
++  await waitFor(() =>
++    expect(screen.queryByRole('button', { name: 'Delete tag Remove' })).not.toBeInTheDocument(),
++  );
++  expect(screen.getByRole('button', { name: 'Delete tag Keep' })).toBeInTheDocument();
++});
++
++it('says so when the list cannot load', async () => {
++  renderPage({ 'tags.list': () => Promise.reject(new Error('api down')) });
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Could not load tags');
++});
++
++it('has no axe-detectable violations with a tag listed', async () => {
++  const { handlers } = fakeTagsApi([{ id: 'a1', name: 'Errands' }]);
++  const { container } = renderPage(handlers);
++  await screen.findByText('Errands');
++
++  expect(await axe(container)).toHaveNoViolations();
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/TagsPage.tsx b/showcase/drift-plain-01/web/src/routes/tags/TagsPage.tsx
+new file mode 100644
+index 0000000..7448b76
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/TagsPage.tsx
+@@ -0,0 +1,35 @@
++import { TagForm } from './TagForm';
++import { TagList } from './TagList';
++import { useTags } from './useTags';
++
++export function TagsPage() {
++  const { tags, listStatus, isCreating, isDuplicate, hasMutationError, createTag, deleteTag } =
++    useTags();
++
++  return (
++    <section aria-label="Tags" className="mx-auto flex max-w-160 flex-col gap-6 px-4 pb-12">
++      <h2 className="text-2xl font-bold tracking-tight">Tags</h2>
++      <TagForm onCreate={createTag} pending={isCreating} />
++      {listStatus === 'loading' ? <p className="text-muted">Loading…</p> : null}
++      {listStatus === 'error' ? (
++        <p role="alert" className="text-danger">
++          Could not load tags
++        </p>
++      ) : null}
++      {isDuplicate ? (
++        <p role="alert" className="text-danger">
++          That tag exists
++        </p>
++      ) : null}
++      {hasMutationError ? (
++        <p role="alert" className="text-danger">
++          Could not save your change
++        </p>
++      ) : null}
++      {listStatus === 'success' && tags.length === 0 ? <p>No tags yet</p> : null}
++      {listStatus === 'success' && tags.length > 0 ? (
++        <TagList tags={tags} onDelete={deleteTag} />
++      ) : null}
++    </section>
++  );
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/index.ts b/showcase/drift-plain-01/web/src/routes/tags/index.ts
+new file mode 100644
+index 0000000..466be8d
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/index.ts
+@@ -0,0 +1 @@
++export { TagsPage } from './TagsPage';
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/tagFormSchema.test.ts b/showcase/drift-plain-01/web/src/routes/tags/tagFormSchema.test.ts
+new file mode 100644
+index 0000000..fd8ef21
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/tagFormSchema.test.ts
+@@ -0,0 +1,13 @@
++import { Schema } from 'effect';
++import { tagFormSchema } from './tagFormSchema';
++
++const validate = (name: string) =>
++  Schema.toStandardSchemaV1(tagFormSchema)['~standard'].validate({ name });
++
++it('trims the name', () => {
++  expect(validate('  Errands ')).toEqual({ value: { name: 'Errands' } });
++});
++
++it.each(['', '   '])('asks for a name when it is %j', (name) => {
++  expect(validate(name)).toEqual({ issues: [{ path: ['name'], message: 'Enter a tag name' }] });
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/tagFormSchema.ts b/showcase/drift-plain-01/web/src/routes/tags/tagFormSchema.ts
+new file mode 100644
+index 0000000..0c5f249
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/tagFormSchema.ts
+@@ -0,0 +1,5 @@
++import { Schema } from 'effect';
++
++export const tagFormSchema = Schema.Struct({
++  name: Schema.Trim.check(Schema.isNonEmpty({ message: 'Enter a tag name' })),
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/useTagForm.ts b/showcase/drift-plain-01/web/src/routes/tags/useTagForm.ts
+new file mode 100644
+index 0000000..dd6e06b
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/useTagForm.ts
+@@ -0,0 +1,11 @@
++import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
++import { Schema } from 'effect';
++import { useForm } from 'react-hook-form';
++import { tagFormSchema } from './tagFormSchema';
++
++export function useTagForm() {
++  return useForm({
++    resolver: standardSchemaResolver(Schema.toStandardSchemaV1(tagFormSchema)),
++    defaultValues: { name: '' },
++  });
++}
+diff --git a/showcase/drift-plain-01/web/src/routes/tags/useTags.ts b/showcase/drift-plain-01/web/src/routes/tags/useTags.ts
+new file mode 100644
+index 0000000..79b7aec
+--- /dev/null
++++ b/showcase/drift-plain-01/web/src/routes/tags/useTags.ts
+@@ -0,0 +1,34 @@
++import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
++import { type RouterInputs, type RouterOutputs, useTrpc } from '../../api-client';
++
++export type Tag = RouterOutputs['tags']['list'][number];
++export type CreateTag = RouterInputs['tags']['create'];
++
++export type TagListStatus = 'loading' | 'error' | 'success';
++
++/** The tags on the server, and the create and delete calls that change them. */
++export function useTags() {
++  const trpc = useTrpc();
++  const queryClient = useQueryClient();
++  const list = useQuery(trpc.tags.list.queryOptions());
++  const refresh = () => queryClient.invalidateQueries({ queryKey: trpc.tags.list.queryKey() });
++  const create = useMutation(trpc.tags.create.mutationOptions({ onSuccess: refresh }));
++  const remove = useMutation(trpc.tags.delete.mutationOptions({ onSuccess: refresh }));
++  const isDuplicate = create.error?.data?.code === 'CONFLICT';
++
++  return {
++    tags: list.data ?? [],
++    listStatus: toListStatus(list),
++    isCreating: create.isPending,
++    isDuplicate,
++    hasMutationError: (create.isError && !isDuplicate) || remove.isError,
++    createTag: (input: CreateTag) => create.mutate(input),
++    deleteTag: (id: Tag['id']) => remove.mutate({ id }),
++  };
++}
++
++function toListStatus(list: { isError: boolean; isPending: boolean }): TagListStatus {
++  if (list.isError) return 'error';
++  if (list.isPending) return 'loading';
++  return 'success';
++}
+-- 
+2.43.0
+
+
+From 607ce27d4b1d8585e3b42e0126a187a40a980140 Mon Sep 17 00:00:00 2001
+From: pilot <pilot@users.noreply.github.com>
+Date: Wed, 11 Nov 2026 15:30:38 +0000
+Subject: [PATCH 3/4] feat(showcase): drift-plain-01 step 3
+
+---
+ .../src/features/todos/application.test.ts    | 11 +++++
+ .../api/src/features/todos/application.ts     |  8 +++-
+ .../api/src/features/todos/integrations.ts    |  6 +++
+ .../api/src/features/todos/procedures.test.ts | 11 +++++
+ .../api/src/features/todos/procedures.ts      |  9 ++--
+ showcase/drift-plain-01/web/e2e/todos.spec.ts | 26 +++++++++++
+ .../web/src/routes/todos/TodosPage.test.tsx   | 43 +++++++++++++++++++
+ .../web/src/routes/todos/TodosPage.tsx        | 18 +++++++-
+ .../web/src/routes/todos/useTodos.ts          | 11 +++--
+ 9 files changed, 134 insertions(+), 9 deletions(-)
+
+diff --git a/showcase/drift-plain-01/api/src/features/todos/application.test.ts b/showcase/drift-plain-01/api/src/features/todos/application.test.ts
+index 06ff4bc..2cebb5e 100644
+--- a/showcase/drift-plain-01/api/src/features/todos/application.test.ts
++++ b/showcase/drift-plain-01/api/src/features/todos/application.test.ts
+@@ -24,3 +24,14 @@ it('removes a todo and returns its id, or undefined when it is already gone', as
+   expect(listTodos()).toEqual([]);
+   expect(removeTodo(todo.id)).toBeUndefined();
+ });
++
++it('clears only the completed todos and returns their ids, or none when none is completed', async () => {
++  const { addTodo, clearCompletedTodos, flipTodo, listTodos } = await import('./application.ts');
++  expect(clearCompletedTodos()).toEqual({ ids: [] });
++  const done = addTodo({ title: 'Buy milk' });
++  const open = addTodo({ title: 'Walk the dog' });
++  flipTodo(done.id);
++  expect(clearCompletedTodos()).toEqual({ ids: [done.id] });
++  expect(listTodos()).toEqual([open]);
++  expect(clearCompletedTodos()).toEqual({ ids: [] });
++});
+diff --git a/showcase/drift-plain-01/api/src/features/todos/application.ts b/showcase/drift-plain-01/api/src/features/todos/application.ts
+index 1d7ef4b..771d68f 100644
+--- a/showcase/drift-plain-01/api/src/features/todos/application.ts
++++ b/showcase/drift-plain-01/api/src/features/todos/application.ts
+@@ -1,4 +1,4 @@
+-import { createTodo, toggleTodo, type Todo } from './domain.ts';
++import { createTodo, type Todo, toggleTodo } from './domain.ts';
+ import { createTodoStore } from './integrations.ts';
+ 
+ const store = createTodoStore();
+@@ -22,3 +22,9 @@ export function flipTodo(id: string): Todo | undefined {
+ export function removeTodo(id: string): { readonly id: string } | undefined {
+   return store.remove(id) ? { id } : undefined;
+ }
++
++/** The ids of the completed todos it removed, in list order. */
++export function clearCompletedTodos(): { readonly ids: readonly string[] } {
++  const removed = store.removeWhere((todo) => todo.completed);
++  return { ids: removed.map((todo) => todo.id) };
++}
+diff --git a/showcase/drift-plain-01/api/src/features/todos/integrations.ts b/showcase/drift-plain-01/api/src/features/todos/integrations.ts
+index bcbe681..d0a2f4f 100644
+--- a/showcase/drift-plain-01/api/src/features/todos/integrations.ts
++++ b/showcase/drift-plain-01/api/src/features/todos/integrations.ts
+@@ -13,5 +13,11 @@ export function createTodoStore() {
+       return todo;
+     },
+     remove: (id: string): boolean => todos.delete(id),
++    /** Removes the todos that match and returns them, in list order. */
++    removeWhere: (matches: (todo: Todo) => boolean): readonly Todo[] => {
++      const removed = [...todos.values()].filter(matches);
++      removed.map((todo) => todos.delete(todo.id));
++      return removed;
++    },
+   };
+ }
+diff --git a/showcase/drift-plain-01/api/src/features/todos/procedures.test.ts b/showcase/drift-plain-01/api/src/features/todos/procedures.test.ts
+index 7b5e0f7..6bd9428 100644
+--- a/showcase/drift-plain-01/api/src/features/todos/procedures.test.ts
++++ b/showcase/drift-plain-01/api/src/features/todos/procedures.test.ts
+@@ -35,3 +35,14 @@ it('deletes a todo and returns its id, then reports it missing', async () => {
+   await expect(caller.delete({ id: created.id })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+   await expect(caller.toggle({ id: created.id })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+ });
++
++it('clears the completed todos, keeps the others and returns the removed ids', async () => {
++  const done = await caller.create({ title: 'File the report' });
++  const open = await caller.create({ title: 'Call the bank' });
++  await caller.toggle({ id: done.id });
++  await expect(caller.clearCompleted()).resolves.toEqual({
++    ids: expect.arrayContaining([done.id]),
++  });
++  await expect(caller.list()).resolves.toContainEqual(open);
++  await expect(caller.list()).resolves.not.toContainEqual(expect.objectContaining({ id: done.id }));
++});
+diff --git a/showcase/drift-plain-01/api/src/features/todos/procedures.ts b/showcase/drift-plain-01/api/src/features/todos/procedures.ts
+index d0d2fc2..723aa24 100644
+--- a/showcase/drift-plain-01/api/src/features/todos/procedures.ts
++++ b/showcase/drift-plain-01/api/src/features/todos/procedures.ts
+@@ -1,7 +1,7 @@
+ import { TRPCError } from '@trpc/server';
+ import { Schema } from 'effect';
+ import { procedure, router } from '../../trpc.ts';
+-import { addTodo, flipTodo, listTodos, removeTodo } from './application.ts';
++import { addTodo, clearCompletedTodos, flipTodo, listTodos, removeTodo } from './application.ts';
+ 
+ const todoSchema = Schema.Struct({
+   id: Schema.String,
+@@ -11,6 +11,7 @@ const todoSchema = Schema.Struct({
+ const createInputSchema = Schema.Struct({ title: Schema.Trim.check(Schema.isNonEmpty()) });
+ const idInputSchema = Schema.Struct({ id: Schema.String });
+ const deletedSchema = Schema.Struct({ id: Schema.String });
++const clearedSchema = Schema.Struct({ ids: Schema.Array(Schema.String) });
+ 
+ /** Maps a missing todo to NOT_FOUND; the application returns undefined for it. */
+ function found<Value>(value: Value | undefined): Value {
+@@ -36,7 +37,9 @@ const todoProcedures = {
+     .input(Schema.toStandardSchemaV1(idInputSchema))
+     .output(Schema.toStandardSchemaV1(deletedSchema))
+     .mutation(({ input }) => found(removeTodo(input.id))),
++  clearCompleted: procedure
++    .output(Schema.toStandardSchemaV1(clearedSchema))
++    .mutation(() => clearCompletedTodos()),
+ };
+ 
+-export const todosRouter: ReturnType<typeof router<typeof todoProcedures>> =
+-  router(todoProcedures);
++export const todosRouter: ReturnType<typeof router<typeof todoProcedures>> = router(todoProcedures);
+diff --git a/showcase/drift-plain-01/web/e2e/todos.spec.ts b/showcase/drift-plain-01/web/e2e/todos.spec.ts
+index de5f45c..e744205 100644
+--- a/showcase/drift-plain-01/web/e2e/todos.spec.ts
++++ b/showcase/drift-plain-01/web/e2e/todos.spec.ts
+@@ -55,6 +55,32 @@ test.describe('Todos', () => {
+     expect(await response.json()).toMatchObject([{ error: { data: { code: 'BAD_REQUEST' } } }]);
+   });
+ 
++  test('clears the completed todos, keeps the others and stays cleared after a reload', async ({
++    page,
++  }) => {
++    const done = newTitle('Finish report');
++    const open = newTitle('Call the bank');
++    await addTodo(page, done);
++    await addTodo(page, open);
++    const toggled = page.waitForResponse((response) =>
++      response.url().includes('/trpc/todos.toggle'),
++    );
++    await page.getByRole('checkbox', { name: done, exact: true }).click();
++    expect((await toggled).status()).toBe(200);
++
++    const cleared = page.waitForResponse((response) =>
++      response.url().includes('/trpc/todos.clearCompleted'),
++    );
++    await page.getByRole('button', { name: 'Clear completed' }).click();
++
++    expect((await cleared).status()).toBe(200);
++    await expect(page.getByRole('checkbox', { name: done, exact: true })).toHaveCount(0);
++    await expect(page.getByRole('checkbox', { name: open, exact: true })).not.toBeChecked();
++    await page.reload();
++    await expect(page.getByRole('checkbox', { name: done, exact: true })).toHaveCount(0);
++    await expect(page.getByRole('checkbox', { name: open, exact: true })).toBeVisible();
++  });
++
+   test('says so when the api fails to load the list', async ({ page, expectConsole }) => {
+     expectConsole(/Failed to load resource: .*500/);
+     await page.route('**/trpc/todos.list**', (route) =>
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
+index 53b68eb..d8da2b1 100644
+--- a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
+@@ -27,6 +27,11 @@ function fakeTodosApi(initial: readonly Todo[] = []) {
+       todos.delete(id);
+       return { id };
+     },
++    'todos.clearCompleted': () => {
++      const ids = [...todos.values()].filter((todo) => todo.completed).map((todo) => todo.id);
++      ids.map((id) => todos.delete(id));
++      return { ids };
++    },
+   };
+   return { handlers };
+ }
+@@ -127,3 +132,41 @@ it('has no axe-detectable violations with a todo listed', async () => {
+ 
+   expect(await axe(container)).toHaveNoViolations();
+ });
++
++it('disables Clear completed while no todo is completed', async () => {
++  const { handlers } = fakeTodosApi([{ id: 'a1', title: 'Walk the dog', completed: false }]);
++  renderPage(handlers);
++
++  expect(await screen.findByRole('checkbox', { name: 'Walk the dog' })).toBeInTheDocument();
++  expect(screen.getByRole('button', { name: 'Clear completed' })).toBeDisabled();
++});
++
++it('removes the completed todos and keeps the others', async () => {
++  const { handlers } = fakeTodosApi([
++    { id: 'a1', title: 'Done task', completed: true },
++    { id: 'a2', title: 'Open task', completed: false },
++  ]);
++  const { user } = renderPage(handlers);
++  await screen.findByRole('checkbox', { name: 'Done task' });
++
++  await user.click(screen.getByRole('button', { name: 'Clear completed' }));
++
++  await waitFor(() =>
++    expect(screen.queryByRole('checkbox', { name: 'Done task' })).not.toBeInTheDocument(),
++  );
++  expect(screen.getByRole('checkbox', { name: 'Open task' })).not.toBeChecked();
++  expect(screen.getByRole('button', { name: 'Clear completed' })).toBeDisabled();
++});
++
++it('says so when the completed todos cannot be cleared', async () => {
++  const { handlers } = fakeTodosApi([{ id: 'a1', title: 'Done task', completed: true }]);
++  const { user } = renderPage({
++    ...handlers,
++    'todos.clearCompleted': () => Promise.reject(new Error('api down')),
++  });
++  await screen.findByRole('checkbox', { name: 'Done task' });
++
++  await user.click(screen.getByRole('button', { name: 'Clear completed' }));
++
++  expect(await screen.findByRole('alert')).toHaveTextContent('Could not save your change');
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
+index eeb3dcc..7b2f844 100644
+--- a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
+@@ -1,10 +1,21 @@
++import { Button } from '@repo/ui';
+ import { TodoForm } from './TodoForm';
+ import { TodoList } from './TodoList';
+ import { useTodos } from './useTodos';
+ 
+ export function TodosPage() {
+-  const { todos, listStatus, isCreating, hasMutationError, createTodo, toggleTodo, deleteTodo } =
+-    useTodos();
++  const {
++    todos,
++    listStatus,
++    hasCompleted,
++    isCreating,
++    isClearing,
++    hasMutationError,
++    createTodo,
++    toggleTodo,
++    deleteTodo,
++    clearCompleted,
++  } = useTodos();
+ 
+   return (
+     <main className="mx-auto flex max-w-160 flex-col gap-6 px-4 py-6 sm:py-12">
+@@ -25,6 +36,9 @@ export function TodosPage() {
+       {listStatus === 'success' && todos.length > 0 ? (
+         <TodoList todos={todos} onToggle={toggleTodo} onDelete={deleteTodo} />
+       ) : null}
++      <Button onClick={clearCompleted} disabled={!hasCompleted || isClearing}>
++        Clear completed
++      </Button>
+     </main>
+   );
+ }
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts b/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
+index bd4e7c1..4e8037c 100644
+--- a/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
++++ b/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
+@@ -6,7 +6,7 @@ export type CreateTodo = RouterInputs['todos']['create'];
+ 
+ export type TodoListStatus = 'loading' | 'error' | 'success';
+ 
+-/** The todos on the server, and the create, toggle and delete calls that change them. */
++/** The todos on the server, and the create, toggle, delete and clear calls that change them. */
+ export function useTodos() {
+   const trpc = useTrpc();
+   const queryClient = useQueryClient();
+@@ -15,15 +15,20 @@ export function useTodos() {
+   const create = useMutation(trpc.todos.create.mutationOptions({ onSuccess: refresh }));
+   const toggle = useMutation(trpc.todos.toggle.mutationOptions({ onSuccess: refresh }));
+   const remove = useMutation(trpc.todos.delete.mutationOptions({ onSuccess: refresh }));
++  const clear = useMutation(trpc.todos.clearCompleted.mutationOptions({ onSuccess: refresh }));
++  const todos = list.data ?? [];
+ 
+   return {
+-    todos: list.data ?? [],
++    todos,
+     listStatus: toListStatus(list),
++    hasCompleted: todos.some((todo) => todo.completed),
+     isCreating: create.isPending,
+-    hasMutationError: create.isError || toggle.isError || remove.isError,
++    isClearing: clear.isPending,
++    hasMutationError: create.isError || toggle.isError || remove.isError || clear.isError,
+     createTodo: (input: CreateTodo) => create.mutate(input),
+     toggleTodo: (id: Todo['id']) => toggle.mutate({ id }),
+     deleteTodo: (id: Todo['id']) => remove.mutate({ id }),
++    clearCompleted: () => clear.mutate(),
+   };
+ }
+ 
+-- 
+2.43.0
+
+
+From 9bd591eca1c778ee931a3759e1b7a3677bf237c9 Mon Sep 17 00:00:00 2001
+From: pilot <pilot@users.noreply.github.com>
+Date: Wed, 11 Nov 2026 15:50:58 +0000
+Subject: [PATCH 4/4] feat(showcase): drift-plain-01 step 4
+
+---
+ showcase/drift-plain-01/web/e2e/todos.spec.ts | 27 +++++++++++++++++++
+ .../web/src/routes/todos/TodosPage.test.tsx   | 21 +++++++++++++++
+ .../web/src/routes/todos/TodosPage.tsx        |  6 +++++
+ .../web/src/routes/todos/useTodos.ts          |  4 ++-
+ 4 files changed, 57 insertions(+), 1 deletion(-)
+
+diff --git a/showcase/drift-plain-01/web/e2e/todos.spec.ts b/showcase/drift-plain-01/web/e2e/todos.spec.ts
+index e744205..f8d759d 100644
+--- a/showcase/drift-plain-01/web/e2e/todos.spec.ts
++++ b/showcase/drift-plain-01/web/e2e/todos.spec.ts
+@@ -7,6 +7,17 @@ import { expect, type Page, test } from './fixtures';
+  */
+ const newTitle = (label: string) => `${label} ${randomUUID().slice(0, 8)}`;
+ 
++/**
++ * The summary and the checkboxes it counts, read one after another. Other tests
++ * change the shared api while this one reads, so the caller polls until they agree.
++ */
++async function summaryMatchesList(page: Page) {
++  const boxes = await page.getByRole('list', { name: 'Todos' }).getByRole('checkbox').all();
++  const states = await Promise.all(boxes.map((box) => box.isChecked()));
++  const summary = await page.getByRole('status').textContent();
++  return summary === `${states.filter(Boolean).length} of ${states.length} done`;
++}
++
+ async function addTodo(page: Page, title: string) {
+   await page.goto('/');
+   await page.getByRole('textbox', { name: 'Title' }).fill(title);
+@@ -81,6 +92,22 @@ test.describe('Todos', () => {
+     await expect(page.getByRole('checkbox', { name: open, exact: true })).toBeVisible();
+   });
+ 
++  test('keeps the summary equal to the list through create, delete and toggle', async ({
++    page,
++  }) => {
++    // The api is shared and another test clears completed todos, so this test never clears them itself.
++    const removed = newTitle('Delete me');
++    await addTodo(page, removed);
++    await expect.poll(() => summaryMatchesList(page)).toBe(true);
++    await page.getByRole('button', { name: `Delete ${removed}`, exact: true }).click();
++    await expect.poll(() => summaryMatchesList(page)).toBe(true);
++
++    const toggled = newTitle('Complete me');
++    await addTodo(page, toggled);
++    await page.getByRole('checkbox', { name: toggled, exact: true }).click();
++    await expect.poll(() => summaryMatchesList(page)).toBe(true);
++  });
++
+   test('says so when the api fails to load the list', async ({ page, expectConsole }) => {
+     expectConsole(/Failed to load resource: .*500/);
+     await page.route('**/trpc/todos.list**', (route) =>
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
+index d8da2b1..ac940cc 100644
+--- a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.test.tsx
+@@ -156,6 +156,7 @@ it('removes the completed todos and keeps the others', async () => {
+   );
+   expect(screen.getByRole('checkbox', { name: 'Open task' })).not.toBeChecked();
+   expect(screen.getByRole('button', { name: 'Clear completed' })).toBeDisabled();
++  expect(screen.getByRole('status')).toHaveTextContent(/^0 of 1 done$/);
+ });
+ 
+ it('says so when the completed todos cannot be cleared', async () => {
+@@ -170,3 +171,23 @@ it('says so when the completed todos cannot be cleared', async () => {
+ 
+   expect(await screen.findByRole('alert')).toHaveTextContent('Could not save your change');
+ });
++
++it('summarises how many todos are done, and keeps it current', async () => {
++  const { handlers } = fakeTodosApi([
++    { id: 'a1', title: 'First', completed: true },
++    { id: 'a2', title: 'Second', completed: false },
++    { id: 'a3', title: 'Third', completed: false },
++  ]);
++  const { user } = renderPage(handlers);
++  expect(await screen.findByRole('status')).toHaveTextContent(/^1 of 3 done$/);
++
++  await user.click(screen.getByRole('checkbox', { name: 'Second' }));
++
++  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/^2 of 3 done$/));
++});
++
++it('summarises an empty list as 0 of 0 done', async () => {
++  renderPage(fakeTodosApi().handlers);
++
++  expect(await screen.findByRole('status')).toHaveTextContent(/^0 of 0 done$/);
++});
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
+index 7b2f844..ba9f452 100644
+--- a/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
++++ b/showcase/drift-plain-01/web/src/routes/todos/TodosPage.tsx
+@@ -7,6 +7,7 @@ export function TodosPage() {
+   const {
+     todos,
+     listStatus,
++    doneCount,
+     hasCompleted,
+     isCreating,
+     isClearing,
+@@ -32,6 +33,11 @@ export function TodosPage() {
+           Could not save your change
+         </p>
+       ) : null}
++      {listStatus === 'success' ? (
++        <p role="status" className="text-muted">
++          {`${doneCount} of ${todos.length} done`}
++        </p>
++      ) : null}
+       {listStatus === 'success' && todos.length === 0 ? <p>No todos yet</p> : null}
+       {listStatus === 'success' && todos.length > 0 ? (
+         <TodoList todos={todos} onToggle={toggleTodo} onDelete={deleteTodo} />
+diff --git a/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts b/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
+index 4e8037c..bca24ce 100644
+--- a/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
++++ b/showcase/drift-plain-01/web/src/routes/todos/useTodos.ts
+@@ -17,11 +17,13 @@ export function useTodos() {
+   const remove = useMutation(trpc.todos.delete.mutationOptions({ onSuccess: refresh }));
+   const clear = useMutation(trpc.todos.clearCompleted.mutationOptions({ onSuccess: refresh }));
+   const todos = list.data ?? [];
++  const doneCount = todos.filter((todo) => todo.completed).length;
+ 
+   return {
+     todos,
+     listStatus: toListStatus(list),
+-    hasCompleted: todos.some((todo) => todo.completed),
++    doneCount,
++    hasCompleted: doneCount > 0,
+     isCreating: create.isPending,
+     isClearing: clear.isPending,
+     hasMutationError: create.isError || toggle.isError || remove.isError || clear.isError,
+-- 
+2.43.0
+
