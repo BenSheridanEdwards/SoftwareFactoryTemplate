@@ -13,12 +13,14 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
+- Drift test of the factory claim (ADR 0130): four changes in a row by fresh builders, two chains per arm, scored by defects. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet.
+- Move the suites that test no gate out of `pnpm verify`, and let the pre-push hook do the one gate run. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet. Issue [#298](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/298)
+- Tighten `policy/one-status-from-hooks`, and tell trial builders to leave earlier results unread. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet.
 - Add this task list and the AGENTS.md rule to keep it. T3 thread 15a5d0fa. PR [#350](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/350)
 
 ## Waiting
 
 - Two-arm test of the factory claim (ADR 0127) and its two pilots of 10 November 2026, with a strong and a less capable builder, waiting on the maintainer for a pull request and the North Star sign-off. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet.
-- Cut the Jest step of `pnpm verify`: the untracked-file test is fixed; moving the lab suites out and ending the double gate run wait on the maintainer's decision. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet. Issue [#298](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/298)
 - To-do reference app that replaces the greeting (draft), parked until the other issues close. T3 thread 15a5d0fa. PR [#335](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/335)
 - Page tests run the real feature router, stacked on `feat/todo-example-app` and waiting for PR #335. No thread recorded. PR [#343](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/343), issue [#339](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/339)
 - Share a feature's validation rules between api and web (draft), stacked on `feat/todo-example-app` and waiting for PR #335. No thread recorded. PR [#344](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/344), issue [#338](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/338)
