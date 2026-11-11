@@ -86,6 +86,33 @@ Both misleading outputs are gone at the head of this branch. Commit `96f51bd` ma
 count new files. On the current scaffold `pnpm fallow:audit` reports no issue and prints no
 duplicate list for the `todo-01` result of the first pilot.
 
+## The gated arm again on the current scaffold
+
+The same Haiku builder ran the gated arm three more times at scaffold
+`023f7213` of this branch, where both misleading outputs are gone. The result code is in
+`rerun-todo-0N.patch`.
+
+| Run | Own checks | Would want | Flags | Flags in new code | Lint findings | Build minutes | `pnpm verify` runs | Ended on a green verify |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `todo-01` | pass | yes | 17 | 9 | 0 | 18.8 | 4 | yes |
+| `todo-02` | pass | yes | 16 | 12 | 0 | 12.2 | 3 | yes |
+| `todo-03` | pass | yes | 15 | 9 | 0 | 9.6 | 1 | yes |
+
+| Gated arm, Haiku | Passed | Ended on a green verify | Median flags | Median build minutes |
+| --- | --- | --- | --- | --- |
+| Old scaffold | 2 of 3 | 1 of 3 | 14 | 18.8 |
+| Current scaffold | 3 of 3 | 3 of 3 | 16 | 12.2 |
+
+Every failure these builders met was a real one: dead code, a failing test, a coverage gap,
+the status rule. Each builder fixed what it met and finished. None stopped early and none
+rewrote the copied scaffold.
+
+This rerun answers one question: a less capable builder finishes on the current scaffold. It
+is outside the rule of ADR 0127, because its scaffold differs from the plain arm's parent.
+Set beside the plain runs above, the reviewer flag medians are equal at 16, so the flag
+count gives the gated arm no lead. The lint findings (0 against 16) and the user-visible
+defects that only the plain arm has (0 against 3) are where the arms differ.
+
 ## Limits
 
 - Three runs per arm give a direction and no significance level.
@@ -99,8 +126,10 @@ duplicate list for the `todo-01` result of the first pilot.
 
 ## What to do next
 
-1. Run the gated arm again with Haiku on the current scaffold, where the two misleading
-   outputs are gone. The claim predicts three green runs.
-2. Run the drift test: several tasks in a row by fresh builders, each on the last one's
+1. Run the drift test: several tasks in a row by fresh builders, each on the last one's
    output, in both arms.
+2. Decide the measure for the next test before it runs. The reviewer flag count did not
+   separate the arms in either pilot; a count of defects a user can see did.
 3. Tighten `policy/one-status-from-hooks` so a status beside a defaulted list fails.
+4. Keep earlier results out of the scaffold a builder reads: `tooling/trial/fixtures/` and
+   the pilot patches in `docs/trials/`.
