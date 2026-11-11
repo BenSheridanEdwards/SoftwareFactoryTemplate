@@ -13,7 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Two-arm pilot with a less capable builder model, on the scaffolds of the 10 November pilot. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet.
+- Two-arm pilot with a less capable builder model: first run recorded, gated arm to run again on the current scaffold. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet.
 - Cut the Jest step of `pnpm verify`, the slowest local gate, with every test kept. No thread recorded. Branch `claude/beautiful-sagan-2sxbf9`; no pull request yet. Issue [#298](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/298)
 - Add this task list and the AGENTS.md rule to keep it. T3 thread 15a5d0fa. PR [#350](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/350)
 

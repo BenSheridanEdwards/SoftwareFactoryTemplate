@@ -146,3 +146,5 @@ A pilot of this test ran on 10 November 2026 with sub-agents in place of harness
 sessions. Its report and result patches are in
 [`docs/trials/pilot-2026-11-10/`](../docs/trials/pilot-2026-11-10/README.md). It
 is a pilot: the harness runs above remain the evidence the report command reads.
+A second pilot the same day used a less capable builder; its report is in
+[`docs/trials/pilot-2026-11-10-weaker-model/`](../docs/trials/pilot-2026-11-10-weaker-model/README.md).
