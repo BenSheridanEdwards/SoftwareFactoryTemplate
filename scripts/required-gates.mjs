@@ -103,7 +103,7 @@ export const REQUIRED_GATES = [
     workflow: 'ci.yml',
     job: 'tooling',
     judgedBy: 'aggregate',
-    local: '`pnpm verify`, pre-push hook',
+    local: '`pnpm verify`, `pnpm test:lab`, pre-push hook',
   },
   {
     check: 'Changed-file coverage',

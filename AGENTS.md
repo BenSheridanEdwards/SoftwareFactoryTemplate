@@ -22,6 +22,7 @@ pnpm arch:check       # architecture gate, structure check, diagram freshness, A
 pnpm arch:diagram     # regenerate docs/architecture/roles.mmd and each result's architecture.mmd
 pnpm api:report       # regenerate each package's etc/*.api.md after an intended export change
 pnpm test:integration # exercise the real API server over HTTP in its own Jest project
+pnpm test:lab         # test the trial harness and the benchmark; run it after a change in tooling/trial/ or scripts/bench/
 pnpm test:contract    # record the web consumer contract and verify the HTTP provider with Pact
 pnpm verify           # the full local gate suite (typecheck → biome → oxlint → styles → react doctor → fallow → architecture → tests → build)
 pnpm e2e              # playwright test: every spec in each result's web/e2e/, with its api and web servers
@@ -54,7 +55,7 @@ Builders, including Codex, follow these steps before every push:
    add no `oxlint-disable` or `eslint-disable` comment. Commit fixes and rerun the gate.
 3. Write `// SAFETY: <the checked invariant>` above a type assertion only when
    the code beside it checks that invariant; otherwise remove the assertion.
-4. Run `pnpm verify` and `pnpm e2e`; `pnpm verify` runs `pnpm lint:anti-slop`.
+4. Push through git. The pre-push hook runs `pnpm verify` and `pnpm e2e` once, and `pnpm verify` runs `pnpm lint:anti-slop`. Where a harness pushes without the hooks, run both commands first.
 
 For review findings, follow [REVIEW.md](REVIEW.md#anti-slop-findings).
 

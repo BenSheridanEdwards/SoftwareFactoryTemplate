@@ -53,7 +53,8 @@ rules live in [AGENTS.md](../../AGENTS.md); proof requirements live in
 | Behind PRs | `.github/workflows/update-behind-prs.yml` (`scripts/update-behind-prs.mjs`) | On each push to main, merges main into every open, ready, same-repo PR that is behind it, then dispatches that PR's required checks and the enforcement gate; a conflicting PR gets one comment. See [Keeping PRs up to date](#keeping-prs-up-to-date). | GitHub's **Update branch** |
 | Merge confidence | `.github/workflows/confidence.yml` (`scripts/confidence-label.mjs`) | Green, amber or red label from gates, E2E/PRD coverage, unit coverage and import blast radius. Coverage gaps grade red and fail the required coverage lane. | `node scripts/confidence-label.mjs --decide` with head evidence |
 | `pnpm verify`, CI | Lockfile checker | Stable installs | `pnpm check:lockfile` |
-| Unit tests in verify/CI | Jest (`tooling/trial/`) | Result inclusion and trial protocol | `pnpm test` |
+| Unit tests in verify/CI | Jest `tooling` project (`tooling/trial/inclusion.test.ts`) | Every gate includes a result | `pnpm test` |
+| Unit tests in CI | Jest `lab` project (`tooling/trial/`, `scripts/bench/`) | The trial harness and the benchmark, tools that gate no change. The CI tooling shards run them; `pnpm verify` leaves them out ([ADR 0131](../decisions/0131-verify-runs-once-and-leaves-the-lab-suites-to-ci.md)). | `pnpm test:lab` |
 | API integration in verify/CI | Jest `integration` project | Real HTTP server, tRPC adapter, input schemas and `PORT` validation | `pnpm test:integration` |
 | `pnpm verify`, CI | Jest and `tooling/coverage-by-result.mjs` | Coverage per result | `pnpm test:coverage` (80% in every metric per result) |
 | `pnpm verify`, CI | Changed-file coverage | Each changed source meets Jest's global line threshold; each changed slice has a named E2E spec. Missing coverage fails. | `pnpm coverage:changed` |
@@ -133,9 +134,11 @@ See [ADR 0028](../decisions/0028-pre-push-runs-the-full-local-gate-suite.md).
   See [ADR 0034](../decisions/0034-trial-harness-and-evidence.md) for the
   program boundaries and their limits.
 - Jest + React Testing Library own component, hook and api behaviour in
-  five projects: `web` (jsdom, every web package and `packages/ui`), `api`
-  (node, every api package), `contract` (Pact), `integration` (real API HTTP) and `tooling`
-  (`scripts/`, `tooling/`). Unit and coverage commands select `web api tooling`;
+  six projects: `web` (jsdom, every web package and `packages/ui`), `api`
+  (node, every api package), `contract` (Pact), `integration` (real API HTTP), `tooling`
+  (the gate scripts in `scripts/` and `tooling/`) and `lab` (the trial harness and the
+  benchmark). Unit and coverage commands select `web api tooling`; `pnpm test:lab` runs the
+  lab suites, and the CI tooling shards run `tooling` and `lab` together;
   `pnpm test:contract` records the consumer before verifying the HTTP provider;
   `pnpm test:integration` runs the integration project separately. Coverage
   leaves out `index.ts` barrels and the composition roots `main.tsx`,

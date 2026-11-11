@@ -42,7 +42,7 @@ const misjudged = (paths: string[]) =>
 
 /** The test files Jest itself would run, as repository-relative paths. */
 function testsJestRuns() {
-  return ['web', 'api', 'tooling', 'integration', 'contract'].flatMap((project) => {
+  return ['web', 'api', 'tooling', 'lab', 'integration', 'contract'].flatMap((project) => {
     const listed = execFileSync(
       'node_modules/.bin/jest',
       ['--listTests', '--json', '--selectProjects', project],

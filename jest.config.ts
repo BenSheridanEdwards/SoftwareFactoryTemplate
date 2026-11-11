@@ -2,14 +2,26 @@ import { existsSync } from 'node:fs';
 import type { Config } from 'jest';
 
 /**
- * Five projects: `web` (jsdom), `api` (node), `integration` (real HTTP),
- * `contract` (Pact), and `tooling` for the gate scripts. Each result
+ * Six projects: `web` (jsdom), `api` (node), `integration` (real HTTP),
+ * `contract` (Pact), `tooling` for the gate scripts, and `lab` for the tools
+ * that gate nothing. Each result
  * in `apps/` or `showcase/<id>/` joins by path, with no per-result entry. The
  * transform is @swc/jest (fast, no Babel). Coverage is gated so a feature cannot
  * ship under-tested — see `.agents/project/PR_QUALITY.md`.
  */
 const existingRoots = (...folders: string[]) =>
   folders.filter((folder) => existsSync(folder)).map((folder) => `<rootDir>/${folder}`);
+
+/**
+ * The suites of tools that gate no change: the trial harness and the benchmark.
+ * `pnpm verify` leaves them out and CI runs them (ADR 0131). `inclusion.test.ts`
+ * checks that every gate includes a result, so it stays in `tooling`.
+ */
+const LAB_TESTS = [
+  '<rootDir>/tooling/trial/**/*.test.{ts,tsx}',
+  '<rootDir>/scripts/bench/**/*.test.{ts,tsx}',
+];
+const GATE_TEST_IN_TRIAL = '/tooling/trial/inclusion\\.test\\.ts$';
 
 const shared = {
   setupFilesAfterEnv: ['<rootDir>/tooling/jest/jest.setup.ts'],
@@ -82,6 +94,15 @@ const config: Config = {
       testEnvironment: 'node',
       roots: existingRoots('scripts', 'tooling'),
       testMatch: ['<rootDir>/scripts/**/*.test.{ts,tsx}', '<rootDir>/tooling/**/*.test.{ts,tsx}'],
+      testPathIgnorePatterns: ['/tooling/trial/(?!inclusion\\.test\\.ts$)', '/scripts/bench/'],
+    },
+    {
+      ...shared,
+      displayName: 'lab',
+      testEnvironment: 'node',
+      roots: existingRoots('scripts', 'tooling'),
+      testMatch: LAB_TESTS,
+      testPathIgnorePatterns: [GATE_TEST_IN_TRIAL],
     },
   ],
   collectCoverageFrom: [

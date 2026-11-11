@@ -14,7 +14,7 @@ in `.agents/project/QUALITY_GATES.md` and ADR 0017.
 | Code intelligence (Fallow) | `ci.yml` `fallow` | `Required gates` | Every run. | `pnpm verify`, pre-push hook |
 | Unit + component tests | `ci.yml` `test` | `Required gates` | Every run. | `pnpm verify`, pre-push hook |
 | API integration tests | `ci.yml` `integration` | `Required gates` | Every run. | `pnpm verify`, `pnpm test:integration`, pre-push hook |
-| Tooling tests (${{ matrix.shard }}/3) | `ci.yml` `tooling` | `Required gates` | Every run. | `pnpm verify`, pre-push hook |
+| Tooling tests (${{ matrix.shard }}/3) | `ci.yml` `tooling` | `Required gates` | Every run. | `pnpm verify`, `pnpm test:lab`, pre-push hook |
 | Changed-file coverage | `ci.yml` `coverage` | `Required gates` | Every run. | `pnpm coverage:changed` |
 | Production build | `ci.yml` `build` | `Required gates` | Every run. | `pnpm verify`, pre-push hook |
 | End-to-end behaviour map | `ci.yml` `e2e` | `Required gates` | Every run. | `pnpm e2e`, pre-push hook |
