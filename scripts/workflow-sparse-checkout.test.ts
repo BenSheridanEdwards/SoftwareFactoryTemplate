@@ -46,7 +46,7 @@ test('every module a workflow sparse-checks out has its local imports in the sam
 });
 
 test('the parser sees each sparse list', () => {
-  expect(sparseLists(workflowText('confidence.yml')).map((list) => list.length)).toEqual([7]);
+  expect(sparseLists(workflowText('confidence.yml')).map((list) => list.length)).toEqual([8]);
   expect(sparseLists(workflowText('enforcement-approval.yml')).map((list) => list.length)).toEqual([
     1,
   ]);
