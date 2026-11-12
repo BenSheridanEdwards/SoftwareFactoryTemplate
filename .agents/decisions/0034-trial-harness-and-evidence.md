@@ -112,7 +112,7 @@ the evidence:
    started), when any entry is left in the trials root, when free disk is
    under 5 GB, or when a trial port is busy: 5173, 3001, 5183 and 3011 for
    `pnpm dev`, and 6173, 4001, 6183 and 4011 for the servers `pnpm e2e`
-   starts (ADR 0123).
+   starts (ADR 0032).
 2. It creates `<trials root>/<id>-<UTC stamp>/`, with a bare `origin.git`
    that holds only the scaffold's history as `main` (its `FETCH_HEAD`, which
    names the invoking checkout, is removed), and a blobless clone of

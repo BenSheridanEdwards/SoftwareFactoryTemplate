@@ -54,7 +54,7 @@ pnpm exec playwright show-report                                   # open the la
 
 `playwright.config.ts` reads `tooling/results.mjs`: each result gets a Chromium
 project (`reference` for `apps/`, the id for `showcase/<id>/`) and two servers,
-Node api and Vite web. The reference uses ports 5173 and 3001; each further
+Node api and Vite web. The reference uses ports 6173 and 4001; each further
 result adds 10. New results and specs join without config changes.
 Set `E2E_BASE_URL` to use your own reference web server, such as `pnpm preview` on :3000.
 
