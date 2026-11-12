@@ -1,12 +1,20 @@
+import { createHash } from 'node:crypto';
+import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MatchersV3, PactV4 } from '@pact-foundation/pact';
 import { createTrpcClient } from './trpc';
 
+const directory =
+  process.env.PACT_DIR ??
+  join(tmpdir(), 'art-pact', createHash('sha256').update(process.cwd()).digest('hex').slice(0, 12));
+
+beforeAll(() => rmSync(join(directory, 'web-api.json'), { force: true }));
+
 const pact = new PactV4({
   consumer: 'web',
   provider: 'api',
-  dir: process.env.PACT_DIR ?? join(tmpdir(), 'art-pact'),
+  dir: directory,
 });
 
 it('greeting.greet returns the batch response the web consumes', async () => {
