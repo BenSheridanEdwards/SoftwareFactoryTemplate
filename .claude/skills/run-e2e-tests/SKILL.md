@@ -73,3 +73,7 @@ console errors and verifies the parent's assertion rejects the passing child.
 
 `pnpm e2e` passes and covers the new behaviour. Follow
 [`.agents/project/PR_QUALITY.md`](../../../.agents/project/PR_QUALITY.md).
+
+Playwright starts fresh servers on development ports plus 1000 (6173/4001
+for the reference, plus 10 per result). A busy port fails the run. With
+E2E_BASE_URL, the reference api keeps port 3001 for the preview proxy.
