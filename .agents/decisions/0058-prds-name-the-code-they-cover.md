@@ -4,6 +4,8 @@
 - **Date:** 2026-10-23
 - **Builds on:** [0041](0041-scripts-ask-the-tool-which-files-a-glob-covers.md), [0045](0045-prds-state-intent-and-link-their-specs.md)
 
+- **Amended by:** [0123](0123-a-to-do-app-is-the-reference-feature.md)
+
 ## Context
 
 ADR 0045 links each PRD behaviour to the E2E test that proves it. It does not

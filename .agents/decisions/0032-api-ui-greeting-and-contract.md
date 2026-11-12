@@ -11,6 +11,8 @@
   [0013](0013-one-role-table-for-structure.md),
   [0014](0014-fallow-owns-architecture-checks.md)
 
+- **Amended by:** [0123](0123-a-to-do-app-is-the-reference-feature.md)
+
 ## Context
 
 [0031](0031-workspace-conversion.md) moved the app to `apps/web`. The brief

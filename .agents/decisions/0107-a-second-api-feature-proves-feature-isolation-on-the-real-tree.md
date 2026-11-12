@@ -3,6 +3,8 @@
 - **Status:** Accepted (merged in #289)
 - **Date:** 2026-11-02
 
+- **Amended by:** [0123](0123-a-to-do-app-is-the-reference-feature.md)
+
 ## Context
 
 The maintainer chose a small recent greetings feature with in-memory storage on 31 October.
