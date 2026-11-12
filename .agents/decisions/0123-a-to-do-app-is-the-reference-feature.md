@@ -4,8 +4,6 @@
 - **Date:** 2026-11-08
 - **Accepted:** 2026-11-12
 - **Amends:** [0032](0032-api-ui-greeting-and-contract.md),
-  [0045](0045-prds-state-intent-and-link-their-specs.md),
-  [0058](0058-prds-name-the-code-they-cover.md),
   [0107](0107-a-second-api-feature-proves-feature-isolation-on-the-real-tree.md)
 
 ## Context
@@ -59,6 +57,7 @@ store in `integrations.ts`, and returns a result the procedures map to
 `BAD_REQUEST` or `NOT_FOUND`. Procedures validate the input shape with Effect
 Schema. The web form applies the same title rules in its Effect form schema,
 because the web reaches the api by type only, and sends the normalised title.
+This duplication is temporary until the shared title rules land in ADR 0127.
 
 **Changes are pessimistic.** The page shows a change only after the api
 answers and the list is re-read. Mutations await the list invalidation, so
@@ -66,7 +65,7 @@ every change control stays disabled until the new list arrives. A failure
 leaves the list as it was, keeps what the visitor typed and shows one alert
 for the latest failure. A re-read that fails after a successful change shows
 the same alert as a failed first read, so the page never shows a stale list
-without saying so. The list query in `useTodos` turns off refetch on focus
+without saying so. The list query in `useTodos` must turn off refetch on focus
 and on reconnect, so the list is read when the page opens and after a
 successful change only. The setting sits on that query, inside the folders
 the PRD covers, rather than on the shared query client, so a rebuild of the
@@ -81,13 +80,13 @@ accessibility and visual specs serve a fixed `todos.list` answer through
 
 **Greeting and recent greetings go.** Their routes, api features, PRDs, E2E
 specs, API reports, visual baselines, docs, skill pages and test fixtures that
-named their files are removed or moved to the to-do feature. Recorded evidence
+named their files will be removed or moved to the to-do feature. Recorded evidence
 (trial records and fixtures, the tour proof, older ADRs) keeps its content.
 
 ADR 0032's contract and ADR 0107's storage model still hold; the to-do
-feature is now the working example of both. With one real feature left,
-ADR 0107's isolation proof reads the real to-do route and api application
-and pairs each with a fixture `archive` sibling in the Oxlint policy test.
+feature will be the working example of both. With one real feature left,
+ADR 0107's isolation proof will read the real to-do route and api application
+and pair each with a fixture `archive` sibling in the Oxlint policy test.
 
 ## Delivery plan
 
@@ -98,6 +97,8 @@ Once the feature and its E2E tests exist, add the to-do PRD with links to
 those tests and the feature folders it covers. Then switch the reference
 guidance to to-dos and remove the greeting and recent greetings together
 with their obsolete routes, tests and PRDs. Keep recorded trial evidence.
+After the greeting is removed, #344 (ADR 0127) will move the title rules into
+one shared module.
 
 ADRs 0045 and 0058 continue to require behaviour-to-test links and explicit
 coverage paths; the new reference applies those rules to one self-contained

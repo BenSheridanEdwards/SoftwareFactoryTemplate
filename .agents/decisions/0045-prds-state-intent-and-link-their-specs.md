@@ -5,8 +5,6 @@
 - **Builds on:** [0003](0003-behaviour-mapped-with-e2e.md), [0021](0021-guidance-docs-state-the-action.md)
 - **Extended by:** [0058](0058-prds-name-the-code-they-cover.md), which adds machine-readable code coverage to each PRD.
 
-- **Amended by:** [0123](0123-a-to-do-app-is-the-reference-feature.md)
-
 ## Context
 
 ADR 0003 makes each result's E2E specs the behaviour contract. A spec says
