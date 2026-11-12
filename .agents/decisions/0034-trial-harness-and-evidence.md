@@ -110,7 +110,9 @@ the evidence:
 1. It refuses to start, writing nothing, when `docs/trials/<id>.json` exists
    (unless `--retry` and that file records a failure from before the agent
    started), when any entry is left in the trials root, when free disk is
-   under 5 GB, or when port 5173, 3001, 5183 or 3011 is busy.
+   under 5 GB, or when a trial port is busy: 5173, 3001, 5183 and 3011 for
+   `pnpm dev`, and 6173, 4001, 6183 and 4011 for the servers `pnpm e2e`
+   starts (ADR 0123).
 2. It creates `<trials root>/<id>-<UTC stamp>/`, with a bare `origin.git`
    that holds only the scaffold's history as `main` (its `FETCH_HEAD`, which
    names the invoking checkout, is removed), and a blobless clone of
@@ -177,7 +179,7 @@ the evidence:
    commit: `showcase/<id>` and the lockfile as
    `feat(showcase): add <id> trial result` with the sign-off trailer and the
    hooks on.
-6. It checks the four trial ports again, after the commit hooks, so a server
+6. It checks the trial ports again, after the commit hooks, so a server
    the agent started as it exited has had the hooks' run to start. A server the agent
    left on one, such as a detached server from the verify skill's launcher
    that outlived the agent's process group, is stopped (SIGTERM to its
