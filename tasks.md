@@ -13,7 +13,6 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Skip deleted slices in changed coverage. No thread recorded. PR pending.
 
 - Add this task list and the AGENTS.md rule to keep it. T3 thread 15a5d0fa. PR [#350](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/350)
 
@@ -21,6 +20,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 - Fix Merge confidence sparse checkout with import regression coverage; awaiting guarded-path sign-off and review. No thread recorded. PR [#355](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/355)
 - Isolate E2E servers and reserve trial ports; local checks passed, awaiting review. No thread recorded. PR [#356](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/356)
+- Skip deleted slices in changed coverage; built and awaiting review. No thread recorded. PR [#357](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/357)
 
 - To-do reference app that replaces the greeting (draft), parked until the other issues close. T3 thread 15a5d0fa. PR [#335](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/335)
 - Page tests run the real feature router, stacked on `feat/todo-example-app` and waiting for PR #335. No thread recorded. PR [#343](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/343), issue [#339](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/339)
