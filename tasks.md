@@ -13,6 +13,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
+- Fix Merge confidence sparse checkout with import regression coverage. No thread recorded. PR pending.
+
 - Add this task list and the AGENTS.md rule to keep it. T3 thread 15a5d0fa. PR [#350](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/350)
 
 ## Waiting
