@@ -13,6 +13,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
+- Mark done, edit and delete at `/todos`, Phase B PR 9. Current T3 thread; PR pending.
+
 - List and add to-dos at /todos, including pending double-submit page coverage, Phase B PR 8 of ADR 0123. No thread recorded. PR [#365](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/365).
 
 - Run page tests on the real app router, Phase B PR 7 of ADR 0123. No thread recorded. PR [#364](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/364). Issue [#339](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/339).
