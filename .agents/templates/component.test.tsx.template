@@ -1,23 +1,26 @@
 // TEMPLATE — copy next to the component as __Name__.test.tsx, for example
 // <result>/web/src/routes/<route-name>/__Name__Page.test.tsx.
-// Model: apps/web/src/routes/greeting/GreetingPage.test.tsx.
+// Model: apps/web/src/routes/todos/TodosPage.test.tsx.
 //
 // Render through TestApiProvider from the api client whenever the component
-// (or a hook it calls) reaches the api. Give one typed handler per procedure
-// path the test needs; a missing handler fails the call with its path. Drop
-// the provider for a component that never calls the api.
+// (or a hook it calls) reaches the api. It runs the real app router in memory,
+// with empty stores for each render: add data through the router with `seed`,
+// and give a typed handler only to fail, hold or record one procedure, where
+// `serve(input)` passes the call on to the router. Write no fake api. Drop the
+// provider for a component that never calls the api.
 // Assert on observable behaviour through the accessibility tree (roles, names,
 // live regions), one `it` per behaviour. See .agents/skills/write-unit-tests/SKILL.md.
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { type TestApiHandlers, TestApiProvider } from '../../api-client';
+import type { ComponentProps } from 'react';
+import { TestApiProvider } from '../../api-client';
 import { __Name__Page } from './__Name__Page';
 
-function renderPage(__procedure__: NonNullable<TestApiHandlers['__router__.__procedure__']>) {
+function renderPage(api: Omit<ComponentProps<typeof TestApiProvider>, 'children'> = {}) {
   const view = render(
-    <TestApiProvider handlers={{ '__router__.__procedure__': __procedure__ }}>
+    <TestApiProvider {...api}>
       <__Name__Page />
     </TestApiProvider>,
   );
@@ -25,17 +28,26 @@ function renderPage(__procedure__: NonNullable<TestApiHandlers['__router__.__pro
 }
 
 it('__describes what the user sees after an action that reaches the api__', async () => {
-  const __procedure__ = jest.fn((input: __Input__) => (__output__));
-  const { user } = renderPage(__procedure__);
+  const __procedure__ = jest.fn(
+    (input: __Input__, serve: (input: __Input__) => Promise<__Output__>) => serve(input),
+  );
+  const { user } = renderPage({
+    seed: async (api) => {
+      await api.__router__.__seedProcedure__.mutate(__seed input__);
+    },
+    handlers: { '__router__.__procedure__': __procedure__ },
+  });
 
   await user.click(screen.getByRole('button', { name: '__Action__' }));
 
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('__expected outcome__'));
-  expect(__procedure__).toHaveBeenCalledWith(__expected input__);
+  expect(__procedure__).toHaveBeenCalledWith(__expected input__, expect.any(Function));
 });
 
 it('says so when the api fails', async () => {
-  const { user } = renderPage(() => Promise.reject(new Error('api down')));
+  const { user } = renderPage({
+    handlers: { '__router__.__procedure__': () => Promise.reject(new Error('api down')) },
+  });
 
   await user.click(screen.getByRole('button', { name: '__Action__' }));
 
@@ -43,7 +55,7 @@ it('says so when the api fails', async () => {
 });
 
 it('has no axe-detectable violations', async () => {
-  const { container } = renderPage(() => (__output__));
+  const { container } = renderPage();
 
   expect(await axe(container)).toHaveNoViolations();
 });

@@ -18,5 +18,5 @@ export function createTestAppRouter(): AppRouter {
       'No app router to serve: the web Jest project runs tooling/jest/serve-app-router.ts first.',
     );
   }
-  throw new Error('Red: router factory not implemented');
+  return createAppRouter();
 }
