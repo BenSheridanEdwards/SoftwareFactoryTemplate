@@ -301,6 +301,10 @@ describe('--collect', () => {
         'apps/web/src/routes/recent-greetings/RecentGreetingsPage.test.tsx',
         'apps/web/src/routes/recent-greetings/RecentGreetingsPage.tsx',
         'apps/web/src/routes/recent-greetings/index.ts',
+        'apps/web/src/routes/todos/TodoForm.tsx',
+        'apps/web/src/routes/todos/TodosPage.test.tsx',
+        'apps/web/src/routes/todos/TodosPage.tsx',
+        'apps/web/src/routes/todos/index.ts',
       ].toSorted(),
     );
     expect(evidence.zones[button]).toBe('ui');
