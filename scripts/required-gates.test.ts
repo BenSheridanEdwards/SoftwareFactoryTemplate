@@ -875,8 +875,12 @@ describe('checkContract', () => {
     [
       'a lane command ends in || exit 0',
       'codeql.yml',
-      '      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1\n',
-      '      - run: npx tsc || exit 0\n      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1\n',
+      `${readFileSync('.github/workflows/codeql.yml', 'utf8')
+        .split('\n')
+        .find((line) => line.includes('uses: github/codeql-action/analyze@'))}\n`,
+      `      - run: npx tsc || exit 0\n${readFileSync('.github/workflows/codeql.yml', 'utf8')
+        .split('\n')
+        .find((line) => line.includes('uses: github/codeql-action/analyze@'))}\n`,
       'job `analyze` step "npx tsc || exit 0" ignores its exit code with `|| exit 0`',
       undefined,
     ],
