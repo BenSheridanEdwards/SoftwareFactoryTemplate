@@ -13,7 +13,6 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Specify the to-do app, Phase B PR 12 of ADR 0123. No thread recorded. PR pending.
 
 - Add hosted to-do visual baselines, Phase B PR 11 of ADR 0123. No thread recorded. PR [#369](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/369).
 
@@ -35,6 +34,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 - Add this task list and the AGENTS.md rule to keep it. T3 thread 15a5d0fa. PR [#350](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/350)
 
 ## Waiting
+
+- Specify the to-do app, Phase B PR 12 of ADR 0123; awaiting Ben's guarded-path tick. No thread recorded. PR [#370](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/370).
 
 - Cover to-do load and re-read failures, Phase B PR 10b; local verification and 32 E2E tests passed. No thread recorded. PR [#368](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/368).
 
