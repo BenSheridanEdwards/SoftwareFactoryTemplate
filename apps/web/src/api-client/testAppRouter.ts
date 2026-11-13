@@ -2,10 +2,7 @@ import type { AppRouter } from '@repo/api';
 
 const factories = new Map<'app', () => AppRouter>();
 
-/**
- * Hands the api's router factory to page tests. Web code imports the api by type
- * only, so the web Jest setup (`tooling/jest/serve-app-router.ts`) calls this.
- */
+/** Registers the factory from the web Jest setup without a runtime api import. */
 export function serveAppRouterInTests(createAppRouter: () => AppRouter): void {
   factories.set('app', createAppRouter);
 }

@@ -1,6 +1,3 @@
-// Web code imports the api by type only, so a page test cannot import the api
-// router itself. Before each web test file, this setup hands the router factory
-// of the result under test to that result's api client, for TestApiProvider.
 import { join, sep } from 'node:path';
 import { listResults } from '../results.mjs';
 
