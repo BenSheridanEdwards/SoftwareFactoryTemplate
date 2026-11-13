@@ -55,7 +55,7 @@ const edgesUnder = (root: string) => [
   { from: `${root}/web/src/main.tsx`, to: 'packages/ui/src/index.ts' },
   { from: `${root}/web/src/api-client/index.ts`, to: `${root}/web/src/api-client/trpc.ts` },
   { from: `${root}/web/src/api-client/trpc.ts`, to: `${root}/api/src/router.ts` },
-  { from: `${root}/web/e2e/greeting.spec.ts`, to: `${root}/web/src/main.tsx` },
+  { from: `${root}/web/e2e/todos.spec.ts`, to: `${root}/web/src/main.tsx` },
   { from: `${root}/api/src/router.ts`, to: `${root}/api/src/trpc.ts` },
 ];
 

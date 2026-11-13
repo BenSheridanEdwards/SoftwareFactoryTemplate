@@ -18,7 +18,7 @@ const resultAt = (id: string, root: string, scope: string) => ({
   ports: { web: 0, api: 0 },
 });
 const reference = resultAt('reference', 'apps', 'repo');
-// Generic greeting fixture; canonical brief identities are exercised separately below.
+// Generic todos fixture; canonical brief identities are exercised separately below.
 const todo = resultAt('example', 'showcase/todo-01', 'todo-01');
 
 const CLEAN_TREE = {
@@ -62,8 +62,8 @@ function validate(
     files,
     edges: [
       ...results.map((result) => ({
-        from: `${result.api}/src/features/greeting/application.ts`,
-        to: `${result.api}/src/features/greeting/domain.ts`,
+        from: `${result.api}/src/features/todos/application.ts`,
+        to: `${result.api}/src/features/todos/domain.ts`,
       })),
       ...edges,
     ],
@@ -81,7 +81,7 @@ const editManifest = <T>(
   return { [path]: JSON.stringify(edit(fields)) };
 };
 
-const FEATURE = 'showcase/todo-01/api/src/features/greeting';
+const FEATURE = 'showcase/todo-01/api/src/features/todos';
 const APPLICATION = `${FEATURE}/application.ts`;
 const DOMAIN = `${FEATURE}/domain.ts`;
 const DOMAIN_RULE_VIOLATION = { kind: 'application-without-domain-rule', feature: FEATURE };
@@ -111,7 +111,7 @@ describe('validateStructure', () => {
     expect(
       validate({
         'apps/api/src/trpc.ts': null,
-        'showcase/todo-01/web/src/routes/greeting/index.ts': null,
+        'showcase/todo-01/web/src/routes/todos/index.ts': null,
       }),
     ).toEqual([
       { kind: 'missing-role', result: 'apps', role: 'api-trpc' },
@@ -122,9 +122,9 @@ describe('validateStructure', () => {
   it('holds a role only through a source file, not a test or a note', () => {
     expect(
       validate({
-        'showcase/todo-01/web/src/routes/greeting/index.ts': null,
-        'showcase/todo-01/web/src/routes/greeting/GreetingPage.test.tsx': 'export {};\n',
-        'showcase/todo-01/web/src/routes/greeting/notes.md': '# Notes\n',
+        'showcase/todo-01/web/src/routes/todos/index.ts': null,
+        'showcase/todo-01/web/src/routes/todos/TodosPage.test.tsx': 'export {};\n',
+        'showcase/todo-01/web/src/routes/todos/notes.md': '# Notes\n',
       }),
     ).toEqual([{ kind: 'missing-role', result: 'showcase/todo-01', role: 'web-routes' }]);
   });
@@ -137,7 +137,7 @@ describe('validateStructure', () => {
       'showcase/todo-01/web/src/biome.json',
       'showcase/todo-01/web/src/oxlint.config.ts',
       'showcase/todo-01/web/src/package.json',
-      'showcase/todo-01/web/src/routes/greeting/tsconfig.json',
+      'showcase/todo-01/web/src/routes/todos/tsconfig.json',
     ];
     expect(validate(Object.fromEntries(nested.map((path) => [path, '{}\n'])))).toEqual(
       nested.map((path) => ({ kind: 'unexpected-file', result: 'showcase/todo-01', path })),
@@ -313,7 +313,7 @@ describe('validateStructure', () => {
   });
 
   it('fails a web package with no e2e spec', () => {
-    expect(validate({ 'showcase/todo-01/web/e2e/greeting.spec.ts': null })).toEqual([
+    expect(validate({ 'showcase/todo-01/web/e2e/todos.spec.ts': null })).toEqual([
       { kind: 'missing-e2e', package: 'showcase/todo-01/web' },
     ]);
   });
@@ -321,7 +321,7 @@ describe('validateStructure', () => {
   it('accepts a web package whose only e2e spec is in a nested folder, as Playwright runs it', () => {
     expect(
       validate({
-        'showcase/todo-01/web/e2e/greeting.spec.ts': null,
+        'showcase/todo-01/web/e2e/todos.spec.ts': null,
         'showcase/todo-01/web/e2e/todos/add.spec.ts': '',
       }),
     ).toEqual([]);
@@ -343,8 +343,8 @@ describe('validateStructure', () => {
   });
 
   it.each([
-    "import { formatGreeting, type Greeting } from './domain.ts';",
-    "export { formatGreeting, type Greeting } from './domain.ts';",
+    "import { formatTitle, type Todo } from './domain.ts';",
+    "export { formatTitle, type Todo } from './domain.ts';",
     "export * from './domain.ts';",
     "import './domain.ts';",
     "const domain = import('./domain.ts');",
@@ -353,30 +353,29 @@ describe('validateStructure', () => {
   });
 
   it.each([
-    "import type { Greeting } from './domain.ts';",
-    "import { type Greeting } from './domain.ts';",
-    "export type { Greeting } from './domain.ts';",
-    "export { type Greeting } from './domain.ts';",
+    "import type { Todo } from './domain.ts';",
+    "import { type Todo } from './domain.ts';",
+    "export type { Todo } from './domain.ts';",
+    "export { type Todo } from './domain.ts';",
     "export type * from './domain.ts';",
-    "type Greeting = import('./domain.ts').Greeting;",
-    'export const greet = () => "Hello";',
-    "import type { Greeting } from './domain.ts'; import { remember } from './integrations.ts';",
+    "type Todo = import('./domain.ts').Todo;",
+    'export const addTodo = () => "Hello";',
+    "import type { Todo } from './domain.ts'; import { remember } from './integrations.ts';",
   ])('fails an application without a domain value crossing: %s', (source) => {
     expect(validate({ [APPLICATION]: source })).toEqual([DOMAIN_RULE_VIOLATION]);
   });
 
   it('accepts an application folder when one file value-imports its domain folder', () => {
-    const from = `${FEATURE}/application/greet.ts`;
+    const from = `${FEATURE}/application/addTodo.ts`;
     const to = `${FEATURE}/domain/rules.ts`;
     expect(
       validate(
         {
           [APPLICATION]: null,
           [DOMAIN]: null,
-          [`${FEATURE}/application/types.ts`]:
-            "import type { Greeting } from '../domain/rules.ts';",
-          [from]: "import { formatGreeting } from '../domain/rules.ts';",
-          [to]: 'export const formatGreeting = () => "Hello";',
+          [`${FEATURE}/application/types.ts`]: "import type { Todo } from '../domain/rules.ts';",
+          [from]: "import { formatTitle } from '../domain/rules.ts';",
+          [to]: 'export const formatTitle = () => "Hello";',
         },
         { edges: [{ from, to }] },
       ),
@@ -387,7 +386,7 @@ describe('validateStructure', () => {
     expect(
       validate({
         [APPLICATION]: null,
-        [`${FEATURE}/application/greet.ts`]: "import { formatGreeting } from '../domain.ts';",
+        [`${FEATURE}/application/addTodo.ts`]: "import { formatTitle } from '../domain.ts';",
       }),
     ).toEqual([DOMAIN_RULE_VIOLATION]);
   });
@@ -399,15 +398,15 @@ describe('validateStructure', () => {
   });
 
   it.each([
-    'application/greet.test.ts',
-    'application/greet.d.ts',
+    'application/addTodo.test.ts',
+    'application/addTodo.d.ts',
   ])('ignores a value import in %s when checking the application role', (name) => {
     const from = `${FEATURE}/${name}`;
     expect(
       validate(
         {
-          [APPLICATION]: "import type { Greeting } from './domain.ts';",
-          [from]: "import { formatGreeting } from '../domain.ts';",
+          [APPLICATION]: "import type { Todo } from './domain.ts';",
+          [from]: "import { formatTitle } from '../domain.ts';",
         },
         { edges: [{ from, to: DOMAIN }] },
       ),
@@ -419,8 +418,8 @@ describe('validateStructure', () => {
     expect(
       validate(
         {
-          [APPLICATION]: "import { formatGreeting } from '../other/domain.ts';",
-          [sibling]: 'export const formatGreeting = () => "Hello";',
+          [APPLICATION]: "import { formatTitle } from '../other/domain.ts';",
+          [sibling]: 'export const formatTitle = () => "Hello";',
         },
         { edges: [{ from: APPLICATION, to: sibling }] },
       ),
@@ -430,11 +429,10 @@ describe('validateStructure', () => {
   it('requires a domain value crossing in the reference too', () => {
     expect(
       validate({
-        'apps/api/src/features/greeting/application.ts':
-          "import type { Greeting } from './domain.ts';",
+        'apps/api/src/features/todos/application.ts': "import type { Todo } from './domain.ts';",
       }),
     ).toEqual([
-      { kind: 'application-without-domain-rule', feature: 'apps/api/src/features/greeting' },
+      { kind: 'application-without-domain-rule', feature: 'apps/api/src/features/todos' },
     ]);
   });
 
@@ -444,9 +442,9 @@ describe('validateStructure', () => {
     expect(
       validate(
         {
-          [application]: 'export const greet = () => "Hello";',
-          [domain]: 'export const formatGreeting = () => "Hello";',
-          [APPLICATION]: "import type { Greeting } from './domain.ts';",
+          [application]: 'export const addTodo = () => "Hello";',
+          [domain]: 'export const formatTitle = () => "Hello";',
+          [APPLICATION]: "import type { Todo } from './domain.ts';",
         },
         {
           contract: {
@@ -625,7 +623,7 @@ describe('validateStructure', () => {
     const lines = (directive: string) => `export const a = 1;\n${directive}\nexport const b = 2;\n`;
     expect(
       validate({
-        'apps/web/src/routes/greeting/index.ts': lines(
+        'apps/web/src/routes/todos/index.ts': lines(
           '// eslint-disable-next-line no-console -- with a reason',
         ),
         'apps/api/src/trpc.ts': lines('// @ts-expect-error the value is checked at runtime'),
@@ -635,13 +633,13 @@ describe('validateStructure', () => {
         'showcase/todo-01/api/src/server.ts': lines(
           `// fallow-${'ignore'}-next-line unused-export`,
         ),
-        'showcase/todo-01/web/e2e/greeting.spec.ts': lines(`// @ts-${'ignore'}`),
+        'showcase/todo-01/web/e2e/todos.spec.ts': lines(`// @ts-${'ignore'}`),
       }),
     ).toEqual([
       { kind: 'suppression', path: 'apps/api/src/trpc.ts', line: 2 },
-      { kind: 'suppression', path: 'apps/web/src/routes/greeting/index.ts', line: 2 },
+      { kind: 'suppression', path: 'apps/web/src/routes/todos/index.ts', line: 2 },
       { kind: 'suppression', path: 'showcase/todo-01/api/src/server.ts', line: 2 },
-      { kind: 'suppression', path: 'showcase/todo-01/web/e2e/greeting.spec.ts', line: 2 },
+      { kind: 'suppression', path: 'showcase/todo-01/web/e2e/todos.spec.ts', line: 2 },
       { kind: 'suppression', path: 'showcase/todo-01/web/src/App.tsx', line: 2 },
     ]);
   });
@@ -662,7 +660,7 @@ function canonicalRoute(brief: 'todo' | 'notes') {
   };
   const files = {
     ...resultFiles(result.root, id),
-    [`${result.web}/src/routes/greeting/index.ts`]: null,
+    [`${result.web}/src/routes/todos/index.ts`]: null,
     [`${route}/index.ts`]: `export { ${plural}Page } from './${plural}Page';`,
     [`${route}/use${plural}.ts`]: `export type ${entity} = RouterOutputs['${brief}']['list'][number]; export type Create${entity} = RouterInputs['${brief}']['create'];`,
     [`${route}/use${entity}Form.ts`]: `export const use${entity}Form = () => 1;`,
@@ -704,7 +702,7 @@ describe.each(['todo', 'notes'] as const)('%s canonical route inventory', (brief
     'callback type': { [component]: form.replace(`Create${entity})`, 'string)') },
     'non-exported component': { [component]: form.replace('export function', 'function') },
   };
-  it('passes the reference, generic greeting and canonical brief with co-located tests', () => {
+  it('passes the reference, generic todos and canonical brief with co-located tests', () => {
     expect(validate(files, options)).toEqual([]);
   });
 
@@ -738,11 +736,11 @@ describe('route co-location', () => {
     "import { readFile } from 'node:fs';",
     "import { App } from '/apps/web/src/App';",
     "import { data } from '@/data';",
-    'export function useGreeting() { return useQuery({}); }',
+    'export function useTodos() { return useQuery({}); }',
   ])('rejects a non-primitive outside the route: %s', (source) => {
     expect(
       validate({
-        'apps/web/src/routes/greeting/index.ts': source,
+        'apps/web/src/routes/todos/index.ts': source,
         'apps/web/src/routes/other/index.ts': 'export const other = 1;',
       }),
     ).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'route-colocation' })]));
@@ -751,10 +749,10 @@ describe('route co-location', () => {
   it('accepts route-local code, UI primitives, the api-client surface and npm packages', () => {
     expect(
       validate({
-        'apps/web/src/routes/greeting/index.ts':
-          "import './useGreeting'; import { Button } from '@repo/ui'; import { useTrpc } from '../../api-client'; import { useMemo } from 'react';",
-        'apps/web/src/routes/greeting/useGreeting.ts':
-          "import { useTrpc } from '../../api-client'; export function useGreeting() { const trpc = useTrpc(); return useQuery(trpc.greeting.queryOptions()); }",
+        'apps/web/src/routes/todos/index.ts':
+          "import './useTodos'; import { Button } from '@repo/ui'; import { useTrpc } from '../../api-client'; import { useMemo } from 'react';",
+        'apps/web/src/routes/todos/useTodos.ts':
+          "import { useTrpc } from '../../api-client'; export function useTodos() { const trpc = useTrpc(); return useQuery(trpc.todos.queryOptions()); }",
       }),
     ).toEqual([]);
   });
@@ -766,7 +764,7 @@ describe('single-route feature placement', () => {
   const violation = (path: string, result = todo) => ({
     kind: 'single-route-features',
     result: result.root,
-    route: 'greeting',
+    route: 'todos',
     path,
   });
 
@@ -788,8 +786,8 @@ describe('single-route feature placement', () => {
   it('accepts the header and its test inside the route', () => {
     expect(
       validate({
-        [`${todo.web}/src/routes/greeting/PageHeader.tsx`]: 'export const PageHeader = 1;',
-        [`${todo.web}/src/routes/greeting/PageHeader.test.tsx`]: 'export {};',
+        [`${todo.web}/src/routes/todos/PageHeader.tsx`]: 'export const PageHeader = 1;',
+        [`${todo.web}/src/routes/todos/PageHeader.test.tsx`]: 'export {};',
       }),
     ).toEqual([]);
   });
@@ -798,8 +796,8 @@ describe('single-route feature placement', () => {
     expect(
       validate({
         [feature]: '',
-        [`${todo.web}/src/routes/greeting/GreetingPage.tsx`]: '',
-        [`${todo.web}/src/routes/greeting/details/Details.tsx`]: '',
+        [`${todo.web}/src/routes/todos/TodosPage.tsx`]: '',
+        [`${todo.web}/src/routes/todos/details/Details.tsx`]: '',
       }),
     ).toEqual([violation(feature)]);
   });
@@ -843,12 +841,10 @@ describe('single-route feature placement', () => {
   });
 
   it('rejects features even when the production route is missing', () => {
-    expect(validate({ [feature]: '', [`${todo.web}/src/routes/greeting/index.ts`]: null })).toEqual(
-      [
-        { kind: 'missing-role', result: todo.root, role: 'web-routes' },
-        { ...violation(feature), route: '<route>' },
-      ],
-    );
+    expect(validate({ [feature]: '', [`${todo.web}/src/routes/todos/index.ts`]: null })).toEqual([
+      { kind: 'missing-role', result: todo.root, role: 'web-routes' },
+      { ...violation(feature), route: '<route>' },
+    ]);
   });
 });
 
@@ -857,11 +853,11 @@ describe('node tooling/architecture/structure.mjs', () => {
     const repository = createMonorepo({
       ...resultFiles('showcase/x', 'x'),
       'showcase/x/web/src/features/page-header/PageHeader.tsx':
-        'export function PageHeader() { return <h1>Greeting</h1>; }',
+        'export function PageHeader() { return <h1>Todo</h1>; }',
       'showcase/x/web/src/features/page-header/index.ts':
         "export { PageHeader } from './PageHeader';",
-      'showcase/x/web/src/routes/greeting/index.ts':
-        "import { PageHeader } from '../../features/page-header';\nexport const greeting = PageHeader;",
+      'showcase/x/web/src/routes/todos/index.ts':
+        "import { PageHeader } from '../../features/page-header';\nexport const todos = PageHeader;",
       'showcase/x/web/etc/features-page-header.api.md':
         'export declare function PageHeader(): void;',
     });
@@ -874,7 +870,7 @@ describe('node tooling/architecture/structure.mjs', () => {
       expect(run.output).toContain(
         'single-route-features showcase/x/web/etc/features-page-header.api.md:',
       );
-      expect(run.output).toContain('web/src/routes/greeting/');
+      expect(run.output).toContain('web/src/routes/todos/');
       expect(run.output).toContain('remove the feature barrel and API report');
       expect(run.output).toContain('route-colocation');
     } finally {

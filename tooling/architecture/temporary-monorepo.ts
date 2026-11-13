@@ -55,15 +55,14 @@ export function resultFiles(root: string, scope: string) {
     }),
     [`${web}/index.html`]: '<script type="module" src="/src/main.tsx"></script>\n',
     [`${web}/vite.config.ts`]: 'export default {};\n',
-    [`${web}/e2e/greeting.spec.ts`]: 'export const spec = 1;\n',
+    [`${web}/e2e/todos.spec.ts`]: 'export const spec = 1;\n',
     [`${web}/src/main.tsx`]:
       "import { App } from './App';\nimport { ApiProvider } from './api-client';\nexport const root = [App, ApiProvider];\n",
-    [`${web}/src/App.tsx`]:
-      "import { greeting } from './routes/greeting';\nexport const App = greeting;\n",
+    [`${web}/src/App.tsx`]: "import { todos } from './routes/todos';\nexport const App = todos;\n",
     [`${web}/src/api-client/index.ts`]:
       "import type { AppRouter } from '../../../api/src/router.ts';\nexport const ApiProvider = 1;\nexport type Router = AppRouter;\n",
-    [`${web}/src/routes/greeting/index.ts`]:
-      "import { ApiProvider } from '../../api-client';\nexport const greeting = ApiProvider;\n",
+    [`${web}/src/routes/todos/index.ts`]:
+      "import { ApiProvider } from '../../api-client';\nexport const todos = ApiProvider;\n",
     [`${api}/package.json`]: manifest({
       name: `@${scope}/api`,
       private: true,
@@ -74,16 +73,15 @@ export function resultFiles(root: string, scope: string) {
     [`${api}/src/server.ts`]:
       "import { appRouter } from './router.ts';\nexport const server = appRouter;\n",
     [`${api}/src/router.ts`]:
-      "import { greetingRouter } from './features/greeting/index.ts';\nimport { router } from './trpc.ts';\nexport const appRouter = router(greetingRouter);\nexport type AppRouter = typeof appRouter;\n",
+      "import { todosRouter } from './features/todos/index.ts';\nimport { router } from './trpc.ts';\nexport const appRouter = router(todosRouter);\nexport type AppRouter = typeof appRouter;\n",
     [`${api}/src/trpc.ts`]: 'export const router = (value: unknown) => value;\n',
-    [`${api}/src/features/greeting/index.ts`]:
-      "export { greetingRouter } from './procedures.ts';\n",
-    [`${api}/src/features/greeting/procedures.ts`]:
-      "import { greet } from './application.ts';\nimport { router } from '../../trpc.ts';\nexport const greetingRouter = router(greet);\n",
-    [`${api}/src/features/greeting/application.ts`]:
-      "import { formatGreeting } from './domain.ts';\nexport const greet = (name: string) => formatGreeting(name);\n",
-    [`${api}/src/features/greeting/domain.ts`]:
-      "export const formatGreeting = (name: string) => 'Hello, ' + name;\n",
+    [`${api}/src/features/todos/index.ts`]: "export { todosRouter } from './procedures.ts';\n",
+    [`${api}/src/features/todos/procedures.ts`]:
+      "import { addTodo } from './application.ts';\nimport { router } from '../../trpc.ts';\nexport const todosRouter = router(addTodo);\n",
+    [`${api}/src/features/todos/application.ts`]:
+      "import { formatTitle } from './domain.ts';\nexport const addTodo = (name: string) => formatTitle(name);\n",
+    [`${api}/src/features/todos/domain.ts`]:
+      "export const formatTitle = (name: string) => 'Hello, ' + name;\n",
   };
 }
 
