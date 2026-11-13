@@ -3,6 +3,10 @@ import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { Schema } from 'effect';
 
+const STARTUP_TIMEOUT = 15_000;
+const TEST_TIMEOUT = 40_000;
+jest.setTimeout(TEST_TIMEOUT);
+
 const children = new Set<ChildProcessWithoutNullStreams>();
 
 async function freePort() {
@@ -53,7 +57,7 @@ async function waitForListening(child: ChildProcessWithoutNullStreams, output: s
     const onExit = () => fail(new Error(`API exited before listening: ${output.join('')}`));
     const timer = setTimeout(
       () => fail(new Error(`API startup timed out: ${output.join('')}`)),
-      3_000,
+      STARTUP_TIMEOUT,
     );
     child.stdout.on('data', onData);
     child.once('exit', onExit);

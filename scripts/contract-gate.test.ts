@@ -38,3 +38,19 @@ it('accepts the shipped consumer and provider, then rejects a broken greeting co
   expect(broken.stdout + broken.stderr).toContain('greeting.greet');
   expect(broken.stdout + broken.stderr).not.toContain('DEP0060');
 }, 180_000);
+
+it('replaces stale interactions when recording the shipped contract', () => {
+  const initial = spawnSync('pnpm', ['test:contract'], { env, encoding: 'utf8', timeout: 120_000 });
+  if (initial.status !== 0) throw new Error(initial.stdout + initial.stderr);
+  const path = join(pactDirectory, 'web-api.json');
+  const pact = JSON.parse(readFileSync(path, 'utf8'));
+  const stale = structuredClone(pact.interactions[0]);
+  stale.description = 'removed procedure';
+  stale.request.path = '/trpc/removed.procedure';
+  pact.interactions.push(stale);
+  writeFileSync(path, JSON.stringify(pact));
+  const fresh = spawnSync('pnpm', ['test:contract'], { env, encoding: 'utf8', timeout: 120_000 });
+  expect(fresh.stdout + fresh.stderr).not.toContain('FAIL');
+  expect(fresh.status).toBe(0);
+  expect(readFileSync(path, 'utf8')).not.toContain('removed.procedure');
+}, 240_000);

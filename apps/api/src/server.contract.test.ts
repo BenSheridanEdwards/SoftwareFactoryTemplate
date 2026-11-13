@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { readdirSync } from 'node:fs';
 import { createServer } from 'node:net';
@@ -43,7 +44,13 @@ it('verifies the web contract against server.ts over HTTP', async () => {
     const url = `http://127.0.0.1:${port}`;
     await waitForHttp(url, Date.now() + 3_000);
     expect(output.join('')).toContain('api listening');
-    const directory = process.env.PACT_DIR ?? join(tmpdir(), 'art-pact');
+    const directory =
+      process.env.PACT_DIR ??
+      join(
+        tmpdir(),
+        'art-pact',
+        createHash('sha256').update(process.cwd()).digest('hex').slice(0, 12),
+      );
     const pactUrls = readdirSync(directory)
       .filter((file) => file.endsWith('.json'))
       .map((file) => join(directory, file));
