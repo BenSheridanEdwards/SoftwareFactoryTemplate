@@ -13,6 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
+- Record accepted to-do reference decision as ADR 0123. No thread recorded. PR [#359](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/359).
 
 - Add this task list and the AGENTS.md rule to keep it. T3 thread 15a5d0fa. PR [#350](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/350)
 

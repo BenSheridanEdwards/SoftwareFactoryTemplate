@@ -10,6 +10,7 @@
   [0012](0012-local-state-inside-custom-hooks.md),
   [0013](0013-one-role-table-for-structure.md),
   [0014](0014-fallow-owns-architecture-checks.md)
+- **Amended by:** [0123](0123-a-to-do-app-is-the-reference-feature.md)
 
 ## Context
 
