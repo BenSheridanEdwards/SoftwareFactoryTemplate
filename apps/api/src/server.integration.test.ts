@@ -117,6 +117,31 @@ describe('the API over real HTTP', () => {
     await expect(response.json()).resolves.toMatchObject(body);
   });
 
+  it.each([
+    ['todos.list', undefined, 200, { result: { data: [] } }],
+    [
+      'todos.add',
+      { title: '  Read   the review ' },
+      200,
+      { result: { data: { title: 'Read the review', done: false } } },
+    ],
+    ['todos.add', { title: '   ' }, 400, { error: { data: { code: 'BAD_REQUEST' } } }],
+    ['todos.delete', { id: 'missing' }, 404, { error: { data: { code: 'NOT_FOUND' } } }],
+  ])('serves %s over HTTP', async (procedure, input, status, body) => {
+    const port = await freePort();
+    const { child, output } = startApi(String(port));
+    await waitForListening(child, output);
+    const response = await fetch(`http://127.0.0.1:${port}/trpc/${procedure}`, {
+      ...(input === undefined
+        ? { method: 'GET' }
+        : { method: 'POST', body: JSON.stringify(input) }),
+      headers: { 'content-type': 'application/json' },
+      signal: AbortSignal.timeout(5_000),
+    });
+    expect(response.status).toBe(status);
+    await expect(response.json()).resolves.toMatchObject(body);
+  });
+
   it('exits with an error before listening when PORT is invalid', async () => {
     const { child, output } = startApi('abc');
     const [code, signal] = await once(child, 'close');

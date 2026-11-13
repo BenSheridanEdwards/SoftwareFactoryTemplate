@@ -4,6 +4,14 @@
 
 ```ts
 
+import { TRPCDefaultErrorShape } from '@trpc/server';
+import { TRPCMutationProcedure } from '@trpc/server';
+import { TRPCQueryProcedure } from '@trpc/server';
+import { TRPCRouterBuilder } from '@trpc/server';
+
+// @public
+export function createTodosRouter(): ReturnType<typeof router<ReturnType<typeof todosProcedures>>>;
+
 // @public
 export function createTodoUseCases(): {
     listTodos: () => readonly Todo[];
