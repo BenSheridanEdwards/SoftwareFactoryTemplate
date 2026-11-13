@@ -186,7 +186,7 @@ async function failCalls(page: Page, procedure: string) {
 }
 
 test.describe('Filtering', () => {
-  test('filters to active or done to-dos and back to all', async ({ page, request }) => {
+  test('filters to active or done to-dos and back to all', async ({ page, request }, testInfo) => {
     const [, second] = await addAllThroughApi(request, ['First', 'Second', 'Third']);
     await setDoneThroughApi(request, present(second).id);
     await openPage(page);
@@ -198,6 +198,7 @@ test.describe('Filtering', () => {
 
     await filterButton(page, 'Done').click();
     await expectTitles(page, ['Second']);
+    await page.screenshot({ path: testInfo.outputPath('todos-filter.png'), fullPage: true });
     await expect(filterButton(page, 'Done')).toHaveAttribute('aria-pressed', 'true');
     await expect(filterButton(page, 'Active')).toHaveAttribute('aria-pressed', 'false');
 
