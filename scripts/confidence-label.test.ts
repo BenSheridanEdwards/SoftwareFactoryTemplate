@@ -534,11 +534,18 @@ describe('CLI', () => {
         file.text.replaceAll('greeting', 'fixture-covered').replace('Greeting', 'Fixture Covered'),
       );
     });
+    const changed = [
+      'apps/web/src/routes/fixture-covered/Page.tsx',
+      'apps/web/src/features/page-header/PageHeader.tsx',
+    ];
+    changed.forEach((file) => {
+      mkdirSync(dirname(join(root, file)), { recursive: true });
+      writeFileSync(join(root, file), 'export {};');
+    });
     const output = join(root, 'output');
     const summary = join(root, 'summary');
     const result = run('--decide', {
-      CHANGED:
-        'apps/web/src/routes/fixture-covered/Page.tsx\napps/web/src/features/page-header/PageHeader.tsx',
+      CHANGED: changed.join('\n'),
       CHECK_RUNS: passingRuns(),
       COVERAGE_FILE: writeCoverage(),
       GITHUB_OUTPUT: output,
@@ -613,6 +620,24 @@ describe('CLI', () => {
     });
     expect(result.status).toBe(status);
     expect(result.stdout + result.stderr).toContain(message);
+  });
+
+  it.each([
+    ['a deleted slice', false, 0, 'Changed-file coverage passed'],
+    ['a file deleted from a kept slice', true, 1, 'no E2E spec'],
+  ] as const)('runs the coverage gate for %s', (_, kept, status, message) => {
+    const changed = 'apps/web/src/routes/archive/ArchivePage.tsx';
+    if (kept) {
+      const sibling = join(root, 'apps/web/src/routes/archive/index.ts');
+      mkdirSync(dirname(sibling), { recursive: true });
+      writeFileSync(sibling, 'export {};');
+    }
+    const result = run('--coverage-gate', {
+      CHANGED: changed,
+      COVERAGE_FILE: writeCoverage(coverageMap(coverageEntry())),
+    });
+    expect(result.stdout + result.stderr).toContain(message);
+    expect(result.status).toBe(status);
   });
 
   it.each(['missing', 'malformed'])('fails the coverage gate with %s JSON', (kind) => {
