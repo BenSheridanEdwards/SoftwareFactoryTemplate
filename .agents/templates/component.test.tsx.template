@@ -1,15 +1,10 @@
 // TEMPLATE — copy next to the component as __Name__.test.tsx, for example
 // <result>/web/src/routes/<route-name>/__Name__Page.test.tsx.
-// Model: apps/web/src/routes/todos/TodosPage.test.tsx.
+// Model: apps/web/src/routes/greeting/GreetingPage.test.tsx.
 //
-// Render through TestApiProvider from the api client whenever the component
-// (or a hook it calls) reaches the api. It runs the real app router in memory,
-// with empty stores for each render: add data through the router with `seed`,
-// and give a typed handler only to fail, hold or record one procedure, where
-// `serve(input)` passes the call on to the router. Write no fake api. Drop the
-// provider for a component that never calls the api.
-// Assert on observable behaviour through the accessibility tree (roles, names,
-// live regions), one `it` per behaviour. See .agents/skills/write-unit-tests/SKILL.md.
+// TestApiProvider serves a fresh real router; seed it through its typed client.
+// Override a procedure only to fail, hold or record a call; serve(input) forwards it.
+// Assert observable behaviour through accessible roles and names.
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
