@@ -54,7 +54,7 @@ pnpm exec playwright show-report                                   # open the la
 
 `playwright.config.ts` reads `tooling/results.mjs`: each result gets a Chromium
 project (`reference` for `apps/`, the id for `showcase/<id>/`) and two servers,
-Node api and Vite web. The reference uses ports 5173 and 3001; each further
+Node api and Vite web. The reference uses ports 6173 and 4001; each further
 result adds 10. New results and specs join without config changes.
 Set `E2E_BASE_URL` to use your own reference web server, such as `pnpm preview` on :3000.
 
@@ -73,3 +73,7 @@ console errors and verifies the parent's assertion rejects the passing child.
 
 `pnpm e2e` passes and covers the new behaviour. Follow
 [`.agents/project/PR_QUALITY.md`](../../../.agents/project/PR_QUALITY.md).
+
+Playwright starts fresh servers on development ports plus 1000 (6173/4001
+for the reference, plus 10 per result). A busy port fails the run. With
+E2E_BASE_URL, the reference api keeps port 3001 for the preview proxy.

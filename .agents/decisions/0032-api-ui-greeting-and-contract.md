@@ -168,3 +168,11 @@ less, but `effectTsResolver` does not support it.
 - `fallow audit` now also fails inherited findings in the files a change
   touches.
 - The JS budget is higher than before only once the maintainer accepts the raise.
+
+## Amendment: isolated E2E ports
+
+Development keeps ports 5173/3001 plus 10 per result. Playwright adds 1000
+to each result's ports and starts fresh servers with reuse disabled. This
+keeps E2E writes away from development data and makes a busy port fail.
+With E2E_BASE_URL, the reference api stays on 3001 for the managed preview proxy.
+Trial tasks reserve both sets of ports so preflight and cleanup cover E2E servers.
