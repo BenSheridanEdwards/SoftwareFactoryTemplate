@@ -1,13 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from './fixtures';
 
+test.describe.configure({ mode: 'default' });
+
 test.describe('To-dos: loading and adding', () => {
-  test.describe.configure({ mode: 'default' });
-  test.beforeEach(async ({ request }) => {
-    const response = await request.get('/trpc/todos.list');
-    const todos: readonly { readonly id: string }[] = (await response.json()).result.data;
-    await Promise.all(todos.map(({ id }) => request.post('/trpc/todos.delete', { data: { id } })));
-  });
   test('shows loading until the list arrives', async ({ page }) => {
     const gate = { release: (): void => undefined };
     const waiting = new Promise<void>((resolve) => {
@@ -28,7 +24,7 @@ test.describe('To-dos: loading and adding', () => {
     await expect(page.getByText('No to-dos to show')).toBeVisible();
     await page.getByRole('textbox', { name: 'Title' }).fill(' Buy  milk ');
     await page.getByRole('button', { name: 'Add' }).click();
-    await expect(page.getByRole('list', { name: 'To-dos' })).toHaveText('Buy milk');
+    await expect(checkbox(page, 'Buy milk')).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('');
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath('todos-list.png'), fullPage: true });
@@ -97,7 +93,7 @@ test.describe('Marking done', () => {
 });
 
 test.describe('Editing', () => {
-  test('edits a title in place and normalises it', async ({ page }) => {
+  test('edits a title in place and normalises it', async ({ page }, testInfo) => {
     await page.goto('/todos');
     await ['First', 'Buy milk', 'Third'].reduce(async (previous, title) => {
       await previous;
@@ -109,12 +105,14 @@ test.describe('Editing', () => {
     await page.getByRole('button', { name: 'Edit Buy milk' }).click();
 
     await expect(newTitleField(page)).toHaveValue('Buy milk');
+    await page.screenshot({ path: testInfo.outputPath('todos-edit.png'), fullPage: true });
     await expect(checkbox(page, 'Buy milk')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Delete Buy milk' })).toHaveCount(0);
     await newTitleField(page).fill('  Buy   oat milk ');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
 
     await expectTitles(page, ['First', 'Buy oat milk', 'Third']);
+    await page.screenshot({ path: testInfo.outputPath('todos-saved.png'), fullPage: true });
     await expect(newTitleField(page)).toHaveCount(0);
     expect(await todoList(page).getByText('Buy oat milk', { exact: true }).textContent()).toBe(
       'Buy oat milk',

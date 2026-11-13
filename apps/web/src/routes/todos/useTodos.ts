@@ -11,6 +11,9 @@ type TodoList =
 
 const FAILURES = {
   add: 'Could not add the to-do',
+  setDone: 'Could not update the to-do',
+  rename: 'Could not save the to-do',
+  delete: 'Could not delete the to-do',
 } as const;
 
 /** A failed read, the first or a re-read after a change, hides any older list. */
@@ -42,11 +45,14 @@ export function useTodos() {
     onError: () => setFailure(FAILURES[change]),
   });
   const add = useMutation(trpc.todos.add.mutationOptions(changeOptions('add')));
+  const setDone = useMutation(trpc.todos.setDone.mutationOptions(changeOptions('setDone')));
+  const rename = useMutation(trpc.todos.rename.mutationOptions(changeOptions('rename')));
+  const remove = useMutation(trpc.todos.delete.mutationOptions(changeOptions('delete')));
 
   return {
     list: toTodoList(list),
     failure,
-    busy: add.isPending,
+    busy: [add, setDone, rename, remove].some((change) => change.isPending),
     // A second submit can land before the render that disables Add; it sends nothing.
     addTodo: (title: Todo['title'], onAdded: () => void) => {
       if (queryClient.isMutating() > 0) {
@@ -54,5 +60,9 @@ export function useTodos() {
       }
       add.mutate({ title }, { onSuccess: onAdded });
     },
+    setTodoDone: (id: Todo['id'], done: Todo['done']) => setDone.mutate({ id, done }),
+    renameTodo: (id: Todo['id'], title: Todo['title'], onRenamed: () => void) =>
+      rename.mutate({ id, title }, { onSuccess: onRenamed }),
+    deleteTodo: (id: Todo['id']) => remove.mutate({ id }),
   };
 }
