@@ -13,7 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Filter and clear done at /todos, Phase B PR 10. No thread recorded. PR pending.
+- Filter and clear done at /todos, Phase B PR 10. No thread recorded. PR [#367](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/367).
 
 - Mark done, edit and delete at `/todos`, Phase B PR 9. T3 [thread](t3-thread://v2/f4863e70-7db9-4416-8108-a4fa053a71bd/mcp:363909c1-1cd9-45aa-8b0c-7614efc7c5c4). PR [#366](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/366).
 
