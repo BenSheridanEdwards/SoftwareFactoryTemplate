@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TestApiProvider } from '../../api-client';
+import { type TestApiHandlers, TestApiProvider } from '../../api-client';
 import { TodosPage } from './TodosPage';
 
 it('loads the empty list', async () => {
@@ -57,4 +57,43 @@ it('keeps the title when adding fails', async () => {
   await user.click(screen.getByRole('button', { name: 'Add' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Could not add the to-do');
   expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Call Ada');
+});
+
+it('ignores a second submit while adding and enables Add after completion', async () => {
+  const release = { resolve: (): void => undefined };
+  const pending = new Promise<void>((resolve) => {
+    release.resolve = resolve;
+  });
+  const add = jest.fn<
+    ReturnType<NonNullable<TestApiHandlers['todos.add']>>,
+    Parameters<NonNullable<TestApiHandlers['todos.add']>>
+  >(async (input, serve) => {
+    await pending;
+    return serve(input);
+  });
+  render(
+    <TestApiProvider handlers={{ 'todos.add': add }}>
+      <TodosPage />
+    </TestApiProvider>,
+  );
+  await screen.findByText('No to-dos to show');
+  const user = userEvent.setup();
+  const title = screen.getByRole('textbox', { name: 'Title' });
+  const button = screen.getByRole('button', { name: 'Add' });
+  await user.type(title, 'Buy milk');
+  const form = title.closest('form');
+  if (!form) {
+    throw new Error('Title must belong to the add form');
+  }
+  act(() => {
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+  });
+  await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+  expect(add).toHaveBeenCalledTimes(1);
+  expect(button).toBeDisabled();
+  await act(async () => release.resolve());
+  expect(await screen.findByText('Buy milk')).toBeVisible();
+  expect(screen.getAllByRole('listitem')).toHaveLength(1);
+  await waitFor(() => expect(button).toBeEnabled());
 });
