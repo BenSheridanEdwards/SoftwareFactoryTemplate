@@ -305,6 +305,7 @@ describe('--collect', () => {
         'apps/web/src/routes/todos/TodoForm.tsx',
         'apps/web/src/routes/todos/TodoItem.tsx',
         'apps/web/src/routes/todos/TodoList.tsx',
+        'apps/web/src/routes/todos/TodoToolbar.tsx',
         'apps/web/src/routes/todos/TodosPage.test.tsx',
         'apps/web/src/routes/todos/TodosPage.tsx',
         'apps/web/src/routes/todos/index.ts',

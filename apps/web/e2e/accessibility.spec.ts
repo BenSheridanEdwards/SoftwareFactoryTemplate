@@ -49,3 +49,17 @@ test.describe('Accessibility', () => {
     expect((await scan(page)).violations).toEqual([]);
   });
 });
+
+test('empty and populated to-dos have no detectable WCAG violations', async ({ page }) => {
+  const todos: { id: string; title: string; done: boolean }[] = [];
+  await page.route('**/trpc/todos.list**', (route) =>
+    route.fulfill({ json: { result: { data: todos } } }),
+  );
+  await page.goto('/todos');
+  await expect(page.getByText('No to-dos to show')).toBeVisible();
+  expect((await scan(page)).violations).toEqual([]);
+  todos.push({ id: 'accessible-task', title: 'Accessible task', done: false });
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: 'Accessible task' })).toBeVisible();
+  expect((await scan(page)).violations).toEqual([]);
+});
