@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import type { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext, Request, Route } from '@playwright/test';
 import { expect, type Page, present, test } from './fixtures';
 
 test.describe.configure({ mode: 'default' });
@@ -277,5 +277,133 @@ test.describe('Clearing done to-dos', () => {
     await expectTitles(page, ['First', 'Second']);
     await expect(checkbox(page, 'First')).toBeChecked();
     await expect(clearDone(page)).toBeEnabled();
+  });
+});
+
+const titleField = (page: Page) => page.getByRole('textbox', { name: 'Title', exact: true });
+const addButton = (page: Page) => page.getByRole('button', { name: 'Add', exact: true });
+async function addOnPage(page: Page, title: string) {
+  await titleField(page).fill(title);
+  await addButton(page).click();
+}
+async function holdCalls(page: Page, procedure: string) {
+  const gate = { open: (): void => undefined };
+  const opened = new Promise<void>((resolve) => {
+    gate.open = resolve;
+  });
+  await page.route(
+    (url) => calls(url, procedure),
+    async (route: Route) => {
+      await opened;
+      await route.continue();
+    },
+  );
+  return () => gate.open();
+}
+
+/** Records every request the page sends to `procedure`. */
+function recordCalls(page: Page, procedure: string) {
+  const requests: Request[] = [];
+  page.on('request', (request) => {
+    if (calls(request.url(), procedure)) {
+      requests.push(request);
+    }
+  });
+  return requests;
+}
+
+test.describe('Failures and refreshing', () => {
+  test('says so when the list fails to load', async ({ page, expectConsole }) => {
+    expectConsole(/Failed to load resource: .*500/);
+    await failCalls(page, 'todos.list');
+
+    await page.goto('/todos');
+
+    await expect(page.getByRole('alert')).toHaveText('Could not load the to-dos');
+    await expect(titleField(page)).toBeVisible();
+    await expect(addButton(page)).toBeEnabled();
+    await expect(page.getByRole('group', { name: 'Filter' })).toHaveCount(0);
+    await expect(clearDone(page)).toHaveCount(0);
+    await expect(page.getByRole('list')).toHaveCount(0);
+    await expect(page.getByText('No to-dos to show')).toHaveCount(0);
+  });
+  test('shows only the latest failure and clears it when the next change starts', async ({
+    page,
+    request,
+    expectConsole,
+  }) => {
+    expectConsole(/Failed to load resource: .*500/);
+    await addThroughApi(request, 'First');
+    await openPage(page);
+    await failCalls(page, 'todos.setDone');
+    await failCalls(page, 'todos.delete');
+
+    await checkbox(page, 'First').click();
+    await expect(page.getByRole('alert')).toHaveText('Could not update the to-do');
+    await page.getByRole('button', { name: 'Delete First' }).click();
+    await expect(page.getByRole('alert')).toHaveText('Could not delete the to-do');
+    const release = await holdCalls(page, 'todos.add');
+    await addOnPage(page, 'Second');
+
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    release();
+    await expectTitles(page, ['First', 'Second']);
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+
+  test('says so when the list fails to load after a change', async ({
+    page,
+    request,
+    expectConsole,
+  }) => {
+    expectConsole(/Failed to load resource: .*500/);
+    await addThroughApi(request, 'First');
+    await openPage(page);
+    await failCalls(page, 'todos.list');
+
+    await addOnPage(page, 'Second');
+
+    await expect(page.getByRole('alert')).toHaveText('Could not load the to-dos');
+    await expect(page.getByRole('group', { name: 'Filter' })).toHaveCount(0);
+    await expect(clearDone(page)).toHaveCount(0);
+    await expect(page.getByRole('list')).toHaveCount(0);
+    await expect(titleField(page)).toHaveValue('');
+    await expect(addButton(page)).toBeEnabled();
+    expect((await listThroughApi(request)).map(({ title }) => title)).toEqual(['First', 'Second']);
+
+    await page.unrouteAll({ behavior: 'wait' });
+    await addOnPage(page, 'Third');
+
+    await expectTitles(page, ['First', 'Second', 'Third']);
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  });
+
+  test('reads the list only when the page opens and after a successful change', async ({
+    page,
+    request,
+    expectConsole,
+  }) => {
+    expectConsole(/Failed to load resource: .*500/);
+    await addThroughApi(request, 'First');
+    const lists = recordCalls(page, 'todos.list');
+    await openPage(page);
+    expect(lists).toHaveLength(1);
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event('visibilitychange'));
+      window.dispatchEvent(new Event('offline'));
+      window.dispatchEvent(new Event('online'));
+    });
+    // A read the events start would go out at once; a second is ample time to see one.
+    await page.waitForTimeout(1_000);
+    expect(lists).toHaveLength(1);
+    await failCalls(page, 'todos.delete');
+    await page.getByRole('button', { name: 'Delete First' }).click();
+    await expect(page.getByRole('alert')).toHaveText('Could not delete the to-do');
+    expect(lists).toHaveLength(1);
+    await addOnPage(page, 'Second');
+    await expectTitles(page, ['First', 'Second']);
+
+    expect(lists).toHaveLength(2);
   });
 });
