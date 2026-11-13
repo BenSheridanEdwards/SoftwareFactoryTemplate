@@ -83,7 +83,7 @@ jobs:
         with:
           persistent-store: ${{ vars.PNPM_STORE_DIR }}
           save-cache: ${{ inputs.save_pnpm_cache == true }}
-      - uses: fallow-rs/fallow@85fa32733e951df85966842f2bb6a3f2720a940c # v3.37.0
+      - uses: fallow-rs/fallow@90833be1e8d12202e6f6084c417585e3b78005ce # v3.40.0
         if: steps.scope.outputs.docs-only != 'true'
         with:
           version: "3.33.1"
