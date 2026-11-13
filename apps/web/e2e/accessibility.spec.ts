@@ -50,15 +50,16 @@ test.describe('Accessibility', () => {
   });
 });
 
-test('empty and populated to-dos have no detectable WCAG violations', async ({ page, request }) => {
-  const response = await request.get('/trpc/todos.list');
-  const todos: readonly { readonly id: string }[] = (await response.json()).result.data;
-  await Promise.all(todos.map(({ id }) => request.post('/trpc/todos.delete', { data: { id } })));
+test('empty and populated to-dos have no detectable WCAG violations', async ({ page }) => {
+  const todos: { id: string; title: string; done: boolean }[] = [];
+  await page.route('**/trpc/todos.list**', (route) =>
+    route.fulfill({ json: { result: { data: todos } } }),
+  );
   await page.goto('/todos');
   await expect(page.getByText('No to-dos to show')).toBeVisible();
   expect((await scan(page)).violations).toEqual([]);
-  await page.getByRole('textbox', { name: 'Title' }).fill('Accessible task');
-  await page.getByRole('button', { name: 'Add' }).click();
+  todos.push({ id: 'accessible-task', title: 'Accessible task', done: false });
+  await page.reload();
   await expect(page.getByRole('checkbox', { name: 'Accessible task' })).toBeVisible();
   expect((await scan(page)).violations).toEqual([]);
 });
