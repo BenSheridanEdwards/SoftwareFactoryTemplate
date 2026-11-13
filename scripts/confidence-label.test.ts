@@ -24,13 +24,13 @@ import {
 import { LIST_FILES_LIMIT } from './enforcement-approval.mjs';
 import { AGGREGATE, REQUIRED_GATES } from './required-gates.mjs';
 
-const greetingSpec = {
-  path: 'apps/web/e2e/greeting.spec.ts',
-  text: "test('greets a name through the api', async () => {});",
+const todosSpec = {
+  path: 'apps/web/e2e/todos.spec.ts',
+  text: "test('adds a to-do through the api', async () => {});",
 };
-const greetingPrd = {
-  path: 'docs/prd/greeting.md',
-  text: '# Greeting\n\n[Greeting](../../apps/web/e2e/greeting.spec.ts)',
+const todosPrd = {
+  path: 'docs/prd/todos.md',
+  text: '# To-dos\n\n[List](../../apps/web/e2e/todos.spec.ts)',
 };
 
 const coveredSource = 'apps/web/src/routes/fixture-covered/Page.tsx';
@@ -46,23 +46,23 @@ describe('changed source line coverage', () => {
   it('uses Jest coverage selection across results and excludes non-source files', () => {
     expect(
       [
-        'apps/web/src/routes/greeting/useGreeting.ts',
+        'apps/web/src/routes/todos/useTodos.ts',
         'packages/ui/src/Button.tsx',
         'showcase/todo-01/api/src/router.ts',
       ].every(isCoveredSource),
     ).toBe(true);
     expect(
       [
-        'apps/web/src/routes/greeting/useGreeting.test.ts',
-        'apps/web/e2e/greeting.spec.ts',
+        'apps/web/src/routes/todos/useTodos.test.ts',
+        'apps/web/e2e/todos.spec.ts',
         'apps/web/vite.config.ts',
         'jest.config.ts',
-        'docs/prd/greeting.md',
+        'docs/prd/todos.md',
         'README.md',
         'apps/web/src/main.tsx',
         'apps/web/src/App.tsx',
         'apps/api/src/server.ts',
-        'apps/api/src/features/greeting/index.ts',
+        'apps/api/src/features/todos/index.ts',
         'packages/ui/src/types.d.ts',
         'scripts/x.mjs',
       ].some(isCoveredSource),
@@ -151,10 +151,10 @@ describe('confidence workflow', () => {
 
 describe('sliceOf', () => {
   it('reads a route slice in the reference result', () => {
-    expect(sliceOf('apps/web/src/routes/greeting/GreetingPage.tsx')).toEqual({
+    expect(sliceOf('apps/web/src/routes/todos/TodosPage.tsx')).toEqual({
       result: 'apps',
       kind: 'routes',
-      name: 'greeting',
+      name: 'todos',
     });
   });
 
@@ -168,7 +168,7 @@ describe('sliceOf', () => {
 
   it('ignores a file outside a route or feature slice', () => {
     expect(sliceOf('apps/web/src/api-client/trpc.ts')).toBeUndefined();
-    expect(sliceOf('docs/prd/greeting.md')).toBeUndefined();
+    expect(sliceOf('docs/prd/todos.md')).toBeUndefined();
   });
 });
 
@@ -176,13 +176,13 @@ describe('collectSlices', () => {
   it('collects the unique slices the changed files touch', () => {
     expect(
       collectSlices([
-        'apps/web/src/routes/greeting/GreetingPage.tsx',
-        'apps/web/src/routes/greeting/useGreeting.ts',
+        'apps/web/src/routes/todos/TodosPage.tsx',
+        'apps/web/src/routes/todos/useTodos.ts',
         'apps/web/src/features/page-header/PageHeader.tsx',
         'README.md',
       ]),
     ).toEqual([
-      { result: 'apps', kind: 'routes', name: 'greeting' },
+      { result: 'apps', kind: 'routes', name: 'todos' },
       { result: 'apps', kind: 'features', name: 'page-header' },
     ]);
   });
@@ -190,64 +190,62 @@ describe('collectSlices', () => {
 
 describe('coverageGaps', () => {
   it('matches whole slugs rather than prefixes', () => {
-    const slices = collectSlices(['apps/web/src/features/greet/Greet.tsx']);
-    expect(coverageGaps(slices, [greetingSpec])).toHaveLength(1);
+    const slices = collectSlices(['apps/web/src/features/todo/Todo.tsx']);
+    expect(coverageGaps(slices, [todosSpec])).toHaveLength(1);
   });
 
   it('normalizes spaced words to a hyphenated slug', () => {
     const slices = collectSlices(['apps/web/src/features/page-header/PageHeader.tsx']);
-    expect(coverageGaps(slices, [{ ...greetingSpec, text: 'Page Header' }])).toEqual([]);
+    expect(coverageGaps(slices, [{ ...todosSpec, text: 'Page Header' }])).toEqual([]);
   });
 
   it('passes a changed slice a spec in its result names', () => {
-    const slices = collectSlices(['apps/web/src/routes/greeting/GreetingPage.tsx']);
-    expect(coverageGaps(slices, [greetingSpec])).toEqual([]);
+    const slices = collectSlices(['apps/web/src/routes/todos/TodosPage.tsx']);
+    expect(coverageGaps(slices, [todosSpec])).toEqual([]);
   });
 
   it('reports a changed slice no spec names', () => {
     const slices = collectSlices(['apps/web/src/features/page-header/PageHeader.tsx']);
-    const gaps = coverageGaps(slices, [greetingSpec]);
+    const gaps = coverageGaps(slices, [todosSpec]);
     expect(gaps).toHaveLength(1);
     expect(gaps[0]).toContain('page-header');
     expect(gaps[0]).toContain('apps/web/e2e/');
   });
 
   it('only counts specs in the slice’s own result', () => {
-    const slices = collectSlices(['showcase/todo-01/web/src/routes/greeting/GreetingPage.tsx']);
-    // The reference spec names "greeting" but lives in another result.
-    expect(coverageGaps(slices, [greetingSpec])).toHaveLength(1);
+    const slices = collectSlices(['showcase/todo-01/web/src/routes/todos/TodosPage.tsx']);
+    // The reference spec names "todos" but lives in another result.
+    expect(coverageGaps(slices, [todosSpec])).toHaveLength(1);
   });
 });
 
 describe('prdGaps', () => {
   it('requires the PRD to link a spec in the slice’s own result', () => {
     const slices = collectSlices([
-      'apps/web/src/routes/greeting/GreetingPage.tsx',
-      'showcase/todo-01/web/src/routes/greeting/GreetingPage.tsx',
+      'apps/web/src/routes/todos/TodosPage.tsx',
+      'showcase/todo-01/web/src/routes/todos/TodosPage.tsx',
     ]);
-    const gaps = prdGaps(slices, [greetingPrd]);
+    const gaps = prdGaps(slices, [todosPrd]);
     expect(gaps).toHaveLength(1);
     expect(gaps[0]).toContain('showcase/todo-01');
-    expect(prdGaps(slices, [{ ...greetingPrd, text: '# Greeting' }])).toHaveLength(2);
+    expect(prdGaps(slices, [{ ...todosPrd, text: '# Todo' }])).toHaveLength(2);
   });
 
   it('matches whole PRD slugs and normalizes spaced words', () => {
-    const slices = collectSlices(['apps/web/src/features/greet/Greet.tsx']);
-    expect(prdGaps(slices, [greetingPrd])).toHaveLength(1);
+    const slices = collectSlices(['apps/web/src/features/todo/Todo.tsx']);
+    expect(prdGaps(slices, [todosPrd])).toHaveLength(1);
     const header = collectSlices(['apps/web/src/features/page-header/PageHeader.tsx']);
-    expect(prdGaps(header, [{ ...greetingPrd, text: `Page Header\n${greetingPrd.text}` }])).toEqual(
-      [],
-    );
+    expect(prdGaps(header, [{ ...todosPrd, text: `Page Header\n${todosPrd.text}` }])).toEqual([]);
   });
 
   it('passes a changed slice a PRD names', () => {
-    const slices = collectSlices(['apps/web/src/routes/greeting/GreetingPage.tsx']);
-    expect(prdGaps(slices, [greetingPrd])).toEqual([]);
+    const slices = collectSlices(['apps/web/src/routes/todos/TodosPage.tsx']);
+    expect(prdGaps(slices, [todosPrd])).toEqual([]);
   });
 
   it('reports a changed slice no PRD names', () => {
     const slices = collectSlices(['apps/web/src/features/page-header/PageHeader.tsx']);
-    const gaps = prdGaps(slices, [greetingPrd]);
+    const gaps = prdGaps(slices, [todosPrd]);
     expect(gaps).toHaveLength(1);
     expect(gaps[0]).toContain('page-header');
     expect(gaps[0]).toContain('docs/prd/');
@@ -526,12 +524,12 @@ describe('CLI', () => {
   });
 
   it('reads the PR checkout as data and writes the red label and gap summary', () => {
-    [greetingSpec, greetingPrd].forEach((file) => {
-      const path = join(root, file.path.replaceAll('greeting', 'fixture-covered'));
+    [todosSpec, todosPrd].forEach((file) => {
+      const path = join(root, file.path.replaceAll('todos', 'fixture-covered'));
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(
         path,
-        file.text.replaceAll('greeting', 'fixture-covered').replace('Greeting', 'Fixture Covered'),
+        file.text.replaceAll('todos', 'fixture-covered').replace('Todo', 'Fixture Covered'),
       );
     });
     const changed = [
@@ -569,12 +567,12 @@ describe('CLI', () => {
     ['deleted', 'green', [1], false, 'packages/ui/src/Other.tsx', 'meets the line-coverage'],
     ['excluded', 'green', [1], true, 'jest.config.ts', 'meets the line-coverage'],
   ])('grades %s coverage through workflow outputs', (_, level, counts, exists, changed, reason) => {
-    [greetingSpec, greetingPrd].forEach((file) => {
-      const path = join(root, file.path.replaceAll('greeting', 'fixture-covered'));
+    [todosSpec, todosPrd].forEach((file) => {
+      const path = join(root, file.path.replaceAll('todos', 'fixture-covered'));
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(
         path,
-        file.text.replaceAll('greeting', 'fixture-covered').replace('Greeting', 'Fixture Covered'),
+        file.text.replaceAll('todos', 'fixture-covered').replace('Todo', 'Fixture Covered'),
       );
     });
     if (exists) {
@@ -605,14 +603,14 @@ describe('CLI', () => {
     ['unnamed slice', [1, 1], false, 1, 'no E2E spec'],
     ['full coverage', [1, 1], true, 0, 'Changed-file coverage passed'],
   ] as const)('runs the coverage gate for %s', (_, counts, named, status, message) => {
-    const changed = 'apps/web/src/routes/greeting/x.ts';
+    const changed = 'apps/web/src/routes/todos/x.ts';
     const source = join(root, changed);
     mkdirSync(dirname(source), { recursive: true });
     writeFileSync(source, 'throw new Error("PR code must never execute");');
     if (named) {
-      const spec = join(root, greetingSpec.path);
+      const spec = join(root, todosSpec.path);
       mkdirSync(dirname(spec), { recursive: true });
-      writeFileSync(spec, greetingSpec.text);
+      writeFileSync(spec, todosSpec.text);
     }
     const result = run('--coverage-gate', {
       CHANGED: changed,
@@ -708,7 +706,7 @@ describe('CLI', () => {
     'failure',
   ])('grades Button reach with %s checks and reports its importers', (conclusion) => {
     const button = 'packages/ui/src/Button.tsx';
-    const importer = 'apps/web/src/routes/greeting/GreetingForm.tsx';
+    const importer = 'apps/web/src/routes/todos/TodoForm.tsx';
     const summary = join(root, 'summary');
     const result = run('--decide', {
       CHANGED: button,
