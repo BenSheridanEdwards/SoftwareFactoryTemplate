@@ -34,7 +34,7 @@ export function createTodoUseCases() {
   }
 
   function listTodos(): readonly Todo[] {
-    return [];
+    return store.read();
   }
 
   function addTodo(request: { readonly title: string }): Outcome<Todo> {

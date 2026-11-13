@@ -1,5 +1,5 @@
-import { createTodoUseCases } from './application.ts';
 import type { Outcome } from './domain.ts';
+import { createTodoUseCases } from './index.ts';
 
 it('starts empty and lists to-dos oldest first', () => {
   const { addTodo, listTodos } = createTodoUseCases();
