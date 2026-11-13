@@ -1,6 +1,6 @@
 # Visual baselines
 
-These are the six Linux Chromium baselines for `../visual.spec.ts`.
+These are the twelve Linux Chromium baselines for `../visual.spec.ts`.
 To update on Linux, run `pnpm e2e:install`, then `pnpm visual:update`.
 Inspect every changed PNG, commit it with the UI change, and rerun `pnpm visual`.
 CI only compares and uploads `visual-differences` on a failure.
@@ -11,3 +11,5 @@ For low-memory capture, build and run the production preview separately on port 
 VISUAL=1 E2E_BUILD=1 E2E_BASE_URL=http://127.0.0.1:5173 node --max-old-space-size=128 node_modules/@playwright/test/cli.js test --update-snapshots --workers=1
 VISUAL=1 E2E_BUILD=1 E2E_BASE_URL=http://127.0.0.1:5173 node --max-old-space-size=128 node_modules/@playwright/test/cli.js test --workers=1
 ```
+
+To-do refresh: the six `todos-*.png` images are the hosted ubuntu-latest runner captures from Visual regression run 43486851914, artifact `visual-differences`, copied from the first attempts in `test-results/` without changing their bytes. The six greeting images are unchanged.
