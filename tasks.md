@@ -15,7 +15,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 - Point PRD conflict gate fixtures at to-dos, Phase C PR 13a. No thread recorded. PR [#371](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/371).
 
-- Point remaining gate tests at to-dos, Phase C PR 13c. No thread recorded. PR pending.
+- Point remaining gate tests at to-dos, Phase C PR 13c. No thread recorded. PR [#375](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/375).
 
 - Add hosted to-do visual baselines, Phase B PR 11 of ADR 0123. No thread recorded. PR [#369](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/369).
 
