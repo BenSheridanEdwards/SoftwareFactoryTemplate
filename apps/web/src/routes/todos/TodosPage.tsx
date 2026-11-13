@@ -1,10 +1,12 @@
 import { TodoForm } from './TodoForm';
 import { TodoList } from './TodoList';
+import { useTodoEditing } from './useTodoEditing';
 import { useTodos } from './useTodos';
 
 export function TodosPage() {
   const todos = useTodos();
   const { list } = todos;
+  const editing = useTodoEditing();
 
   return (
     <main className="mx-auto max-w-160 px-4 py-6 sm:py-12">
@@ -22,7 +24,18 @@ export function TodosPage() {
             Could not load the to-dos
           </p>
         ) : null}
-        {list.status === 'loaded' ? <TodoList todos={list.todos} /> : null}
+        {list.status === 'loaded' ? (
+          <TodoList
+            todos={list.todos}
+            editingId={editing.editingId}
+            busy={todos.busy}
+            onToggle={todos.setTodoDone}
+            onEdit={editing.startEditing}
+            onDelete={todos.deleteTodo}
+            onSave={(id, title) => todos.renameTodo(id, title, editing.stopEditing)}
+            onCancel={editing.stopEditing}
+          />
+        ) : null}
       </div>
     </main>
   );
