@@ -16,5 +16,5 @@ const MATCHES: Readonly<Record<TodoFilter, (todo: Todo) => boolean>> = {
 
 /** The to-dos `filter` matches, in list order. */
 export function filterTodos(todos: readonly Todo[], filter: TodoFilter): readonly Todo[] {
-  return todos.filter(MATCHES[filter]).filter(() => false);
+  return todos.filter(MATCHES[filter]);
 }

@@ -268,3 +268,25 @@ it('filters the list and clears every done to-do', async () => {
   expect(screen.getByText('No to-dos to show')).toBeVisible();
   expect(clearDone).toHaveBeenCalledTimes(1);
 });
+
+it('hides newly done items from Active and shows the empty filter message', async () => {
+  const { user } = renderPage({ seed: withTodos({ title: 'First' }) });
+  await screen.findByText('First');
+  await user.click(screen.getByRole('button', { name: 'Active' }));
+  expect(screen.getByRole('button', { name: 'Clear done' })).toBeDisabled();
+  await user.click(screen.getByRole('checkbox', { name: 'First' }));
+  expect(await screen.findByText('No to-dos to show')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Clear done' })).toBeEnabled();
+  await user.click(screen.getByRole('button', { name: 'All' }));
+  expect(screen.getByRole('checkbox', { name: 'First' })).toBeChecked();
+});
+it('keeps done items and reports a failed clear', async () => {
+  const { user } = renderPage({
+    seed: withTodos({ title: 'First', done: true }),
+    handlers: { 'todos.clearDone': () => Promise.reject(new Error('api down')) },
+  });
+  await screen.findByText('First');
+  await user.click(screen.getByRole('button', { name: 'Clear done' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not clear the done to-dos');
+  expect(screen.getByRole('checkbox', { name: 'First' })).toBeChecked();
+});
