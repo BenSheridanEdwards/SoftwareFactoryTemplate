@@ -306,7 +306,6 @@ describe('--collect', () => {
         ...buttonImporters,
         todoList,
         'apps/web/src/routes/greeting/GreetingForm.tsx',
-        'apps/web/src/routes/greeting/GreetingMessage.tsx',
         'apps/web/src/routes/greeting/GreetingPage.test.tsx',
         'apps/web/src/routes/greeting/GreetingPage.tsx',
         'apps/web/src/routes/greeting/index.ts',
