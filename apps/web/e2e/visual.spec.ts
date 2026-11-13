@@ -32,7 +32,7 @@ import { expect, test } from './fixtures';
   { width: 390, height: 844 },
 ].forEach((viewport) => {
   ['empty', 'validation', 'list'].forEach((state) => {
-    test(`reference to-dos at ${viewport.width}px: ${state}`, async ({ page }) => {
+    test(`reference to-dos at ${viewport.width}px: ${state}`, async ({ page }, testInfo) => {
       const todos =
         state === 'list'
           ? [
@@ -55,6 +55,11 @@ import { expect, test } from './fixtures';
         await page.getByRole('button', { name: 'Add', exact: true }).click();
         await expect(page.getByRole('alert')).toHaveText('Enter a title');
       }
+      await page.screenshot({
+        path: testInfo.outputPath(`todos-${viewport.width}-${state}-actual.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
       await expect(page).toHaveScreenshot(`todos-${viewport.width}-${state}.png`, {
         fullPage: true,
       });

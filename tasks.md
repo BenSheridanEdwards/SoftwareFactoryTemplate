@@ -13,7 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Add hosted to-do visual baselines, Phase B PR 11 of ADR 0123. No thread recorded. PR pending.
+- Add hosted to-do visual baselines, Phase B PR 11 of ADR 0123. No thread recorded. PR [#369](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/369).
 
 
 
