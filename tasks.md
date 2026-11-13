@@ -13,7 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Cover to-do load and re-read failures, Phase B PR 10b. No thread recorded. PR pending.
+
 
 - Filter and clear done at /todos, Phase B PR 10. No thread recorded. PR [#367](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/367).
 
@@ -31,6 +31,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 - Add this task list and the AGENTS.md rule to keep it. T3 thread 15a5d0fa. PR [#350](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/350)
 
 ## Waiting
+
+- Cover to-do load and re-read failures, Phase B PR 10b; local verification and 32 E2E tests passed. No thread recorded. PR [#368](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/368).
 
 - Add the to-do domain and application, Phase B PR 5 of ADR 0123. No thread recorded. PR [#362](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/362).
 
