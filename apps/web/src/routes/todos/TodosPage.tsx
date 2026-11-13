@@ -1,9 +1,13 @@
 import { TodoForm } from './TodoForm';
 import { TodoList } from './TodoList';
+import { TodoToolbar } from './TodoToolbar';
+import { filterTodos } from './todoFilter';
 import { useTodoEditing } from './useTodoEditing';
+import { useTodoFilter } from './useTodoFilter';
 import { useTodos } from './useTodos';
 
 export function TodosPage() {
+  const { filter, setFilter } = useTodoFilter();
   const todos = useTodos();
   const { list } = todos;
   const editing = useTodoEditing();
@@ -25,16 +29,24 @@ export function TodosPage() {
           </p>
         ) : null}
         {list.status === 'loaded' ? (
-          <TodoList
-            todos={list.todos}
-            editingId={editing.editingId}
-            busy={todos.busy}
-            onToggle={todos.setTodoDone}
-            onEdit={editing.startEditing}
-            onDelete={todos.deleteTodo}
-            onSave={(id, title) => todos.renameTodo(id, title, editing.stopEditing)}
-            onCancel={editing.stopEditing}
-          />
+          <>
+            <TodoToolbar
+              filter={filter}
+              onFilter={setFilter}
+              canClearDone={!todos.busy && list.todos.some((todo) => todo.done)}
+              onClearDone={todos.clearDoneTodos}
+            />
+            <TodoList
+              todos={filterTodos(list.todos, filter)}
+              editingId={editing.editingId}
+              busy={todos.busy}
+              onToggle={todos.setTodoDone}
+              onEdit={editing.startEditing}
+              onDelete={todos.deleteTodo}
+              onSave={(id, title) => todos.renameTodo(id, title, editing.stopEditing)}
+              onCancel={editing.stopEditing}
+            />
+          </>
         ) : null}
       </div>
     </main>

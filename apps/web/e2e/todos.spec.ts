@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, test } from './fixtures';
+import type { APIRequestContext } from '@playwright/test';
+import { expect, type Page, present, test } from './fixtures';
 
 test.describe.configure({ mode: 'default' });
 
@@ -135,5 +136,146 @@ test.describe('Deleting', () => {
     await expectTitles(page, ['First', 'Third']);
     await expect(page.getByRole('button', { name: 'Delete First' })).toHaveText('Delete');
     await expect(page.getByRole('button', { name: 'Edit First' })).toHaveText('Edit');
+  });
+});
+
+interface Todo {
+  readonly id: string;
+  readonly title: string;
+  readonly done: boolean;
+}
+const calls = (url: URL | string, procedure: string) =>
+  new URL(url).pathname.replace('/trpc/', '').split(',').includes(procedure);
+
+async function listThroughApi(request: APIRequestContext): Promise<Todo[]> {
+  const response = await request.get('/trpc/todos.list');
+  expect(response.status()).toBe(200);
+  return (await response.json()).result.data;
+}
+
+async function addThroughApi(request: APIRequestContext, title: string): Promise<Todo> {
+  const response = await request.post('/trpc/todos.add', { data: { title } });
+  expect(response.status()).toBe(200);
+  return (await response.json()).result.data;
+}
+
+async function addAllThroughApi(request: APIRequestContext, titles: readonly string[]) {
+  return titles.reduce<Promise<Todo[]>>(
+    async (added, title) => [...(await added), await addThroughApi(request, title)],
+    Promise.resolve([]),
+  );
+}
+
+async function setDoneThroughApi(request: APIRequestContext, id: string) {
+  const response = await request.post('/trpc/todos.setDone', { data: { id, done: true } });
+  expect(response.status()).toBe(200);
+}
+
+async function openPage(page: Page) {
+  await page.goto('/todos');
+  await expect(page.getByRole('group', { name: 'Filter' })).toBeVisible();
+}
+const filterButton = (page: Page, name: 'All' | 'Active' | 'Done') =>
+  page.getByRole('group', { name: 'Filter' }).getByRole('button', { name, exact: true });
+const clearDone = (page: Page) => page.getByRole('button', { name: 'Clear done', exact: true });
+async function failCalls(page: Page, procedure: string) {
+  await page.route(
+    (url) => calls(url, procedure),
+    (route) => route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
+  );
+}
+
+test.describe('Filtering', () => {
+  test('filters to active or done to-dos and back to all', async ({ page, request }, testInfo) => {
+    const [, second] = await addAllThroughApi(request, ['First', 'Second', 'Third']);
+    await setDoneThroughApi(request, present(second).id);
+    await openPage(page);
+
+    await filterButton(page, 'Active').click();
+    await expectTitles(page, ['First', 'Third']);
+    await expect(filterButton(page, 'Active')).toHaveAttribute('aria-pressed', 'true');
+    await expect(filterButton(page, 'All')).toHaveAttribute('aria-pressed', 'false');
+
+    await filterButton(page, 'Done').click();
+    await expectTitles(page, ['Second']);
+    await page.screenshot({ path: testInfo.outputPath('todos-filter.png'), fullPage: true });
+    await expect(filterButton(page, 'Done')).toHaveAttribute('aria-pressed', 'true');
+    await expect(filterButton(page, 'Active')).toHaveAttribute('aria-pressed', 'false');
+
+    await filterButton(page, 'All').click();
+    await expectTitles(page, ['First', 'Second', 'Third']);
+    await expect(filterButton(page, 'All')).toHaveAttribute('aria-pressed', 'true');
+    await expect(filterButton(page, 'Done')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('hides a to-do from the Active filter once it is marked done', async ({ page, request }) => {
+    await addAllThroughApi(request, ['First', 'Second']);
+    await openPage(page);
+    await filterButton(page, 'Active').click();
+
+    await checkbox(page, 'First').click();
+
+    await expectTitles(page, ['Second']);
+    await expect(filterButton(page, 'Active')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('shows the empty message when a filter matches nothing', async ({ page, request }) => {
+    await addThroughApi(request, 'First');
+    await openPage(page);
+
+    await filterButton(page, 'Done').click();
+
+    await expect(page.getByText('No to-dos to show', { exact: true })).toBeVisible();
+    await expect(page.getByRole('list')).toHaveCount(0);
+  });
+});
+
+test.describe('Clearing done to-dos', () => {
+  test('clears every done to-do whatever the filter', async ({ page, request }) => {
+    const [first, , third] = await addAllThroughApi(request, ['First', 'Second', 'Third']);
+    await setDoneThroughApi(request, present(first).id);
+    await setDoneThroughApi(request, present(third).id);
+    await openPage(page);
+    await filterButton(page, 'Active').click();
+
+    await clearDone(page).click();
+
+    await expect(clearDone(page)).toBeDisabled();
+    await expect(filterButton(page, 'Active')).toHaveAttribute('aria-pressed', 'true');
+    await expectTitles(page, ['Second']);
+    await filterButton(page, 'All').click();
+    await expectTitles(page, ['Second']);
+    expect((await listThroughApi(request)).map(({ title }) => title)).toEqual(['Second']);
+  });
+
+  test('enables Clear done only while a to-do is done', async ({ page, request }) => {
+    await addAllThroughApi(request, ['First', 'Second']);
+    await openPage(page);
+
+    await expect(clearDone(page)).toBeDisabled();
+    await clearDone(page).click({ force: true });
+    await checkbox(page, 'First').click();
+
+    await expect(clearDone(page)).toBeEnabled();
+    await expectTitles(page, ['First', 'Second']);
+  });
+
+  test('keeps the done to-dos and says so when clearing fails', async ({
+    page,
+    request,
+    expectConsole,
+  }) => {
+    expectConsole(/Failed to load resource: .*500/);
+    const [first] = await addAllThroughApi(request, ['First', 'Second']);
+    await setDoneThroughApi(request, present(first).id);
+    await openPage(page);
+    await failCalls(page, 'todos.clearDone');
+
+    await clearDone(page).click();
+
+    await expect(page.getByRole('alert')).toHaveText('Could not clear the done to-dos');
+    await expectTitles(page, ['First', 'Second']);
+    await expect(checkbox(page, 'First')).toBeChecked();
+    await expect(clearDone(page)).toBeEnabled();
   });
 });
