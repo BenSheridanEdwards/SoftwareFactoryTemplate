@@ -243,3 +243,28 @@ it('keeps a to-do when deletion fails', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('Could not delete the to-do');
   expect(titles()).toEqual(['First']);
 });
+
+it('filters the list and clears every done to-do', async () => {
+  const clearDone = recorded<'clearDone'>();
+  const { user } = renderPage({
+    seed: withTodos(
+      { title: 'First', done: true },
+      { title: 'Second' },
+      { title: 'Third', done: true },
+    ),
+    handlers: { 'todos.clearDone': clearDone },
+  });
+  await screen.findByRole('list', { name: 'To-dos' });
+
+  await user.click(screen.getByRole('button', { name: 'Done' }));
+  expect(titles()).toEqual(['First', 'Third']);
+  await user.click(screen.getByRole('button', { name: 'Active' }));
+  expect(titles()).toEqual(['Second']);
+  expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'true');
+  await user.click(screen.getByRole('button', { name: 'Clear done' }));
+
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Clear done' })).toBeDisabled());
+  await user.click(screen.getByRole('button', { name: 'Done' }));
+  expect(screen.getByText('No to-dos to show')).toBeVisible();
+  expect(clearDone).toHaveBeenCalledTimes(1);
+});
