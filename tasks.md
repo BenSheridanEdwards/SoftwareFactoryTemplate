@@ -15,7 +15,6 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 - Point PRD conflict gate fixtures at to-dos, Phase C PR 13a. No thread recorded. PR [#371](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/371).
 
-- Point remaining architecture fixtures at to-dos, Phase C PR 13b2 of ADR 0123. No thread recorded. PR pending.
 
 - Add hosted to-do visual baselines, Phase B PR 11 of ADR 0123. No thread recorded. PR [#369](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/369).
 
@@ -43,6 +42,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 - Point PR body PRD fixtures at to-dos, Phase C PR 13a2; local verify and 32 E2E tests passed, awaiting review and #370. No thread recorded. PR [#372](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/372).
 
 - Point architecture boundary fixtures at to-dos, Phase C PR 13b of ADR 0123; defer 13b2 to stay under 400 lines. No thread recorded. PR [#373](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/373); local checks passed, awaiting review.
+
+- Point remaining architecture fixtures at to-dos, Phase C PR 13b2 of ADR 0123. No thread recorded. PR [#374](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/374); local verify and E2E passed, awaiting review.
 
 
 - Cover to-do load and re-read failures, Phase B PR 10b; local verification and 32 E2E tests passed. No thread recorded. PR [#368](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/368).
