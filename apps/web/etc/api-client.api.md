@@ -10,6 +10,7 @@ import type { inferRouterInputs } from '@trpc/server';
 import type { inferRouterOutputs } from '@trpc/server';
 import { JSX } from 'react';
 import type { ReactNode } from 'react';
+import { TRPCClient } from '@trpc/client';
 
 // @public (undocumented)
 export function ApiProvider(input: {
@@ -24,7 +25,7 @@ export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 // @public
 export type TestApiHandlers = {
-    readonly [Path in ProcedurePath]?: (input: Lookup<RouterInputs, Path>) => Lookup<RouterOutputs, Path> | Promise<Lookup<RouterOutputs, Path>>;
+    readonly [Path in ProcedurePath]?: (input: Lookup<RouterInputs, Path>, serve: (input: Lookup<RouterInputs, Path>) => Promise<Lookup<RouterOutputs, Path>>) => Lookup<RouterOutputs, Path> | Promise<Lookup<RouterOutputs, Path>>;
 };
 
 // @public
