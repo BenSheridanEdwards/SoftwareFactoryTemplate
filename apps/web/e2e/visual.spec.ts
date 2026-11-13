@@ -26,3 +26,43 @@ import { expect, test } from './fixtures';
     });
   });
 });
+
+[
+  { width: 1280, height: 720 },
+  { width: 390, height: 844 },
+].forEach((viewport) => {
+  ['empty', 'validation', 'list'].forEach((state) => {
+    test(`reference to-dos at ${viewport.width}px: ${state}`, async ({ page }, testInfo) => {
+      const todos =
+        state === 'list'
+          ? [
+              { id: 'sample-1', title: 'Write the talk', done: false },
+              { id: 'sample-2', title: 'Book the room', done: true },
+            ]
+          : [];
+      await page.route('**/trpc/todos.list**', (route) =>
+        route.fulfill({ json: { result: { data: todos } } }),
+      );
+      await page.setViewportSize(viewport);
+      await page.goto('/todos');
+      if (state === 'list') {
+        await expect(page.getByRole('checkbox', { name: 'Write the talk' })).not.toBeChecked();
+        await expect(page.getByRole('checkbox', { name: 'Book the room' })).toBeChecked();
+      } else {
+        await expect(page.getByText('No to-dos to show', { exact: true })).toBeVisible();
+      }
+      if (state === 'validation') {
+        await page.getByRole('button', { name: 'Add', exact: true }).click();
+        await expect(page.getByRole('alert')).toHaveText('Enter a title');
+      }
+      await page.screenshot({
+        path: testInfo.outputPath(`todos-${viewport.width}-${state}-actual.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await expect(page).toHaveScreenshot(`todos-${viewport.width}-${state}.png`, {
+        fullPage: true,
+      });
+    });
+  });
+});
