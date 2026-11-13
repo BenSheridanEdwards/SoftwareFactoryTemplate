@@ -23,11 +23,16 @@ the failing test first); and coverage below `jest.config.ts`'s 80% threshold.
   Test form schemas by decoding (`greetingFormSchema.test.ts`), and hooks and
   pages through rendered behaviour. See `.agents/project/ARCHITECTURE.md`.
 - Render pages and hooks that call the api inside the api client's
-  `TestApiProvider`, with one typed handler per procedure path
-  (`{ 'greeting.greet': greet }`). Assert received input with `jest.fn` handlers;
-  use a rejecting handler for errors. Run real hooks and providers, leaving
-  hooks unmocked. Models: `apps/web/src/routes/greeting/GreetingPage.test.tsx`
-  and `useGreeting.test.tsx` (`renderHook` with a `TestApiProvider` wrapper).
+  `TestApiProvider`. It serves the real app router in memory, with empty stores
+  for each render, so the test runs the feature's procedures, application and
+  domain code. Write no fake api. Add data through the router with `seed`
+  (`async (api) => { await api.todos.add.mutate({ title: 'First' }); }`).
+  Give a typed handler for a procedure path only to fail that call
+  (`() => Promise.reject(new Error('api down'))`), hold it, or record it with
+  `jest.fn((input, serve) => serve(input))`; `serve` passes the call on to the
+  router. Run real hooks and providers, leaving hooks unmocked. Model:
+  `apps/web/src/routes/greeting/GreetingPage.test.tsx`. Test a hook on its own with
+  `renderHook` and a `TestApiProvider` wrapper.
 - Replace dependencies through their seams. `jest.mock` fails `pnpm lint:anti-slop`.
 - Fix console warnings, console errors and Node process warnings; the Jest
   setup fails the test when it records one. A test that expects a warning

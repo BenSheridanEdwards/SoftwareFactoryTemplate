@@ -46,6 +46,10 @@ const config: Config = {
     {
       ...shared,
       displayName: 'web',
+      setupFilesAfterEnv: [
+        ...shared.setupFilesAfterEnv,
+        '<rootDir>/tooling/jest/serve-app-router.ts',
+      ],
       testPathIgnorePatterns: ['\\.contract\\.test\\.ts$'],
       testEnvironment: 'jsdom',
       roots: existingRoots('apps', 'showcase', 'packages'),

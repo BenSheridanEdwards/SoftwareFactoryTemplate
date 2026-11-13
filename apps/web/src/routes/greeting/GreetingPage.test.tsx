@@ -47,13 +47,16 @@ it('keeps loading until the api answers, then greets', async () => {
 });
 
 it('greets the submitted name through the api', async () => {
-  const greet = jest.fn(({ name }: { name: string }) => ({ message: `Hello, ${name}!` }));
-  const { user } = renderPage(greet);
+  render(
+    <TestApiProvider>
+      <GreetingPage />
+    </TestApiProvider>,
+  );
+  const user = userEvent.setup();
 
   await submitName(user, '  Ada ');
 
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Hello, Ada!'));
-  expect(greet).toHaveBeenCalledWith({ name: 'Ada' });
 });
 
 it('greets a name with internal whitespace runs collapsed', async () => {
@@ -67,7 +70,7 @@ it('greets a name with internal whitespace runs collapsed', async () => {
       normalizeWhitespace: false,
     }),
   );
-  expect(greet).toHaveBeenCalledWith({ name: 'Ada Lovelace' });
+  expect(greet).toHaveBeenCalledWith({ name: 'Ada Lovelace' }, expect.any(Function));
 });
 
 it.each(['', '   '])('asks for a name and sends nothing when the name is %j', async (name) => {

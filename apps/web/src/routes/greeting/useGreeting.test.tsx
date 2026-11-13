@@ -38,7 +38,7 @@ it('records the trimmed name only after the greeting answers', async () => {
   await waitFor(() => expect(result.current.greeting).toEqual({ status: 'loading' }));
   expect(record).not.toHaveBeenCalled();
   await act(async () => pending.answer({ message: 'Hello, Ada!' }));
-  await waitFor(() => expect(record).toHaveBeenCalledWith({ name: 'Ada' }));
+  await waitFor(() => expect(record).toHaveBeenCalledWith({ name: 'Ada' }, expect.any(Function)));
 });
 
 it('keeps the greeting visible when recording fails', async () => {
@@ -107,7 +107,7 @@ it('loads, then holds the greeting for the requested name', async () => {
   const { result } = renderGreeting(greet);
 
   act(() => result.current.requestGreeting('Ada'));
-  await waitFor(() => expect(greet).toHaveBeenCalledWith({ name: 'Ada' }));
+  await waitFor(() => expect(greet).toHaveBeenCalledWith({ name: 'Ada' }, expect.any(Function)));
   expect(result.current.greeting).toEqual({ status: 'loading' });
 
   act(() => pending.answer({ message: 'Hello, Ada!' }));
