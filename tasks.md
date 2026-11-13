@@ -13,7 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Serve the to-dos on the app router, Phase B PR 6 of ADR 0123. No thread recorded. PR pending.
+- Serve the to-dos on the app router, Phase B PR 6 of ADR 0123. No thread recorded. PR [#363](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/363).
 
 
 - Record accepted to-do reference decision as ADR 0123. No thread recorded. PR [#359](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/359).
