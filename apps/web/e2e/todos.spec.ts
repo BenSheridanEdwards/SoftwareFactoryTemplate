@@ -14,14 +14,14 @@ test.describe('To-dos: loading and adding', () => {
       await waiting;
       await route.continue();
     });
-    await page.goto('/todos');
+    await page.goto('/');
     await expect(page.getByRole('status')).toHaveText('Loading to-dos…');
     gate.release();
     await expect(page.getByText('No to-dos to show')).toBeVisible();
   });
 
   test('loads an empty list then adds a normalised title', async ({ page }, testInfo) => {
-    await page.goto('/todos');
+    await page.goto('/');
     await expect(page.getByText('No to-dos to show')).toBeVisible();
     await page.getByRole('textbox', { name: 'Title' }).fill(' Buy  milk ');
     await page.getByRole('button', { name: 'Add' }).click();
@@ -32,7 +32,7 @@ test.describe('To-dos: loading and adding', () => {
   });
 
   test('rejects blank and too-long titles', async ({ page }) => {
-    await page.goto('/todos');
+    await page.goto('/');
     await page.getByRole('textbox', { name: 'Title' }).fill('   ');
     await page.getByRole('button', { name: 'Add' }).click();
     await expect(page.getByRole('alert')).toHaveText('Enter a title');
@@ -61,7 +61,7 @@ async function expectTitles(page: Page, titles: readonly string[]) {
 }
 test.describe('Marking done', () => {
   test('marks a to-do done and active again in place', async ({ page }) => {
-    await page.goto('/todos');
+    await page.goto('/');
     await ['First', 'Second', 'Third'].reduce(async (previous, title) => {
       await previous;
       await page.getByRole('textbox', { name: 'Title' }).fill(title);
@@ -95,7 +95,7 @@ test.describe('Marking done', () => {
 
 test.describe('Editing', () => {
   test('edits a title in place and normalises it', async ({ page }, testInfo) => {
-    await page.goto('/todos');
+    await page.goto('/');
     await ['First', 'Buy milk', 'Third'].reduce(async (previous, title) => {
       await previous;
       await page.getByRole('textbox', { name: 'Title' }).fill(title);
@@ -123,7 +123,7 @@ test.describe('Editing', () => {
 
 test.describe('Deleting', () => {
   test('deletes a to-do at once', async ({ page }) => {
-    await page.goto('/todos');
+    await page.goto('/');
     await ['First', 'Second', 'Third'].reduce(async (previous, title) => {
       await previous;
       await page.getByRole('textbox', { name: 'Title' }).fill(title);
@@ -172,7 +172,7 @@ async function setDoneThroughApi(request: APIRequestContext, id: string) {
 }
 
 async function openPage(page: Page) {
-  await page.goto('/todos');
+  await page.goto('/');
   await expect(page.getByRole('group', { name: 'Filter' })).toBeVisible();
 }
 const filterButton = (page: Page, name: 'All' | 'Active' | 'Done') =>
@@ -317,7 +317,7 @@ test.describe('Failures and refreshing', () => {
     expectConsole(/Failed to load resource: .*500/);
     await failCalls(page, 'todos.list');
 
-    await page.goto('/todos');
+    await page.goto('/');
 
     await expect(page.getByRole('alert')).toHaveText('Could not load the to-dos');
     await expect(titleField(page)).toBeVisible();

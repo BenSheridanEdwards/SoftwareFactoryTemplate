@@ -6,7 +6,7 @@ import { expect, test } from './fixtures';
 ].forEach((viewport) => {
   test(`reference greeting at ${viewport.width}px matches approved screens`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.goto('/');
+    await page.goto('/greeting');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(page).toHaveScreenshot(`greeting-${viewport.width}-initial.png`, {
       fullPage: true,
@@ -44,7 +44,7 @@ import { expect, test } from './fixtures';
         route.fulfill({ json: { result: { data: todos } } }),
       );
       await page.setViewportSize(viewport);
-      await page.goto('/todos');
+      await page.goto('/');
       if (state === 'list') {
         await expect(page.getByRole('checkbox', { name: 'Write the talk' })).not.toBeChecked();
         await expect(page.getByRole('checkbox', { name: 'Book the room' })).toBeChecked();

@@ -14,7 +14,7 @@ test.describe('Accessibility', () => {
   test('the open recent greetings list has no detectable WCAG A/AA violations', async ({
     page,
   }) => {
-    await page.goto('/');
+    await page.goto('/greeting');
     await page.getByRole('textbox', { name: 'Name' }).fill('Accessibility');
     const recorded = page.waitForResponse((response) =>
       response.url().includes('/trpc/recentGreetings.record'),
@@ -26,14 +26,14 @@ test.describe('Accessibility', () => {
     expect((await scan(page)).violations).toEqual([]);
   });
   test('the greeting page has no detectable WCAG A/AA violations', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/greeting');
     await expect(page.getByRole('button', { name: 'Greet', exact: true })).toBeVisible();
 
     expect((await scan(page)).violations).toEqual([]);
   });
 
   test('the validation error state has no detectable WCAG A/AA violations', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/greeting');
     await page.getByRole('button', { name: 'Greet', exact: true }).click();
     await expect(page.getByRole('alert')).toHaveText('Enter a name');
 
@@ -41,7 +41,7 @@ test.describe('Accessibility', () => {
   });
 
   test('the greeting result has no detectable WCAG A/AA violations', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/greeting');
     await page.getByRole('textbox', { name: 'Name' }).fill('Ada');
     await page.getByRole('button', { name: 'Greet', exact: true }).click();
     await expect(page.getByRole('status')).toHaveText('Hello, Ada!');
@@ -55,7 +55,7 @@ test('empty and populated to-dos have no detectable WCAG violations', async ({ p
   await page.route('**/trpc/todos.list**', (route) =>
     route.fulfill({ json: { result: { data: todos } } }),
   );
-  await page.goto('/todos');
+  await page.goto('/');
   await expect(page.getByText('No to-dos to show')).toBeVisible();
   expect((await scan(page)).violations).toEqual([]);
   todos.push({ id: 'accessible-task', title: 'Accessible task', done: false });

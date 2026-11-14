@@ -5,7 +5,7 @@ import { expect, type Page, test } from './fixtures';
  * `/trpc` proxy, and the real api process.
  */
 async function submitName(page: Page, name: string) {
-  await page.goto('/');
+  await page.goto('/greeting');
   await page.getByRole('textbox', { name: 'Name' }).fill(name);
   await page.getByRole('button', { name: 'Greet', exact: true }).click();
 }
