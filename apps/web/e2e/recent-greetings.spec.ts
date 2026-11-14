@@ -7,7 +7,7 @@ test.describe('Recent greetings', () => {
 
   test('shows the names greeted on the page, newest first', async ({ page }) => {
     const name = `Web-${randomUUID()}`;
-    await page.goto('/');
+    await page.goto('/greeting');
     await page.getByRole('textbox', { name: 'Name' }).fill(name);
     const recorded = page.waitForResponse((response) =>
       response.url().includes('/trpc/recentGreetings.record'),
@@ -28,7 +28,7 @@ test.describe('Recent greetings', () => {
   test('stays closed until asked', async ({ page }) => {
     const requests: string[] = [];
     page.on('request', (request) => requests.push(request.url()));
-    await page.goto('/');
+    await page.goto('/greeting');
     await expect(page.getByRole('button', { name: 'Show recent greetings' })).toBeVisible();
     await expect(page.getByRole('list')).toHaveCount(0);
     expect(requests.filter((url) => url.includes('/trpc/recentGreetings.list'))).toEqual([]);

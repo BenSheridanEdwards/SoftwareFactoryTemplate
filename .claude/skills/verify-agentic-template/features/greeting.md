@@ -13,7 +13,7 @@ names and rejects blank ones with `BAD_REQUEST`.
 
 ## How to get to it (user POV)
 
-- Open `/`. The `Greeting` heading sits above a card with `Name` and `Greet`.
+- Open `/greeting`. The `Greeting` heading sits above a card with `Name` and `Greet`.
 - Type a name and press `Greet` or Enter.
 
 ## Driving it with verify.mjs
