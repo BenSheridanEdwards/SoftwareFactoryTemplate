@@ -8,7 +8,7 @@ for the template's user-visible behaviour.
 - Launch with `node $V launch --run <id>`, where `V=.agents/skills/verify-agentic-template/scripts/verify.mjs`.
 - Require `PASS` on every line of `node $V doctor --run <id>`.
 - Use the printed `url` at `/` on `127.0.0.1` and a free port. There is no auth or stored data.
-- The api runs beside it; `GET /trpc/greeting.greet` with `{"name":"Ada"}` answers `Hello, Ada!` through the web proxy.
+- The api runs beside it; `GET /trpc/todos.list` with `{"name":"Ada"}` answers `Hello, Ada!` through the web proxy.
 - Drive only an instance this run launched.
 
 ## Driving conventions
@@ -34,5 +34,6 @@ behaviour. Follow with four H2 sections in order: `Sub-features`,
 
 ## Features
 
+- [To-dos](./todos.md): blank-title validation, add, mark done and delete.
 - [Greeting](./greeting.md): api greeting, blank-name validation, and request error.
 - [Accessibility](./accessibility.md): whole-page axe WCAG scan and keyboard reach.
