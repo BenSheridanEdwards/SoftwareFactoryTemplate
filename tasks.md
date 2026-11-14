@@ -13,7 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Remove greeting and recent-greetings, Phase C PR 15. No thread recorded. PR pending.
+- Remove greeting and recent-greetings, Phase C PR 15. No thread recorded. PR pending; implementation and targeted checks pass, full verification in progress.
 
 - Make the to-do list the home page, Phase C PR 14; correct review findings in the verification recipe and glossary. No thread recorded. PR [#376](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/376).
 
