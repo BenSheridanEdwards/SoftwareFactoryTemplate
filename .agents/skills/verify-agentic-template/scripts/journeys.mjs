@@ -61,76 +61,6 @@ const todos = {
   },
 };
 
-async function submitName(page, name) {
-  const field = page.getByRole('textbox', { name: 'Name' });
-  await field.fill(name);
-  await page.getByRole('button', { name: 'Greet', exact: true }).click();
-}
-
-const greeting = {
-  id: 'greeting',
-  feature: 'greeting',
-  async run({ page, step, expect }) {
-    const calls = watchCalls(page, 'greeting.greet');
-
-    await step('open the greeting page', async () => {
-      await page.goto('/greeting');
-      await expect(page.getByRole('heading', { level: 1, name: 'Greeting' })).toBeVisible();
-      await expect(page.getByRole('status')).toHaveText('');
-    });
-    await step('a blank name asks for a name and sends nothing', async () => {
-      await submitName(page, '');
-      await expect(page.getByRole('alert')).toHaveText('Enter a name');
-      expect(calls).toEqual([]);
-    });
-    await step('a name gets its greeting from the api', async () => {
-      const answered = page.waitForResponse((response) =>
-        response.url().includes('/trpc/greeting.greet'),
-      );
-      await submitName(page, 'Ada');
-      expect((await answered).status()).toBe(200);
-      await expect(page.getByRole('status')).toHaveText('Hello, Ada!');
-      await expect(page.getByRole('alert')).toHaveCount(0);
-      expect(calls).toHaveLength(1);
-    });
-  },
-};
-
-const greetingValidation = {
-  id: 'greeting-validation',
-  feature: 'greeting',
-  async run({ page, step, expect }) {
-    const calls = watchCalls(page, 'greeting.greet');
-
-    await step('a whitespace name asks for a name and sends nothing', async () => {
-      await page.goto('/greeting');
-      await submitName(page, '   ');
-      await expect(page.getByRole('alert')).toHaveText('Enter a name');
-      await expect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute(
-        'aria-invalid',
-        'true',
-      );
-      expect(calls).toEqual([]);
-    });
-  },
-};
-
-const greetingError = {
-  id: 'greeting-error',
-  feature: 'greeting',
-  async run({ page, step, expect }) {
-    await page.route('**/trpc/**', (route) =>
-      route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
-    );
-
-    await step('a failing api shows the error', async () => {
-      await page.goto('/greeting');
-      await submitName(page, 'Ada');
-      await expect(page.getByRole('alert')).toHaveText('Could not load the greeting');
-    });
-  },
-};
-
 const accessibility = {
   id: 'accessibility',
   feature: 'accessibility',
@@ -162,8 +92,5 @@ const accessibility = {
 };
 
 export const JOURNEYS = Object.fromEntries(
-  [todos, greeting, greetingValidation, greetingError, accessibility].map((journey) => [
-    journey.id,
-    journey,
-  ]),
+  [todos, accessibility].map((journey) => [journey.id, journey]),
 );

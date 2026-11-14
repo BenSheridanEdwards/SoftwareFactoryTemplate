@@ -33,7 +33,7 @@ For the trial runbook, read [TRIALS.md](.agents/TRIALS.md).
 
 1. Read the architecture, conventions, Definition of Done, glossary, and ADRs before writing code; use the map below.
 2. Copy new files from [templates](.agents/templates/).
-3. Define behaviour first in each result's `web/e2e/*.spec.ts` (for example `apps/web/e2e/greeting.spec.ts`). Each feature's PRD in `docs/prd/` states its intent and links each behaviour to its test.
+3. Define behaviour first in each result's `web/e2e/*.spec.ts` (for example `apps/web/e2e/todos.spec.ts`). Each feature's PRD in `docs/prd/` states its intent and links each behaviour to its test.
 4. Fix the cause of a failed gate; keep the gate and its config in place.
 5. Report a task complete once `pnpm verify` and `pnpm e2e` pass; follow the [Definition of Done](.agents/project/PR_QUALITY.md#definition-of-done).
 6. Complete the pull request template and follow [PR quality](.agents/project/PR_QUALITY.md) before opening a PR or marking it ready.

@@ -18,7 +18,7 @@
       "attributes": {
         "label": "PRD",
         "description": "The `docs/prd/<feature>.md` this touches, or `None: <reason>`.",
-        "placeholder": "docs/prd/greeting.md, or None: tooling change with no product impact"
+        "placeholder": "docs/prd/todos.md, or None: tooling change with no product impact"
       },
       "validations": { "required": true }
     },

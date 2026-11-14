@@ -407,3 +407,9 @@ test.describe('Failures and refreshing', () => {
     expect(lists).toHaveLength(2);
   });
 });
+
+test('the retired /greeting path shows the to-do list', async ({ page }) => {
+  await page.goto('/greeting');
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Greeting', exact: true })).toHaveCount(0);
+});

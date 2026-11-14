@@ -5,7 +5,7 @@
 AgenticRepoTemplate is a software factory template. It is more than a repo skeleton. A
 software factory is a repository any agent can operate in, on any model or harness. Its executable
 standards refuse code outside the project's conventions. Downstream repos operate on this
-foundation. The TypeScript, React and tRPC greeting app is the runnable example that gives every gate real
+foundation. The TypeScript, React and tRPC to-do app is the runnable example that gives every gate real
 code to check.
 
 ## Who it is for
@@ -122,7 +122,7 @@ Targets, with no gate yet:
 - StyleProof is not a dependency here. Playwright screenshots own visual regression until a decision
   changes that.
 - A person, not an agent, approves, merges and deploys ([§8](#8-the-unit-of-delivery-is-a-merge-ready-pr)).
-- The greeting is an example for the gates, not a product feature set.
+- The to-do app is an example for the gates, not a product feature set.
 - The 2026-10-15 decisions set aside the new-file rule, a separate agent identity, a separate approval-check
   decision and the guardrails PR form.
 

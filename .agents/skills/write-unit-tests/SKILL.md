@@ -16,11 +16,11 @@ the failing test first); and coverage below `jest.config.ts`'s 80% threshold.
   when no accessible query fits. Assert observable behaviour, not state, props, or classes.
 - Drive with `userEvent` rather than `fireEvent` to model real interaction.
 - Use one behaviour per `it`, named as a sentence about the product.
-- Test logic where it lives. Test domain rules (`formatGreeting` in `domain.ts`)
-  and use cases (`greet` in `application.ts`) as functions. Test procedures
+- Test logic where it lives. Test domain rules (`normaliseTitle` in `domain.ts`)
+  and use cases (`add` in `application.ts`) as functions. Test procedures
   through `createCallerFactory(<name>Router)({})` from `trpc.ts`, with valid
-  input and `BAD_REQUEST` rejection; see `apps/api/src/features/greeting/procedures.test.ts`.
-  Test form schemas by decoding (`greetingFormSchema.test.ts`), and hooks and
+  input and `BAD_REQUEST` rejection; see `apps/api/src/features/todos/procedures.test.ts`.
+  Test form schemas by decoding (`todoFormSchema.test.ts`), and hooks and
   pages through rendered behaviour. See `.agents/project/ARCHITECTURE.md`.
 - Render pages and hooks that call the api inside the api client's
   `TestApiProvider`. It serves the real app router in memory, with empty stores
@@ -31,7 +31,7 @@ the failing test first); and coverage below `jest.config.ts`'s 80% threshold.
   (`() => Promise.reject(new Error('api down'))`), hold it, or record it with
   `jest.fn((input, serve) => serve(input))`; `serve` passes the call on to the
   router. Run real hooks and providers, leaving hooks unmocked. Model:
-  `apps/web/src/routes/greeting/GreetingPage.test.tsx`. Test a hook on its own with
+  `apps/web/src/routes/todos/TodosPage.test.tsx`. Test a hook on its own with
   `renderHook` and a `TestApiProvider` wrapper.
 - Replace dependencies through their seams. `jest.mock` fails `pnpm lint:anti-slop`.
 - Fix console warnings, console errors and Node process warnings; the Jest
@@ -56,7 +56,7 @@ the failing test first); and coverage below `jest.config.ts`'s 80% threshold.
 pnpm test                 # run the suite
 pnpm test:watch           # TDD loop
 pnpm test:coverage        # enforce the coverage threshold
-pnpm test GreetingPage     # run one file by name
+pnpm test TodosPage     # run one file by name
 pnpm test --selectProjects api   # run one Jest project
 ```
 

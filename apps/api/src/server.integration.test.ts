@@ -85,18 +85,11 @@ afterEach(async () => {
 describe('the API over real HTTP', () => {
   it.each([
     [
-      'trims the name',
+      'no longer serves greeting.greet',
       'greeting.greet',
-      { name: '  Ada  ' },
-      200,
-      { result: { data: { message: 'Hello, Ada!' } } },
-    ],
-    [
-      'rejects a blank name',
-      'greeting.greet',
-      { name: '   ' },
-      400,
-      { error: { data: { code: 'BAD_REQUEST' } } },
+      { name: 'Ada' },
+      404,
+      { error: { data: { code: 'NOT_FOUND' } } },
     ],
     [
       'rejects an unknown procedure',

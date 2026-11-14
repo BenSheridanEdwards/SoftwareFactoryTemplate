@@ -91,9 +91,6 @@ Built-in journeys have recipes in [`features/`](features/README.md):
 | Journey | Proves |
 | --- | --- |
 | `todos` | At `/`, reject a blank title, add, mark done and delete. |
-| `greeting` | At `/greeting` until removal. A blank name shows `Enter a name` and sends nothing; `Ada` shows `Hello, Ada!` from one api call. |
-| `greeting-validation` | At `/greeting`. A whitespace name shows `Enter a name`, marks the field invalid, and sends nothing. |
-| `greeting-error` | At `/greeting`. A 500 from `/trpc` shows `Could not load the greeting`. |
 | `accessibility` | axe finds no WCAG A or AA violations, with and without the error; Tab reaches the field, then the button. |
 
 For new behaviour, pass a journey module's path. Default-export `{ id, feature, run }`;
@@ -101,14 +98,14 @@ For new behaviour, pass a journey module's path. Default-export `{ id, feature, 
 
 ```js
 export default {
-  id: 'greeting-grace',
-  feature: 'greeting',
+  id: 'todos-review',
+  feature: 'todos',
   async run({ page, step, expect }) {
-    await step('greet Grace', async () => {
-      await page.goto('/greeting');
-      await page.getByRole('textbox', { name: 'Name' }).fill('Grace');
-      await page.getByRole('button', { name: 'Greet' }).click();
-      await expect(page.getByRole('status')).toHaveText('Hello, Grace!');
+    await step('add a to-do', async () => {
+      await page.goto('/');
+      await page.getByRole('textbox', { name: 'Title' }).fill('Read the review');
+      await page.getByRole('button', { name: 'Add' }).click();
+      await expect(page.getByRole('checkbox', { name: 'Read the review' })).toBeVisible();
     });
   },
 };
@@ -118,7 +115,7 @@ export default {
 node $V drive ./path/to/journey.mjs --run pr-123
 ```
 
-Locate by role and accessible name: labelled `textbox` and `button`, `status` for the greeting, `alert` for errors.
+Locate by role and accessible name: labelled `textbox` and `button`, `alert` for errors.
 
 ## Evidence
 

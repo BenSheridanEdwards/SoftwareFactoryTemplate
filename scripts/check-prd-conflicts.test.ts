@@ -62,7 +62,7 @@ function conflictsOf(prdText: string, extraFiles: Record<string, string> = {}) {
 describe('findPrdConflicts', () => {
   it('passes on the PRDs in this repository', () => {
     const filesystem = createNodeFilesystem(REPOSITORY_ROOT);
-    expect(filesystem.listTrackedFiles()).toContain('docs/prd/greeting.md');
+    expect(filesystem.listTrackedFiles()).toContain('docs/prd/todos.md');
     expect(findPrdConflicts(filesystem)).toEqual([]);
   });
 
