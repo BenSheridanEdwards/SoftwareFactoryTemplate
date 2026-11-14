@@ -90,9 +90,9 @@ const fallow = (() => {
     const args = ['architecture', '-q', '--format', 'json'];
     const valid = run(binary, args, { cwd: directory });
     assert.equal(valid.exitCode, 0, valid.stderr);
-    const domain = join(directory, 'apps/api/src/features/greeting/domain.ts');
+    const domain = join(directory, 'apps/api/src/features/todos/domain.ts');
     const original = readFileSync(domain, 'utf8');
-    writeFileSync(domain, `export { greet } from './application.ts';\n${original}`);
+    writeFileSync(domain, `export { listTodos } from './application.ts';\n${original}`);
     const prohibited = run(binary, args, { cwd: directory });
     assert.equal(prohibited.exitCode, 1, prohibited.stderr);
     const report = JSON.parse(prohibited.stdout);
