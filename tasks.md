@@ -13,7 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Make the to-do list the home page, Phase C PR 14. No thread recorded. PR pending.
+- Make the to-do list the home page, Phase C PR 14. No thread recorded. PR [#376](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/376).
 
 - Point PRD conflict gate fixtures at to-dos, Phase C PR 13a. No thread recorded. PR [#371](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/371).
 
