@@ -22,3 +22,9 @@ domain terms here in the same change.
 | **Slop** | Code more complex than the change needs, or code that breaks a convention the repository agreed in `.agents/`. Gates refuse the violations they enforce; review holds the rest. |
 | **Software factory** | A repository any agent, on any model or harness, can work in, with executable standards and explicit review-held targets. See `NORTH_STAR.md`. |
 | **Reproducibility test** | Generate the same app twice or more with the same model, brief and scaffold, compare the results, and judge each divergence against what a senior engineer would write. The trial harness in `tooling/trial/` runs and compares it. See `NORTH_STAR.md`. |
+| **To-do** | An item with an api-generated id, a title and a done flag. The accepted reference feature at `/todos` (ADR 0123); the greeting remains at `/`. |
+| **Title** | The text of a to-do, normalised by trimming and collapsing whitespace, with 1 to 100 JavaScript string units. |
+| **Active** | A to-do whose done flag is false. |
+| **Done** | A to-do whose done flag is true. |
+| **Filter** | All, Active or Done: the selection that limits which to-dos the page shows. |
+| **Clear done** | Delete every done to-do, including those hidden by the filter. |
