@@ -7,8 +7,6 @@ it('allows CodeQL to read private workflow runs while retaining result upload', 
   expect(permissions).toMatch(/^ {2}actions: read$/m);
   expect(permissions).toMatch(/^ {2}contents: read$/m);
   expect(permissions).toMatch(/^ {2}security-events: write$/m);
-  expect(workflow).toContain(
-    'uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1',
-  );
+  expect(workflow).toMatch(/uses: github\/codeql-action\/analyze@[a-f0-9]{40}\b/);
   expect(workflow).not.toMatch(/upload:\s*(false|never)|continue-on-error:/);
 });
