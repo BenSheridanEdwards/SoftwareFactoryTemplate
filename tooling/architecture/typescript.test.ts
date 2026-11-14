@@ -72,8 +72,8 @@ function typeCheckAtRepoPaths(program: 'tsconfig.domain.json', files: Record<str
   }
 }
 
-const GREETING = {
-  'src/domain.ts': 'export const formatGreeting = (name: string) => "Hello, " + name;\n',
+const TODOS = {
+  'src/domain.ts': 'export const formatTitle = (name: string) => "Hello, " + name;\n',
 };
 
 describe('TypeScript programs', () => {
@@ -81,9 +81,9 @@ describe('TypeScript programs', () => {
 
   it('passes api code that imports a relative file with its .ts extension', () => {
     const result = typeCheck('tsconfig.api.json', {
-      ...GREETING,
+      ...TODOS,
       'src/application.ts':
-        "import { formatGreeting } from './domain.ts';\nexport const greet = (name: string) => formatGreeting(name);\n",
+        "import { formatTitle } from './domain.ts';\nexport const addTodo = (name: string) => formatTitle(name);\n",
     });
     expect(result).toEqual({ status: 0, errors: [] });
   });
@@ -98,7 +98,7 @@ describe('TypeScript programs', () => {
     [
       'imports a relative file without its extension',
       'src/application.ts',
-      "import { formatGreeting } from './domain';\nexport const greet = formatGreeting;\n",
+      "import { formatTitle } from './domain';\nexport const addTodo = formatTitle;\n",
       'TS2835', // Relative imports need explicit file extensions under NodeNext.
     ],
     [
@@ -108,7 +108,7 @@ describe('TypeScript programs', () => {
       'TS1294', // Not allowed when erasableSyntaxOnly is enabled.
     ],
   ])('fails api code that %s', (_label, path, source, code) => {
-    const result = typeCheck('tsconfig.api.json', { ...GREETING, [path]: source });
+    const result = typeCheck('tsconfig.api.json', { ...TODOS, [path]: source });
     expect(result).toEqual({ status: 1, errors: [code] });
   });
 
@@ -120,13 +120,13 @@ describe('TypeScript programs', () => {
   });
 
   it.each([
-    'apps/api/src/features/greeting/domain.ts',
-    'apps/api/src/features/greeting/domain/format.ts',
+    'apps/api/src/features/todos/domain.ts',
+    'apps/api/src/features/todos/domain/format.ts',
     'showcase/x/api/src/features/todo/domain.ts',
     'showcase/x/api/src/features/todo/domain/format.ts',
   ])('passes pure domain code in %s', (path) => {
     const result = typeCheckAtRepoPaths('tsconfig.domain.json', {
-      [path]: `export const formatGreeting = (name: string) => \`Hello, \${name}!\`;\n`,
+      [path]: `export const formatTitle = (name: string) => \`Hello, \${name}!\`;\n`,
     });
     expect(result).toEqual({ status: 0, errors: [] });
   });
@@ -134,7 +134,7 @@ describe('TypeScript programs', () => {
   it.each([
     [
       'reads process.env',
-      'apps/api/src/features/greeting/domain.ts',
+      'apps/api/src/features/todos/domain.ts',
       'export const suffix = process.env.SUFFIX;\n',
       'TS2591', // Cannot find name 'process'; the domain program has no Node types.
     ],
@@ -146,7 +146,7 @@ describe('TypeScript programs', () => {
     ],
     [
       'loads Node through createRequire',
-      'apps/api/src/features/greeting/domain/format.ts',
+      'apps/api/src/features/todos/domain/format.ts',
       "import { createRequire } from 'node:module';\nexport const fs = createRequire('/')('fs');\n",
       'TS2591', // Node modules are unavailable without Node types.
     ],
