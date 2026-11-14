@@ -27,14 +27,14 @@ import { JOURNEYS } from './journeys.mjs';
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, '../../../..');
 const VERIFY_ROOT = join(REPOSITORY_ROOT, '.verify');
-const APP_HEADING = 'Greeting';
-const GREETING_PROBE = `/trpc/greeting.greet?input=${encodeURIComponent(JSON.stringify({ name: 'Ada' }))}`;
+const APP_HEADING = 'To-dos';
+const LIST_PROBE = '/trpc/todos.list';
 const READY_TIMEOUT_MS = 60_000;
 
 /**
- * The result a run serves: the reference greeting in `apps/` by default, or a
+ * The result a run serves: the reference to-do app in `apps/` by default, or a
  * showcase result by id (`--result todo-01`). Only the reference has the
- * greeting probe; any other result is ready once it renders a level-one heading.
+ * to-do list probe; any other result is ready once it renders a level-one heading.
  */
 function resolveResult(id = 'reference') {
   const results = listResults(REPOSITORY_ROOT);
@@ -140,7 +140,7 @@ function ownsApiProcess(instance) {
 }
 
 /**
- * The page, and the api: for the reference one greeting through the web
+ * The page, and the api: for the reference one list read through the web
  * server's `/trpc` proxy, for any other result an answer from its api port.
  */
 async function probeHttp(url, result, apiPort) {
@@ -150,9 +150,9 @@ async function probeHttp(url, result, apiPort) {
       const api = await fetch(`http://127.0.0.1:${apiPort}/`);
       return { pageStatus: page.status, apiStatus: api.status };
     }
-    const api = await fetch(new URL(GREETING_PROBE, url));
-    const greeting = api.ok ? (await api.json())?.result?.data?.message : null;
-    return { pageStatus: page.status, apiStatus: api.status, greeting };
+    const api = await fetch(new URL(LIST_PROBE, url));
+    const listed = api.ok && Array.isArray((await api.json())?.result?.data);
+    return { pageStatus: page.status, apiStatus: api.status, listed };
   } catch (error) {
     return { error: String(error) };
   }
@@ -167,8 +167,10 @@ async function probeRender(url, result) {
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       return { rendered: true };
     }
-    await expect(page.getByRole('heading', { level: 1, name: APP_HEADING })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Name' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: APP_HEADING, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toBeVisible();
     return { rendered: true };
   } catch (error) {
     return { rendered: false, error: String(error).split('\n')[0] };
@@ -262,9 +264,7 @@ async function launch(options) {
       throw new Error(`The api exited during startup. Read ${paths.apiLog}.`);
     }
     const probe = await probeHttp(url, result, apiPort);
-    const apiReady = result.isReference
-      ? probe.greeting === 'Hello, Ada!'
-      : Boolean(probe.apiStatus);
+    const apiReady = result.isReference ? probe.listed === true : Boolean(probe.apiStatus);
     if (probe.pageStatus === 200 && apiReady) {
       const render = await probeRender(url, result);
       if (render.rendered) {
@@ -305,9 +305,9 @@ async function doctor(options) {
     ...(result.isReference
       ? [
           [
-            'greeting api answers through /trpc',
-            http.greeting === 'Hello, Ada!',
-            http.error ?? `status ${http.apiStatus}, message ${JSON.stringify(http.greeting)}`,
+            'to-do api answers through /trpc',
+            http.listed === true,
+            http.error ?? `status ${http.apiStatus}, list ${JSON.stringify(http.listed)}`,
           ],
         ]
       : [
