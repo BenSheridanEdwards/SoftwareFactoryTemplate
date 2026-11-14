@@ -15,6 +15,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 - Point PRD conflict gate fixtures at to-dos, Phase C PR 13a. No thread recorded. PR [#371](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/371).
 
+
 - Add hosted to-do visual baselines, Phase B PR 11 of ADR 0123. No thread recorded. PR [#369](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/369).
 
 
@@ -37,6 +38,9 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 ## Waiting
 
 - Specify the to-do app, Phase B PR 12 of ADR 0123; awaiting Ben's guarded-path tick. No thread recorded. PR [#370](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/370).
+
+- Point PR body PRD fixtures at to-dos, Phase C PR 13a2; local verify and 32 E2E tests passed, awaiting review and #370. No thread recorded. PR [#372](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/372).
+
 
 - Cover to-do load and re-read failures, Phase B PR 10b; local verification and 32 E2E tests passed. No thread recorded. PR [#368](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/368).
 
