@@ -354,14 +354,9 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
       ].filter((path) => /\.test\.tsx?$/.test(path)),
     ).toEqual([]);
     expect(filesOf('tsconfig.node.json')).toEqual(
-      expect.arrayContaining([
-        'showcase/x/web/e2e/greeting.spec.ts',
-        'showcase/x/web/vite.config.ts',
-      ]),
+      expect.arrayContaining(['showcase/x/web/e2e/todos.spec.ts', 'showcase/x/web/vite.config.ts']),
     );
     expect(filesOf('tsconfig.domain.json')).toEqual([
-      'showcase/x/api/src/features/greeting/domain.ts',
-      'showcase/x/api/src/features/recent-greetings/domain.ts',
       'showcase/x/api/src/features/todos/domain.ts',
     ]);
   });
@@ -457,8 +452,6 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
   it('fails the structure validator on a missing api domain role', () => {
     const checked = withSeed(
       {
-        'showcase/x/api/src/features/greeting/domain.ts': null,
-        'showcase/x/api/src/features/recent-greetings/domain.ts': null,
         'showcase/x/api/src/features/todos/domain.ts': null,
       },
       () => run(['node', 'tooling/architecture/structure.mjs']),
