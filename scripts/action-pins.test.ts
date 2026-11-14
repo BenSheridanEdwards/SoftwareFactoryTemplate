@@ -11,11 +11,27 @@ const yamlFiles = (directory: string): string[] =>
 const workflows = yamlFiles('.github/workflows');
 const actionFiles = [...workflows, ...yamlFiles('.github/actions')];
 
-it.each(actionFiles)('%s uses the shared pnpm setup pin', (path) => {
-  const pins = [...read(path).matchAll(/pnpm\/action-setup@([^\s]+)/g)];
-  pins.forEach((match) => {
-    expect(match[1]).toBe('ea17c68df8912ef543352723c149a84f56e3d413');
-  });
+it('keeps every pnpm setup pin on the same full SHA', () => {
+  const pins = actionFiles.flatMap((path) =>
+    [...read(path).matchAll(/pnpm\/action-setup@([^\s]+)/g)].map((match) => match[1]),
+  );
+  expect(pins.length).toBeGreaterThan(0);
+  pins.forEach((pin) => expect(pin).toMatch(/^[a-f0-9]{40}$/));
+  expect(new Set(pins).size).toBe(1);
+});
+
+it('keeps CodeQL init and analyze on the same full SHA', () => {
+  const workflow = read('.github/workflows/codeql.yml');
+  const init = workflow.match(/github\/codeql-action\/init@([a-f0-9]{40})\b/)?.[1];
+  const analyze = workflow.match(/github\/codeql-action\/analyze@([a-f0-9]{40})\b/)?.[1];
+  expect(init).toBeDefined();
+  expect(analyze).toBe(init);
+});
+
+it('groups CodeQL action updates together', () => {
+  expect(read('.github/dependabot.yml')).toMatch(
+    /codeql:\n\s+patterns:\n\s+- "github\/codeql-action\*"/,
+  );
 });
 
 // Read a YAML field with its indented body, as required-gates does for jobs.
