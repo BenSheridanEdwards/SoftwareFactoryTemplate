@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -17,7 +17,11 @@ function runHook(shell: string, command: string, description = 'Run a git comman
     tool_name: 'Bash',
     tool_input: { command, description },
   };
-  const result = spawnSync(shell, [HOOK], { input: JSON.stringify(payload), encoding: 'utf8' });
+  const result = spawnSync(shell, [HOOK], {
+    input: JSON.stringify(payload),
+    encoding: 'utf8',
+    env: { ...process.env, FACTORY_USAGE_LOG: '0' },
+  });
   return { status: result.status, stderr: result.stderr };
 }
 
@@ -130,7 +134,11 @@ describe.each(['sh', 'bash'])('block-gate-bypass hook under %s', (shell) => {
   });
 
   it('blocks when the payload is not JSON', () => {
-    const result = spawnSync(shell, [HOOK], { input: 'not json', encoding: 'utf8' });
+    const result = spawnSync(shell, [HOOK], {
+      input: 'not json',
+      encoding: 'utf8',
+      env: { ...process.env, FACTORY_USAGE_LOG: '0' },
+    });
     expect(result.status).toBe(2);
   });
 });
@@ -160,6 +168,7 @@ function runCodexHook(command: string, cwd: string) {
     cwd,
     input: JSON.stringify(payload),
     encoding: 'utf8',
+    env: { ...process.env, FACTORY_USAGE_LOG: '0' },
   });
   return { status: result.status, stderr: result.stderr };
 }
@@ -197,6 +206,7 @@ function runCursorHook(input: string) {
     cwd: ROOT,
     input,
     encoding: 'utf8',
+    env: { ...process.env, FACTORY_USAGE_LOG: '0' },
   });
   expect(result.status).toBe(0);
   expect(result.stderr).toBe('');
@@ -267,6 +277,7 @@ describe('.claude/settings.json', () => {
           tool_input: { command },
         }),
         encoding: 'utf8',
+        env: { ...process.env, FACTORY_USAGE_LOG: '0' },
       });
 
     const blocked = run('git commit --no-verify -m "probe"');
@@ -290,5 +301,59 @@ describe('.claude/settings.json', () => {
     [...hooks].forEach((hook) => {
       expect(hook).toMatchObject({ type: 'command', command: 'sh', args: [HOOK_ARG] });
     });
+  });
+});
+
+function runInRepo(command: string, env: NodeJS.ProcessEnv = {}) {
+  mkdirSync('.scratch', { recursive: true });
+  const cwd = mkdtempSync(resolve('.scratch/bypass-'));
+  spawnSync('git', ['init', '-b', 'feat/probe'], { cwd });
+  const result = spawnSync('sh', [HOOK], {
+    cwd,
+    input: JSON.stringify({ tool_input: { command } }),
+    encoding: 'utf8',
+    env: { ...process.env, CLAUDECODE: '1', ANTHROPIC_MODEL: 'probe-model', ...env },
+  });
+  const log = join(cwd, '.cache/factory-usage/lint-runs.jsonl');
+  const records = existsSync(log)
+    ? readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line))
+    : [];
+  return { status: result.status, stderr: result.stderr, records };
+}
+describe('blocked bypass usage log (ADR 0100)', () => {
+  test.each([
+    ['git commit --no-verify -m x', '--no-verify'],
+    ['git commit -nm x', 'git commit -n'],
+    ['HUSKY=0 git push', 'HUSKY=0'],
+    ['git config core.hooksPath /dev/null', 'rewriting core.hooksPath'],
+  ])('blocks %j and records one line', (command, guard) => {
+    const result = runInRepo(command);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('switches off the quality gates');
+    expect(result.records).toEqual([
+      {
+        schema: 1,
+        event: 'blocked-bypass',
+        timestamp: expect.stringMatching(/^\d{4}-.*Z$/),
+        branch: 'feat/probe',
+        head: null,
+        agent: 'claude',
+        model: 'probe-model',
+        guard,
+        command,
+      },
+    ]);
+  });
+  test('records nothing for a normal commit', () => {
+    expect(runInRepo('git commit -m "fix: y"')).toEqual({ status: 0, stderr: '', records: [] });
+  });
+  test('keeps the block when logging is off or fails', () => {
+    const result = runInRepo('HUSKY=0 git push', { FACTORY_USAGE_LOG: '0' });
+    expect(result.status).toBe(2);
+    expect(result.records).toEqual([]);
+    expect(runInRepo('HUSKY=0 git push', { PATH: '/usr/bin:/bin' }).status).toBe(2);
   });
 });

@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { appendFileSync, mkdirSync, realpathSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const LOG_DIRECTORY = '.cache/factory-usage';
@@ -47,8 +47,7 @@ function optionalGit(git, ...args) {
   }
 }
 
-export function record({ exitCode, env, git, run, append, now }) {
-  if (env.FACTORY_USAGE_LOG === '0') return;
+function attribution(env) {
   const agent = env.CODEX_THREAD_ID
     ? 'codex'
     : env.CLAUDECODE
@@ -56,6 +55,29 @@ export function record({ exitCode, env, git, run, append, now }) {
       : env.CURSOR_AGENT
         ? 'cursor'
         : null;
+  return {
+    agent,
+    model:
+      agent === 'codex'
+        ? env.CODEX_MODEL || null
+        : agent === 'claude'
+          ? env.ANTHROPIC_MODEL || null
+          : null,
+  };
+}
+
+export function recordBypass({ guard, input, env, git, append, now }) {
+  if (env.FACTORY_USAGE_LOG === '0') return;
+  const command = JSON.parse(input).tool_input?.command;
+  if (typeof command !== 'string') return;
+  append(
+    `${JSON.stringify({ schema: 1, event: 'blocked-bypass', timestamp: now().toISOString(), branch: optionalGit(git, 'symbolic-ref', '--quiet', '--short', 'HEAD'), head: optionalGit(git, 'rev-parse', '--verify', 'HEAD'), ...attribution(env), guard, command })}\n`,
+  );
+}
+
+export function record({ exitCode, env, git, run, append, now }) {
+  if (env.FACTORY_USAGE_LOG === '0') return;
+  const metadata = attribution(env);
   const tools = [
     parseBiome(JSON.parse(run('biome'))),
     parseOxlint(JSON.parse(run('oxlint-policy')), 'oxlint-policy'),
@@ -67,13 +89,7 @@ export function record({ exitCode, env, git, run, append, now }) {
     branch: optionalGit(git, 'symbolic-ref', '--quiet', '--short', 'HEAD'),
     attempt: git('write-tree').trim(),
     head: optionalGit(git, 'rev-parse', '--verify', 'HEAD'),
-    agent,
-    model:
-      agent === 'codex'
-        ? env.CODEX_MODEL || null
-        : agent === 'claude'
-          ? env.ANTHROPIC_MODEL || null
-          : null,
+    ...metadata,
     passed: exitCode === 0,
     hookExitCode: exitCode,
     tools,
@@ -125,22 +141,35 @@ function run(tool) {
 
 export function runCli(argv, dependencies = {}) {
   try {
+    const bypass = argv.indexOf('--blocked-bypass');
     const index = argv.indexOf('--hook-exit');
     const exitCode = Number(argv[index + 1]);
-    if (index < 0 || !Number.isInteger(exitCode) || exitCode < 0) return 0;
-    record({
+    if (bypass < 0 && (index < 0 || !Number.isInteger(exitCode) || exitCode < 0)) return 0;
+    const options = {
       exitCode,
       env: process.env,
       git: (...args) =>
         execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }),
       run,
       append: (line) => {
-        mkdirSync(LOG_DIRECTORY, { recursive: true });
-        appendFileSync(`${LOG_DIRECTORY}/lint-runs.jsonl`, line);
+        const root = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }).trim();
+        const directory = `${root}/${LOG_DIRECTORY}`;
+        mkdirSync(directory, { recursive: true });
+        appendFileSync(`${directory}/lint-runs.jsonl`, line);
       },
       now: () => new Date(),
       ...dependencies,
-    });
+    };
+    if (bypass >= 0)
+      recordBypass({
+        ...options,
+        guard: argv[bypass + 1],
+        input: dependencies.input ?? readFileSync(0, 'utf8'),
+      });
+    else record(options);
   } catch {
     // Telemetry cannot change whether the hook accepts the staged tree.
   }

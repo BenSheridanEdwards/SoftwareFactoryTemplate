@@ -271,3 +271,6 @@ merge confidence for a docs-only pull request on its required gates and state
 that unit coverage and import blast radius are inapplicable (ADR 0112).
 
 Keep the seven-day minimum release age for local installs, lockfile checks, benchmark installs and CI. Future Renovate or Dependabot configuration must preserve it.
+
+The gate-bypass hook adds `blocked-bypass` events to the same usage log;
+`FACTORY_USAGE_LOG=0` disables both record types.
