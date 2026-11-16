@@ -12,7 +12,11 @@
 # It is a speed bump, not a sandbox. ADR 0027 lists the shapes it misses; CI on
 # a clean checkout is the backstop. Exit code 2 blocks the tool call.
 
+input="$(cat)"
+logger="$(dirname "$0")/../../scripts/lint-usage.mjs"
+
 block() {
+  printf '%s' "$input" | node "$logger" --blocked-bypass "$1" >/dev/null 2>&1 || true
   echo "Blocked: $1 switches off the quality gates." >&2
   echo "Fix what the gate reports instead; see .agents/project/PR_QUALITY.md#definition-of-done." >&2
   echo "If a commit message only names the flag, write it to a file and use git commit -F <file>." >&2
@@ -51,7 +55,7 @@ process.stdin.on("end", () => {
   process.stdout.write(out.replace(/["\x27\\]/g, "").replace(/\s+/g, " "));
 });
 '
-if ! flat="$(node -e "$flatten")"; then
+if ! flat="$(printf '%s' "$input" | node -e "$flatten")"; then
   echo "Blocked: the hook could not read the command (is node on PATH?)." >&2
   exit 2
 fi

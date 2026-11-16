@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { parseBiome, parseOxlint, record, runCli } from './lint-usage.mjs';
+import { parseBiome, parseOxlint, record, recordBypass, runCli } from './lint-usage.mjs';
 
 const fixture = (name: string) =>
   JSON.parse(
@@ -191,3 +191,31 @@ test('real hook retains its failure and logs every linter, then passes after rep
   expect(readFileSync(log, 'utf8').trim().split('\n')).toHaveLength(2);
   expect(existsSync(join(folder, 'pnpm-lock.yaml'))).toBe(false);
 }, 30000);
+
+test('records a blocked bypass with nulls for unknown attribution', () => {
+  const input = options();
+  recordBypass({
+    ...input,
+    guard: 'HUSKY=0',
+    input: '{"tool_input":{"command":"HUSKY=0 git push"}}',
+  });
+  expect(JSON.parse(input.append.mock.calls[0]?.[0])).toMatchObject({
+    event: 'blocked-bypass',
+    agent: null,
+    model: null,
+    guard: 'HUSKY=0',
+    command: 'HUSKY=0 git push',
+  });
+});
+test('bypass CLI never throws and honours FACTORY_USAGE_LOG=0', () => {
+  const input = options();
+  expect(
+    runCli(['--blocked-bypass', 'HUSKY=0'], {
+      ...input,
+      input: '{}',
+      env: { FACTORY_USAGE_LOG: '0' },
+    }),
+  ).toBe(0);
+  expect(input.append).not.toHaveBeenCalled();
+  expect(runCli(['--blocked-bypass', 'HUSKY=0'], { ...input, input: 'broken' })).toBe(0);
+});
