@@ -656,6 +656,68 @@ describe('runTrial', () => {
     expect(readFileSync(planned.patchPath, 'utf8')).toContain('src/result.txt');
   });
 
+  it.each([
+    'committed',
+    'uncommitted',
+    'mixed',
+  ])('keeps an applicable %s patch ending in an empty context line', async (changes) => {
+    const target = join(caseDir, 'patch-target');
+    mkdirSync(target);
+    git(target, 'init', '-q', '-b', 'main');
+    write(target, 'src/result.txt', 'a\nb\nc\n\n');
+    git(target, 'add', '-A');
+    git(target, 'commit', '-qm', 'target');
+    const rev = git(target, 'rev-parse', 'HEAD');
+    const taskDir = join(caseDir, 'patch-task');
+    write(taskDir, 'prompt.md', 'Solve {{ID}}');
+    write(
+      taskDir,
+      'task.json',
+      JSON.stringify({
+        name: 'patch',
+        prompt: 'prompt.md',
+        target: { repo: target, rev },
+        allowedPaths: ['src/'],
+        resultPaths: changes === 'committed' ? ['src/'] : ['src/selected.txt'],
+        setup: [],
+        checks: [{ name: 'unit', argv: ['true'] }],
+        land: 'patch',
+        evidenceDir: join(caseDir, 'patch-evidence'),
+      }),
+    );
+    const agent = fakeAgent(
+      'patch',
+      `put('src/result.txt', 'a\\nB\\nc\\n\\n');
+        ${changes === 'mixed' ? "put('src/selected.txt', 'selected\\n');" : ''}`,
+    );
+    const base = plan({ agent });
+    const planned = planTrial({
+      ...base,
+      ...loadTask(join(taskDir, 'task.json')),
+      scaffoldRev: rev,
+      agentCommand: agent,
+      now: new Date(),
+      corepackHome: base.privateEnv.COREPACK_HOME,
+      browsersPath: base.privateEnv.PLAYWRIGHT_BROWSERS_PATH,
+    });
+
+    const evidence = await runTrial(planned, quietDeps());
+    expect(evidence.run.agentExitCode).toBe(0);
+    expect(evidence.result.patch).toBe(planned.patchPath);
+    git(target, 'apply', '--check', planned.patchPath);
+    const raw = (...args: string[]) =>
+      execFileSync('git', args, { cwd: planned.clone, env: gitEnv });
+    expect(readFileSync(planned.patchPath)).toEqual(
+      Buffer.concat([
+        raw('format-patch', '--stdout', `${rev}..HEAD`),
+        raw('diff', '--cached', '--binary', 'HEAD'),
+      ]),
+    );
+    git(target, 'apply', planned.patchPath);
+    expect(readFileSync(join(target, 'src/result.txt'), 'utf8')).toBe('a\nB\nc\n\n');
+    expect(existsSync(join(target, 'src/selected.txt'))).toBe(changes === 'mixed');
+  });
+
   it('uses the Codex id rule for Todo and retains the Claude id rule', () => {
     const base = plan({ agent: '/fake' });
     const codex = planTrial({

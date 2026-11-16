@@ -41,6 +41,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## Waiting
 
+- Preserve trial patch bytes; local verify and 32 E2E tests passed, awaiting review. No thread recorded. Issue [#380](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/380).
+
 - Specify the to-do app, Phase B PR 12 of ADR 0123; awaiting Ben's guarded-path tick. No thread recorded. PR [#370](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/370).
 
 - Point PR body PRD fixtures at to-dos, Phase C PR 13a2; local verify and 32 E2E tests passed, awaiting review and #370. No thread recorded. PR [#372](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/372).
