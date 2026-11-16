@@ -1,3 +1,5 @@
+import { normaliseTitle, TITLE_MAX_LENGTH, TITLE_MESSAGES } from './rules.ts';
+
 export interface Todo {
   readonly id: string;
   readonly title: string;
@@ -8,13 +10,6 @@ export interface Todo {
 export interface ClearedTodos {
   readonly ids: readonly Todo['id'][];
 }
-
-const TITLE_MAX_LENGTH = 100;
-
-const TITLE_MESSAGES = {
-  blank: 'Enter a title',
-  tooLong: `Use ${TITLE_MAX_LENGTH} characters or fewer`,
-} as const;
 
 const MISSING_TODO_MESSAGE = 'No to-do has that id';
 
@@ -32,11 +27,6 @@ export const missingTodo: Outcome<never> = {
   ok: false,
   problem: { kind: 'not-found', message: MISSING_TODO_MESSAGE },
 };
-
-/** Trims both ends and turns each run of whitespace inside into one space. */
-export function normaliseTitle(title: string): string {
-  return title.trim().replace(/\s+/gu, ' ');
-}
 
 /** The normalised title when it holds 1 to 100 characters, or why it does not. */
 export function checkTitle(title: string): Outcome<string> {

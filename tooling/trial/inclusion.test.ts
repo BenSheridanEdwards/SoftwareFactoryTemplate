@@ -362,6 +362,7 @@ console.log(JSON.stringify(${JSON.stringify(paths)}.map(path => Object.fromEntri
     expect(filesOf('tsconfig.domain.json')).toEqual([
       'showcase/x/api/src/features/greeting/domain.ts',
       'showcase/x/api/src/features/recent-greetings/domain.ts',
+      'showcase/x/api/src/features/todos/rules.ts',
       'showcase/x/api/src/features/todos/domain.ts',
     ]);
   });
