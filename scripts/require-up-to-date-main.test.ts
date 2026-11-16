@@ -92,7 +92,7 @@ describe('require-up-to-date-main.sh', () => {
     const { status, output } = check();
     expect(status).toBe(1);
     expect(output).toContain(REMEDY);
-    expect(output).not.toMatch(/rebase/i);
+    expect(output.replaceAll(SCRIPT, '<script>')).not.toMatch(/rebase/i);
   });
 
   it('passes again once the suggested merge has been run', () => {

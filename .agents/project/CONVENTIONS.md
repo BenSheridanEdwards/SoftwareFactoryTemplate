@@ -71,6 +71,7 @@ The [Fallow rule pack](../../tooling/architecture/contract.rules.jsonc) reports 
 | Rule id | What it keeps |
 | --- | --- |
 | `contract/domain-pure` | `domain.ts` imports no `@trpc/server`, no `effect` and no Node module. `tsconfig.domain.json` also gives it no Node globals. |
+| `contract/rules-pure` | A feature's `rules.ts` imports no tRPC, Effect, React or Node module; Fallow lets it import no other role. `tsconfig.domain.json` gives it no Node globals ([ADR 0127](../decisions/0127-share-a-features-validation-rules-between-api-and-web.md)). |
 | `contract/application-without-trpc` | `application.ts` imports no `@trpc/server`; procedures map errors to tRPC. |
 | `contract/effects-in-integrations` | `fetch`, `self.fetch`, `Effect.runPromise`, `Effect.runSync` and `Effect.runFork` run only in `integrations.ts` or the api `server.ts` and `router.ts`. |
 | `contract/io-effects-in-integrations` | Network, storage, process and shell work runs only there too. |
@@ -97,6 +98,7 @@ After a mutation, refresh the queries it changes in `onSuccess` with `queryClien
 | `features/<name>/procedures.ts` | The feature router. Validates each input with `Schema.toStandardSchemaV1` and delegates to application. |
 | `features/<name>/application.ts` | Use cases. Calls domain and integrations; knows no transport. |
 | `features/<name>/domain.ts` | Pure types and rules. |
+| `features/<name>/rules.ts` | Limits, messages and normalisers the domain and the web form share; imports nothing. |
 | `features/<name>/integrations.ts` | Storage, including in-memory storage, and every effect. |
 | `features/<name>/index.ts` | The public surface: the feature router. |
 

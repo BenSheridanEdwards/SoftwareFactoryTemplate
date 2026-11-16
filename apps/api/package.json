@@ -6,6 +6,10 @@
   "exports": {
     ".": {
       "types": "./src/router.ts"
+    },
+    "./*/rules": {
+      "types": "./src/features/*/rules.ts",
+      "default": "./src/features/*/rules.ts"
     }
   },
   "scripts": {
