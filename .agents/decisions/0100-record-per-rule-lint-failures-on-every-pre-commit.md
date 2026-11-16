@@ -29,3 +29,7 @@ the hook-to-CI command map: CI has no local commit attempt to record.
 Logs stay local and ignored by Git. JSON diagnostics include file paths but no
 source text. Typecheck, Fallow and secret-scan counts remain future work.
 The extra lint runs add latency; measure it against the pre-commit step budget.
+
+The gate-bypass hook (ADR 0027) also appends a `blocked-bypass` event with
+schema, timestamp, branch, head, agent, model, guard and the verbatim command.
+The block stands whether or not logging succeeds. Allowed commands add no record.
