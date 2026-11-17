@@ -189,6 +189,11 @@ function exec(argv, { cwd, input, stdoutFile, env = commandEnv(), privateTmp }) 
     const child = spawn(command, args, { cwd, env, detached: true });
     running.add(child.pid);
     const file = stdoutFile ? createWriteStream(stdoutFile) : null;
+    // Decode each pipe as one stream, so a character split across chunks stays whole.
+    if (!file) {
+      child.stdout.setEncoding('utf8');
+    }
+    child.stderr.setEncoding('utf8');
     let stdout = '';
     let output = '';
     child.stdout.on('data', (chunk) => {
