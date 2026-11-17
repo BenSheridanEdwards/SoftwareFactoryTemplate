@@ -75,7 +75,7 @@ const GITHUB_BLOB_URL = /^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\//i;
  * Tokens start at a publishing boundary. URL tokens are skipped whole and local-path tokens are reported whole.
  */
 const PUBLISHED_TOKEN =
-  /(?<=^|[\s`'"([<=:])(?:(?<url>[Hh][Tt][Tt][Pp][Ss]?:\/\/[^\s`'"()[\]<>]*)|(?<path>(?:\/Users\/[^\s`'"()[\]<>]+\/|\/home\/[^\s`'"()[\]<>]+\/|\/root\/|\/workspace\/|\/tmp\/[^\s`'"()[\]<>]+|\/private\/var\/|\/var\/folders\/|[A-Za-z]:\\Users\\|file:\/\/)[^\s`'"()[\]<>]*))/g;
+  /(?<=^|[\s`'"([<=>:*,|])(?:(?<url>[Hh][Tt][Tt][Pp][Ss]?:\/\/[^\s`'"()[\]<>]*)|(?<path>(?:\/Users\/[^\s`'"()[\]<>]+\/|\/home\/[^\s`'"()[\]<>]+\/|\/root\/|\/workspace\/|\/tmp\/[^\s`'"()[\]<>]+|\/private\/var\/|\/var\/folders\/|[A-Za-z]:\\Users\\|file:\/\/)[^\s`'"()[\]<>]*))/g;
 const NOT_APPLICABLE = /not applicable/i;
 const NOT_APPLICABLE_REASON_WORDS = 2;
 
@@ -229,16 +229,32 @@ function isPlaceholderOnly(sectionBody) {
  * heading text. Headings are ATX (`#`, `##`, ...). The body of a section runs
  * until the next heading of any level.
  */
+function nextFence(fence, line) {
+  const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+  if (!marker) return fence;
+  if (!fence) {
+    return marker[1][0] === '`' && marker[2].includes('`') ? undefined : marker[1];
+  }
+  return marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()
+    ? undefined
+    : fence;
+}
+
 function splitSections(body) {
-  const sections = body.split('\n').reduce((items, line) => {
-    const headingMatch = line.match(/^#{1,6}\s+(.*\S)\s*$/);
-    if (headingMatch) {
-      items.push({ heading: headingMatch[1].trim(), bodyLines: [] });
-    } else if (items.length > 0) {
-      items.at(-1).bodyLines.push(line);
-    }
-    return items;
-  }, []);
+  let fence;
+  const sections = stripHtmlComments(body)
+    .split('\n')
+    .reduce((items, line) => {
+      const insideFence = Boolean(fence);
+      fence = nextFence(fence, line);
+      const headingMatch = !insideFence && !fence && line.match(/^#{1,6}\s+(.*\S)\s*$/);
+      if (headingMatch) {
+        items.push({ heading: headingMatch[1].trim(), bodyLines: [] });
+      } else if (items.length > 0) {
+        items.at(-1).bodyLines.push(line);
+      }
+      return items;
+    }, []);
   return sections.map((section) => ({
     heading: section.heading,
     body: section.bodyLines.join('\n'),
@@ -346,8 +362,10 @@ const countWords = (text) => (text.match(/[a-z0-9][\w'-]+/gi) ?? []).length;
 function hasNotApplicableReason(proofText) {
   const lines = proofText.split('\n').filter((line) => line.trim() !== '');
   const index = lines.findIndex((line) => NOT_APPLICABLE.test(line));
-  const sameLine = countWords(lines[index].replace(NOT_APPLICABLE, ' '));
-  return Math.max(sameLine, countWords(lines[index + 1] ?? '')) >= NOT_APPLICABLE_REASON_WORDS;
+  const sameLine = countWords(lines[index].split(NOT_APPLICABLE)[1]);
+  const next = lines[index + 1] ?? '';
+  const nextLine = NOT_APPLICABLE.test(next) || /^\s*[-*+]\s+[^:]+:/.test(next) ? '' : next;
+  return Math.max(sameLine, countWords(nextLine)) >= NOT_APPLICABLE_REASON_WORDS;
 }
 
 /**
