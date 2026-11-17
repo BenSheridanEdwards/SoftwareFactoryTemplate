@@ -234,6 +234,52 @@ describe('shapeBlastRadius', () => {
     expect(() => shapeBlastRadius({ ...input, guard: value })).toThrow());
 });
 
+it('collects both paths of a rename so API-listed changes accept the blast-radius evidence', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'blast-radius-rename-'));
+  const git = (...args: string[]) =>
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args], {
+      cwd: directory,
+      encoding: 'utf8',
+    }).trim();
+  try {
+    git('init', '-b', 'main');
+    writeFileSync(join(directory, 'old.ts'), 'export const value = 1;\n');
+    git('add', '.');
+    git('commit', '-m', 'initial');
+    const base = git('rev-parse', 'HEAD');
+    git('mv', 'old.ts', 'new.ts');
+    git('commit', '-m', 'rename');
+    const command = present(
+      readFileSync('.github/workflows/ci.yml', 'utf8').match(/^ +changed="\$\(git .+$/m)?.[0],
+    );
+    const result = spawnSync('bash', ['-ec', `${command}\nprintf '%s' "$changed"`], {
+      cwd: directory,
+      encoding: 'utf8',
+      env: { ...process.env, HEAD_SHA: git('rev-parse', 'HEAD'), BASE: base },
+    });
+    expect(result.status).toBe(0);
+    const changed = result.stdout.split('\n');
+    expect(changed.toSorted()).toEqual(['new.ts', 'old.ts']);
+    const evidence = shapeBlastRadius({
+      head,
+      changed,
+      closures: Object.fromEntries(
+        changed.map((path) => [
+          path,
+          { error: true, exit_code: 2, message: `file '${path}' not found in module graph` },
+        ]),
+      ),
+      guard: { kind: 'guard', files: changed.map((path) => ({ path, zone: null })) },
+      tracked: new Set(['new.ts']),
+    });
+    expect(
+      parseBlastRadius(JSON.stringify(evidence), { head, changed: ['new.ts', 'old.ts'] }),
+    ).toEqual(evidence);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 it('collects the PR file list even when main already contains the same Unicode-path change', () => {
   const directory = mkdtempSync(join(tmpdir(), 'blast-radius-diff-'));
   const git = (...args: string[]) =>
