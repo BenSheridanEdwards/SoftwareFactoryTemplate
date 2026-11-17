@@ -99,11 +99,30 @@ describe('Markdown section boundaries', () => {
     '````sh\n```\n# still code\n````',
     '   ```sh\n# indented fence\n   ```',
     '<!--\n# commented heading\n-->',
+    '- ```sh\n  pnpm verify\n  ```',
   ])('keeps verification fields after %s in their section', (block) => {
     const body = VALID_BODY.replace('- Head commit:', `${block}\n- Head commit:`);
     expect(
       validatePullRequest({ ...INTENT_PORTS, headSha: HEAD, title: VALID_TITLE, body }),
     ).toEqual({ ok: true, errors: [] });
+  });
+
+  it.each([
+    '```html\n<!--\n```',
+    '`<!--`',
+  ])('preserves literal comment markers inside %s', (code) => {
+    const body = VALID_BODY.replace(
+      '- Added a machine validator for the PR body.',
+      `Document the input syntax:\n${code}`,
+    );
+    expect(
+      validatePullRequest({
+        ...INTENT_PORTS,
+        headSha: HEAD,
+        title: VALID_TITLE,
+        body,
+      }).errors.filter((error) => error.includes('Missing required section heading')),
+    ).toEqual([]);
   });
 
   it('does not accept a required heading hidden in a fence', () => {
@@ -802,6 +821,7 @@ describe('validatePullRequest', () => {
       'Not applicable: docs-only change.',
       'Not applicable — CI-only change',
       'Not Applicable: docs-only change.',
+      'Not applicable\n- Reason: tooling-only change, no rendered surface.',
     ])('passes %j', (line) => {
       const body = withProof(line);
       expect(

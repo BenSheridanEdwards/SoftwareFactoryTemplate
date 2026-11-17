@@ -230,31 +230,46 @@ function isPlaceholderOnly(sectionBody) {
  * until the next heading of any level.
  */
 function nextFence(fence, line) {
-  const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
-  if (!marker) return fence;
-  if (!fence) {
-    return marker[1][0] === '`' && marker[2].includes('`') ? undefined : marker[1];
+  if (fence) {
+    const closing = line.match(/^ {0,3}(`{3,}|~{3,})\s*$/);
+    return closing && closing[1][0] === fence[0] && closing[1].length >= fence.length
+      ? undefined
+      : fence;
   }
-  return marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()
-    ? undefined
-    : fence;
+  const opening = line.match(/^ {0,3}(?:(?:[-+*]|\d+[.)])\s+)?(`{3,}|~{3,})(.*)$/);
+  if (!opening || (opening[1][0] === '`' && opening[2].includes('`'))) return undefined;
+  return opening[1];
+}
+
+function sectionHeading(line, state) {
+  const fence = state.comment ? state.fence : nextFence(state.fence, line);
+  if (state.fence || fence) return { fence, comment: state.comment, heading: null };
+  const visible = line
+    .replace(/(`+).*?\1/g, '')
+    .split(/(<!--|-->)/)
+    .reduce(
+      (current, part) => {
+        if (part === '<!--') return { text: current.text, comment: true };
+        if (part === '-->') return { text: current.text, comment: false };
+        return { text: current.text + (current.comment ? '' : part), comment: current.comment };
+      },
+      { text: '', comment: state.comment },
+    );
+  return { fence, comment: visible.comment, heading: visible.text.match(/^#{1,6}\s+(.*\S)\s*$/) };
 }
 
 function splitSections(body) {
-  let fence;
-  const sections = stripHtmlComments(body)
-    .split('\n')
-    .reduce((items, line) => {
-      const insideFence = Boolean(fence);
-      fence = nextFence(fence, line);
-      const headingMatch = !insideFence && !fence && line.match(/^#{1,6}\s+(.*\S)\s*$/);
-      if (headingMatch) {
-        items.push({ heading: headingMatch[1].trim(), bodyLines: [] });
-      } else if (items.length > 0) {
-        items.at(-1).bodyLines.push(line);
-      }
-      return items;
-    }, []);
+  let state = { fence: undefined, comment: false, heading: null };
+  const sections = body.split('\n').reduce((items, line) => {
+    state = sectionHeading(line, state);
+    const headingMatch = state.heading;
+    if (headingMatch) {
+      items.push({ heading: headingMatch[1].trim(), bodyLines: [] });
+    } else if (items.length > 0) {
+      items.at(-1).bodyLines.push(line);
+    }
+    return items;
+  }, []);
   return sections.map((section) => ({
     heading: section.heading,
     body: section.bodyLines.join('\n'),
@@ -364,7 +379,7 @@ function hasNotApplicableReason(proofText) {
   const index = lines.findIndex((line) => NOT_APPLICABLE.test(line));
   const sameLine = countWords(lines[index].split(NOT_APPLICABLE)[1]);
   const next = lines[index + 1] ?? '';
-  const nextLine = NOT_APPLICABLE.test(next) || /^\s*[-*+]\s+[^:]+:/.test(next) ? '' : next;
+  const nextLine = NOT_APPLICABLE.test(next) ? '' : next.replace(/^\s*[-*+]\s+[^:]+:\s*/, '');
   return Math.max(sameLine, countWords(nextLine)) >= NOT_APPLICABLE_REASON_WORDS;
 }
 
