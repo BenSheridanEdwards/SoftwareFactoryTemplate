@@ -21,6 +21,7 @@ import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { matchesGlob, posix } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { lexer } from 'marked';
 import { coveredPaths, parseBehaviours } from './check-prd-conflicts.mjs';
 
 /**
@@ -75,7 +76,7 @@ const GITHUB_BLOB_URL = /^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\//i;
  * Tokens start at a publishing boundary. URL tokens are skipped whole and local-path tokens are reported whole.
  */
 const PUBLISHED_TOKEN =
-  /(?<=^|[\s`'"([<=:])(?:(?<url>[Hh][Tt][Tt][Pp][Ss]?:\/\/[^\s`'"()[\]<>]*)|(?<path>(?:\/Users\/[^\s`'"()[\]<>]+\/|\/home\/[^\s`'"()[\]<>]+\/|\/root\/|\/workspace\/|\/tmp\/[^\s`'"()[\]<>]+|\/private\/var\/|\/var\/folders\/|[A-Za-z]:\\Users\\|file:\/\/)[^\s`'"()[\]<>]*))/g;
+  /(?<=^|[\s`'"([<=>:*,|])(?:(?<url>[Hh][Tt][Tt][Pp][Ss]?:\/\/[^\s`'"()[\]<>]*)|(?<path>(?:\/Users\/[^\s`'"()[\]<>]+\/|\/home\/[^\s`'"()[\]<>]+\/|\/root\/|\/workspace\/|\/tmp\/[^\s`'"()[\]<>]+|\/private\/var\/|\/var\/folders\/|[A-Za-z]:\\Users\\|file:\/\/)[^\s`'"()[\]<>]*))/g;
 const NOT_APPLICABLE = /not applicable/i;
 const NOT_APPLICABLE_REASON_WORDS = 2;
 
@@ -224,24 +225,19 @@ function isPlaceholderOnly(sectionBody) {
   });
 }
 
-/**
- * Split a Markdown body into `{ heading, body }` sections keyed by the first
- * heading text. Headings are ATX (`#`, `##`, ...). The body of a section runs
- * until the next heading of any level.
- */
+/** Split top-level ATX headings; Markdown owns code, comment and list boundaries. */
 function splitSections(body) {
-  const sections = body.split('\n').reduce((items, line) => {
-    const headingMatch = line.match(/^#{1,6}\s+(.*\S)\s*$/);
-    if (headingMatch) {
-      items.push({ heading: headingMatch[1].trim(), bodyLines: [] });
-    } else if (items.length > 0) {
-      items.at(-1).bodyLines.push(line);
+  const sections = lexer(body).reduce((sections, token) => {
+    if (token.type === 'heading' && /^#{1,6}\s+/.test(token.raw)) {
+      sections.push({ heading: token.text.trim(), bodyLines: [] });
+    } else if (sections.length > 0) {
+      sections.at(-1).bodyLines.push(token.raw);
     }
-    return items;
+    return sections;
   }, []);
   return sections.map((section) => ({
     heading: section.heading,
-    body: section.bodyLines.join('\n'),
+    body: section.bodyLines.join(''),
   }));
 }
 
@@ -346,8 +342,11 @@ const countWords = (text) => (text.match(/[a-z0-9][\w'-]+/gi) ?? []).length;
 function hasNotApplicableReason(proofText) {
   const lines = proofText.split('\n').filter((line) => line.trim() !== '');
   const index = lines.findIndex((line) => NOT_APPLICABLE.test(line));
-  const sameLine = countWords(lines[index].replace(NOT_APPLICABLE, ' '));
-  return Math.max(sameLine, countWords(lines[index + 1] ?? '')) >= NOT_APPLICABLE_REASON_WORDS;
+  const match = lines[index].match(NOT_APPLICABLE);
+  const sameLine = countWords(lines[index].slice(match.index + match[0].length));
+  const next = lines[index + 1] ?? '';
+  const nextLine = NOT_APPLICABLE.test(next) ? '' : next.replace(/^\s*[-*+]\s+[^:]+:\s*/, '');
+  return Math.max(sameLine, countWords(nextLine)) >= NOT_APPLICABLE_REASON_WORDS;
 }
 
 /**

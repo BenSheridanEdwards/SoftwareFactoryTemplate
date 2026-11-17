@@ -92,6 +92,65 @@ const VALID_BODY = [
 
 const VALID_TITLE = 'feat(pr-quality): validate PR bodies in CI';
 
+describe('Markdown section boundaries', () => {
+  it.each([
+    '```bash\n# run the gates\npnpm verify\n```',
+    '~~~sh\n# run the gates\n~~~',
+    '````sh\n```\n# still code\n````',
+    '   ```sh\n# indented fence\n   ```',
+    '<!--\n# commented heading\n-->',
+    '- ```sh\n  pnpm verify\n  ```',
+    '10. ```sh\n    pnpm verify\n    ```',
+    '- Commands:\n  ```sh\n  echo ok\n    ```\n',
+  ])('keeps verification fields after %s in their section', (block) => {
+    const body = VALID_BODY.replace('- Head commit:', `${block}\n- Head commit:`);
+    expect(
+      validatePullRequest({ ...INTENT_PORTS, headSha: HEAD, title: VALID_TITLE, body }),
+    ).toEqual({ ok: true, errors: [] });
+  });
+
+  it.each([
+    '```html\n<!--\n```',
+    '`<!--`',
+    '`<!--\nexample`',
+  ])('preserves literal comment markers inside %s', (code) => {
+    const body = VALID_BODY.replace(
+      '- Added a machine validator for the PR body.',
+      `Document the input syntax:\n${code}`,
+    );
+    expect(
+      validatePullRequest({
+        ...INTENT_PORTS,
+        headSha: HEAD,
+        title: VALID_TITLE,
+        body,
+      }).errors.filter((error) => error.includes('Missing required section heading')),
+    ).toEqual([]);
+  });
+
+  it.each([
+    'Accept a literal \\` in input.',
+    'Accept a literal ` in input.',
+  ])('keeps real headings after %s', (text) => {
+    const body = VALID_BODY.replace('- Added a machine validator for the PR body.', text);
+    expect(
+      validatePullRequest({ ...INTENT_PORTS, headSha: HEAD, title: VALID_TITLE, body }),
+    ).toEqual({ ok: true, errors: [] });
+  });
+
+  it('does not accept a required heading hidden in a fence', () => {
+    const body = VALID_BODY.replace(
+      '# Verification Summary',
+      '```text\n# Verification Summary\n```',
+    );
+    expect(
+      validatePullRequest({ ...INTENT_PORTS, headSha: HEAD, title: VALID_TITLE, body }).errors.join(
+        '\n',
+      ),
+    ).toContain('Missing required section heading: "Verification Summary"');
+  });
+});
+
 describe('PRD behaviours to review', () => {
   const check = (section: string, checked = 'docs/prd/todos.md', headSha: string | null = HEAD) =>
     validatePullRequest({
@@ -746,6 +805,10 @@ describe('validatePullRequest', () => {
       'Not applicable',
       '- Not applicable.',
       'Not applicable: n/a',
+      '- Behaviour tests: Not applicable',
+      '- Screenshots: Not applicable\n- Behaviour tests:\n- E2E mapping:',
+      '- Video: Not applicable\n- Screenshots: Not applicable',
+      'These words precede Not applicable',
     ])('fails "%s" without a reason on the same line', (line) => {
       const result = validatePullRequest({
         ...INTENT_PORTS,
@@ -771,6 +834,8 @@ describe('validatePullRequest', () => {
       'Not applicable: docs-only change.',
       'Not applicable — CI-only change',
       'Not Applicable: docs-only change.',
+      'Not applicable: `Not applicable` validation only.',
+      'Not applicable\n- Reason: tooling-only change, no rendered surface.',
     ])('passes %j', (line) => {
       const body = withProof(line);
       expect(
@@ -985,6 +1050,11 @@ describe('validatePullRequest', () => {
 
     it.each([
       ['https://example.com /tmp/local', '/tmp/local'],
+      ['`pnpm verify >/tmp/verify.log 2>&1`', '/tmp/verify.log'],
+      ['<code>/Users/ben/proj/out.png</code>', '/Users/ben/proj/out.png'],
+      ['**/Users/ben/proj/out.png**', '/Users/ben/proj/out.png**'],
+      ['logs,/tmp/run/a.log', '/tmp/run/a.log'],
+      ['logs|/tmp/run/a.log', '/tmp/run/a.log'],
       ['https://example.com`/tmp/local`', '/tmp/local'],
       ['https://example.com(/tmp/local)', '/tmp/local'],
       ['https://example.com</tmp/local>', '/tmp/local'],

@@ -35,7 +35,7 @@ const shared = {
       },
     ],
   },
-  transformIgnorePatterns: ['/node_modules/(?!(\\.pnpm/)?effect[@/])'],
+  transformIgnorePatterns: ['/node_modules/(?!(\\.pnpm/)?(?:effect|marked)[@/])'],
 } satisfies Config;
 
 const config: Config = {
