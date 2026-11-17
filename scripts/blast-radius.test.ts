@@ -302,17 +302,7 @@ describe('--collect', () => {
     const evidence = JSON.parse(readFileSync(output, 'utf8'));
     expect(evidence.head).toBe(head);
     expect(evidence.files[0].importers.filter((path: string) => path.startsWith('apps/'))).toEqual(
-      [
-        ...buttonImporters,
-        todoList,
-        'apps/web/src/routes/greeting/GreetingForm.tsx',
-        'apps/web/src/routes/greeting/GreetingPage.test.tsx',
-        'apps/web/src/routes/greeting/GreetingPage.tsx',
-        'apps/web/src/routes/greeting/index.ts',
-        'apps/web/src/routes/recent-greetings/RecentGreetingsPage.test.tsx',
-        'apps/web/src/routes/recent-greetings/RecentGreetingsPage.tsx',
-        'apps/web/src/routes/recent-greetings/index.ts',
-      ].toSorted(),
+      [...buttonImporters, todoList].toSorted(),
     );
     expect(evidence.zones[button]).toBe('ui');
   }, 30_000);

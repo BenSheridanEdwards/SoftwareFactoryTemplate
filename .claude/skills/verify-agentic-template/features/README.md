@@ -14,7 +14,7 @@ for the template's user-visible behaviour.
 ## Driving conventions
 
 - Start each recipe from a fresh page load; reload resets all state.
-- Locate by role and accessible name: `Title` and `Name` textboxes, `Add` and `Greet` buttons, `status` greeting, `alert` error.
+- Locate by role and accessible name: `Title` textbox, `Add` button, `alert` error.
 - Each recipe bullet names a journey step; `drive` prints it with `PASS` or `FAIL`.
 - Run built-ins with `node $V drive <journey> --run <id>`; run new behaviour with `node $V drive ./journey.mjs --run <id>`.
 - Intercept only at `**/trpc/**`.
@@ -35,5 +35,4 @@ behaviour. Follow with four H2 sections in order: `Sub-features`,
 ## Features
 
 - [To-dos](./todos.md): blank-title validation, add, mark done and delete.
-- [Greeting](./greeting.md): api greeting, blank-name validation, and request error.
 - [Accessibility](./accessibility.md): whole-page axe WCAG scan and keyboard reach.

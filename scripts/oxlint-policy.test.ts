@@ -362,37 +362,33 @@ const controls = [<Button />, <TextField label="Name" />, <input type="checkbox"
   { path: 'apps/web/src/App.test.tsx', source: 'const control = <button aria-label="Save" />;' },
 ];
 const contractFixtures: Fixture[] = [
-  ...[
-    ['recent-greetings/RecentGreetingsPage.tsx', 'greeting', 'GreetingPage'],
-    ['greeting/GreetingPage.tsx', 'recent-greetings', 'RecentGreetingsPage'],
-  ].flatMap(([file, sibling, symbol], index) => {
-    const path = `apps/web/src/routes/${file}`;
-    const source = readFileSync(join(ROOT, path), 'utf8');
-    return [
-      { caseRoot: `contract-route-clean-${index}`, path, source },
-      {
-        caseRoot: `contract-route-cross-${index}`,
-        path,
-        source: `${source}\nimport { ${symbol} } from '../${sibling}';\n`,
-        code: 'policy(slice-isolation)',
-      },
-    ];
-  }),
+  ...[['todos/TodosPage.tsx', 'sibling', 'SiblingPage']].flatMap(
+    ([file, sibling, symbol], index) => {
+      const path = `apps/web/src/routes/${file}`;
+      const source = readFileSync(join(ROOT, path), 'utf8');
+      return [
+        { caseRoot: `contract-route-clean-${index}`, path, source },
+        {
+          caseRoot: `contract-route-cross-${index}`,
+          path,
+          source: `${source}\nimport { ${symbol} } from '../${sibling}';\n`,
+          code: 'policy(slice-isolation)',
+        },
+      ];
+    },
+  ),
   ...[
     "import { formatGreeting } from '../greeting/domain.ts';",
     "import { greetingRouter } from '../greeting/index.ts';",
   ].map((source, index) => ({
     caseRoot: `contract-recent-source-${index}`,
-    path: 'apps/api/src/features/recent-greetings/application.ts',
-    source: `${readFileSync(join(ROOT, 'apps/api/src/features/recent-greetings/application.ts'), 'utf8')}\n${source}\n`,
+    path: 'apps/api/src/features/todos/application.ts',
+    source: `${readFileSync(join(ROOT, 'apps/api/src/features/todos/application.ts'), 'utf8')}\n${source}\n`,
     code: 'policy(slice-isolation)',
   })),
   {
-    path: 'apps/api/src/features/recent-greetings/application.ts',
-    source: readFileSync(
-      join(ROOT, 'apps/api/src/features/recent-greetings/application.ts'),
-      'utf8',
-    ),
+    path: 'apps/api/src/features/todos/application.ts',
+    source: readFileSync(join(ROOT, 'apps/api/src/features/todos/application.ts'), 'utf8'),
   },
   ...['domain.ts', 'index.ts'].map((entry) => ({
     caseRoot: `contract-recent-${entry}`,
@@ -618,7 +614,7 @@ export function useGreeting() {
   },
 ].map((fixture, index) => ({ ...fixture, caseRoot: `contract-${index}` }));
 const statusMessage = (hook: string, fields: string, root: string) =>
-  `Return one \`status\` union from \`${hook}\` in place of ${fields} from \`${root}\`, for example \`{ status: 'loading' } | { status: 'failed' } | { status: 'loaded'; greetings }\`, so the page renders exactly one state.`;
+  `Return one \`status\` union from \`${hook}\` in place of ${fields} from \`${root}\`, for example \`{ status: 'loading' } | { status: 'failed' } | { status: 'loaded'; todos }\`, so the page renders exactly one state.`;
 const presentMessage = (expression: string) =>
   `Unwrap \`${expression}\` with \`present(${expression})\`, a Jest global that an E2E spec imports from \`./fixtures\`, so a missing value fails the test here instead of standing in as \`''\`.`;
 const unwrapMessage = (expression: string) =>
@@ -1742,7 +1738,7 @@ const fixtures: Fixture[] = [
   ]),
   {
     path: 'apps/api/src/public.ts',
-    source: "import { greetingRouter } from './features/greeting/index.ts';",
+    source: "import { greetingRouter } from './features/todos/index.ts';",
   },
   ...['scripts', 'tooling'].flatMap((root) => [
     {
