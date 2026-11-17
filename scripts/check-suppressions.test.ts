@@ -42,6 +42,33 @@ describe('findSuppressions', () => {
     expect(findSuppressions(`const text = \`${comment}\`;`)).toEqual([]);
   });
 
+  it.each(
+    ['ignore', 'expect-error'].flatMap((kind) =>
+      [' ', '\t', '\u00a0', '\f', '\v', '\ufeff', '\u2003'].map((space) => [kind, space]),
+    ),
+  )('rejects @ts-%s after %j on the last block-comment line', (kind, space) => {
+    const source = `const before = 1;\n/** Checked by the caller.\n *${space}@ts-${kind} */\nconst value: number = 'x';`;
+    expect(findSuppressions(source)).toEqual([{ line: 3, kind: `@ts-${kind}` }]);
+  });
+
+  it.each([
+    '\n',
+    '\r\n',
+    '\r',
+    '\u2028',
+    '\u2029',
+  ])('reports the final directive line after %j', (newline) => {
+    expect(
+      findSuppressions(`/* Typed below${newline} * @ts-ignore */${newline}const n: number = 'x';`),
+    ).toEqual([{ line: 2, kind: '@ts-ignore' }]);
+  });
+
+  it('keeps a TypeScript directive on an earlier prose line out of the last-line rule', () => {
+    expect(
+      findSuppressions('/* A note\n * @ts-ignore\n * still prose */\nconst n: number = "x";'),
+    ).toEqual([]);
+  });
+
   it('passes a triple-slash reference directive', () => {
     expect(findSuppressions('/// <reference types="node" />')).toEqual([]);
   });

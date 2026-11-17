@@ -1383,7 +1383,7 @@ ${holdUntilReleased(agentHold)}`,
   it('makes the one result commit with the hooks on, whatever the agent committed', async () => {
     const agent = fakeAgent(
       'commits',
-      `${WRITES_RESULT}\nexecSync('git switch -q main && git add -A && git -c user.name=Agent -c user.email=agent@example.com commit -q --no-verify -m wip');`,
+      `${WRITES_RESULT}\nexecSync('git switch -q main && git add -A && git -c user.name=Agent -c user.email=agent@example.com commit -q -m wip');`,
     );
     const planned = plan({ agent });
 
