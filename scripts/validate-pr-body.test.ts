@@ -101,6 +101,7 @@ describe('Markdown section boundaries', () => {
     '<!--\n# commented heading\n-->',
     '- ```sh\n  pnpm verify\n  ```',
     '10. ```sh\n    pnpm verify\n    ```',
+    '- Commands:\n  ```sh\n  echo ok\n    ```\n',
   ])('keeps verification fields after %s in their section', (block) => {
     const body = VALID_BODY.replace('- Head commit:', `${block}\n- Head commit:`);
     expect(
@@ -125,6 +126,16 @@ describe('Markdown section boundaries', () => {
         body,
       }).errors.filter((error) => error.includes('Missing required section heading')),
     ).toEqual([]);
+  });
+
+  it.each([
+    'Accept a literal \\` in input.',
+    'Accept a literal ` in input.',
+  ])('keeps real headings after %s', (text) => {
+    const body = VALID_BODY.replace('- Added a machine validator for the PR body.', text);
+    expect(
+      validatePullRequest({ ...INTENT_PORTS, headSha: HEAD, title: VALID_TITLE, body }),
+    ).toEqual({ ok: true, errors: [] });
   });
 
   it('does not accept a required heading hidden in a fence', () => {
