@@ -834,6 +834,7 @@ describe('validatePullRequest', () => {
       'Not applicable: docs-only change.',
       'Not applicable — CI-only change',
       'Not Applicable: docs-only change.',
+      'Not applicable: `Not applicable` validation only.',
       'Not applicable\n- Reason: tooling-only change, no rendered surface.',
     ])('passes %j', (line) => {
       const body = withProof(line);

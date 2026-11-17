@@ -342,7 +342,8 @@ const countWords = (text) => (text.match(/[a-z0-9][\w'-]+/gi) ?? []).length;
 function hasNotApplicableReason(proofText) {
   const lines = proofText.split('\n').filter((line) => line.trim() !== '');
   const index = lines.findIndex((line) => NOT_APPLICABLE.test(line));
-  const sameLine = countWords(lines[index].split(NOT_APPLICABLE)[1]);
+  const match = lines[index].match(NOT_APPLICABLE);
+  const sameLine = countWords(lines[index].slice(match.index + match[0].length));
   const next = lines[index + 1] ?? '';
   const nextLine = NOT_APPLICABLE.test(next) ? '' : next.replace(/^\s*[-*+]\s+[^:]+:\s*/, '');
   return Math.max(sameLine, countWords(nextLine)) >= NOT_APPLICABLE_REASON_WORDS;
