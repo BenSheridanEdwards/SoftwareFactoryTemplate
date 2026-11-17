@@ -13,7 +13,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
-- Fix PR body validation edge cases #378, #379 and #382. [T3 thread](t3-thread://v2/ff5e723c-72ed-4a43-a941-deab3df7dddc/mcp:launch:64057517f7bd4d224abd6598dae6f03d94971e45565a1282ffa6f22af2e61420). Issues [#378](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/378), [#379](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/379), [#382](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/382).
+- Fix PR body validation edge cases #378, #379 and #382. [T3 thread](t3-thread://v2/ff5e723c-72ed-4a43-a941-deab3df7dddc/mcp:launch:64057517f7bd4d224abd6598dae6f03d94971e45565a1282ffa6f22af2e61420). Issues [#378](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/378), [#379](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/379), [#382](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/382). Fake-agent commits use normal hooks. PR [#389](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/389).
 
 - Remove greeting and recent-greetings, Phase C PR 15; merge current main and verify shared title rules. No thread recorded. PR [#377](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/377); verification in progress.
 
