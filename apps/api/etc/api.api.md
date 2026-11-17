@@ -69,39 +69,6 @@ output: ClearedTodos;
 meta: object;
 }>;
 }>>;
-greeting: TRPCBuiltRouter<    {
-ctx: object;
-meta: object;
-errorShape: TRPCDefaultErrorShape;
-transformer: false;
-}, TRPCDecorateCreateRouterOptions<    {
-greet: TRPCQueryProcedure<    {
-input: {
-readonly name: string;
-};
-output: Greeting;
-meta: object;
-}>;
-}>>;
-recentGreetings: TRPCBuiltRouter<    {
-ctx: object;
-meta: object;
-errorShape: TRPCDefaultErrorShape;
-transformer: false;
-}, TRPCDecorateCreateRouterOptions<    {
-record: TRPCMutationProcedure<    {
-input: {
-readonly name: string;
-};
-output: RecentGreetings;
-meta: object;
-}>;
-list: TRPCQueryProcedure<    {
-input: void;
-output: RecentGreetings;
-meta: object;
-}>;
-}>>;
 }>>;
 
 // @public (undocumented)
@@ -157,39 +124,6 @@ meta: object;
 clearDone: TRPCMutationProcedure<    {
 input: void;
 output: ClearedTodos;
-meta: object;
-}>;
-}>>;
-greeting: TRPCBuiltRouter<    {
-ctx: object;
-meta: object;
-errorShape: TRPCDefaultErrorShape;
-transformer: false;
-}, TRPCDecorateCreateRouterOptions<    {
-greet: TRPCQueryProcedure<    {
-input: {
-readonly name: string;
-};
-output: Greeting;
-meta: object;
-}>;
-}>>;
-recentGreetings: TRPCBuiltRouter<    {
-ctx: object;
-meta: object;
-errorShape: TRPCDefaultErrorShape;
-transformer: false;
-}, TRPCDecorateCreateRouterOptions<    {
-record: TRPCMutationProcedure<    {
-input: {
-readonly name: string;
-};
-output: RecentGreetings;
-meta: object;
-}>;
-list: TRPCQueryProcedure<    {
-input: void;
-output: RecentGreetings;
 meta: object;
 }>;
 }>>;

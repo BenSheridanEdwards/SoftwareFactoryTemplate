@@ -13,6 +13,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
+- Remove greeting and recent-greetings, Phase C PR 15; merge current main and verify shared title rules. No thread recorded. PR [#377](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/377); verification in progress.
+
 - Log blocked hook-bypass attempts. No thread recorded. Issue [#361](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/361).
 
 - Make the to-do list the home page, Phase C PR 14; correct review findings in the verification recipe and glossary. No thread recorded. PR [#376](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/376).
