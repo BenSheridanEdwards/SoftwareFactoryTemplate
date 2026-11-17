@@ -224,45 +224,57 @@ function isPlaceholderOnly(sectionBody) {
   });
 }
 
+function codeSpanEnd(body, start, marker) {
+  const closing = body.slice(start + marker.length).match(new RegExp(`(?<!\x60)${marker}(?!\x60)`));
+  return closing ? start + marker.length + closing.index + marker.length : undefined;
+}
+
+function protectedEnd(body, token) {
+  const start = token.index;
+  if (token[0] === '<!--') {
+    const closing = body.indexOf('-->', start + 4);
+    return closing === -1 ? body.length : closing + 3;
+  }
+  if (!token[2]) return codeSpanEnd(body, start, token[0]);
+  const marker = token[2];
+  const info = token[0].slice(token[1].length + marker.length);
+  if (marker[0] === '`' && info.includes('`')) return undefined;
+  const indent = /\S/.test(token[1]) ? token[1].length : 0;
+  const closing = body
+    .slice(start + token[0].length)
+    .match(new RegExp(`^ {0,${indent + 3}}${marker[0]}{${marker.length},}[ \\t]*\\r?$`, 'm'));
+  return closing ? start + token[0].length + closing.index + closing[0].length : body.length;
+}
+
+function headingText(body) {
+  const tokens = /<!--|^( {0,3}(?:(?:[-+*]|\d+[.)]) +)?)(`{3,}|~{3,})[^\n]*|`+/gm;
+  const masked = [...body.matchAll(tokens)].reduce(
+    (state, token) => {
+      if (token.index < state.end) return state;
+      const end = protectedEnd(body, token);
+      if (end === undefined) return state;
+      return {
+        end,
+        text:
+          state.text +
+          body.slice(state.end, token.index) +
+          body.slice(token.index, end).replace(/[^\n]/g, ' '),
+      };
+    },
+    { end: 0, text: '' },
+  );
+  return masked.text + body.slice(masked.end);
+}
+
 /**
  * Split a Markdown body into `{ heading, body }` sections keyed by the first
  * heading text. Headings are ATX (`#`, `##`, ...). The body of a section runs
  * until the next heading of any level.
  */
-function nextFence(fence, line) {
-  if (fence) {
-    const closing = line.match(/^ {0,3}(`{3,}|~{3,})\s*$/);
-    return closing && closing[1][0] === fence[0] && closing[1].length >= fence.length
-      ? undefined
-      : fence;
-  }
-  const opening = line.match(/^ {0,3}(?:(?:[-+*]|\d+[.)])\s+)?(`{3,}|~{3,})(.*)$/);
-  if (!opening || (opening[1][0] === '`' && opening[2].includes('`'))) return undefined;
-  return opening[1];
-}
-
-function sectionHeading(line, state) {
-  const fence = state.comment ? state.fence : nextFence(state.fence, line);
-  if (state.fence || fence) return { fence, comment: state.comment, heading: null };
-  const visible = line
-    .replace(/(`+).*?\1/g, '')
-    .split(/(<!--|-->)/)
-    .reduce(
-      (current, part) => {
-        if (part === '<!--') return { text: current.text, comment: true };
-        if (part === '-->') return { text: current.text, comment: false };
-        return { text: current.text + (current.comment ? '' : part), comment: current.comment };
-      },
-      { text: '', comment: state.comment },
-    );
-  return { fence, comment: visible.comment, heading: visible.text.match(/^#{1,6}\s+(.*\S)\s*$/) };
-}
-
 function splitSections(body) {
-  let state = { fence: undefined, comment: false, heading: null };
-  const sections = body.split('\n').reduce((items, line) => {
-    state = sectionHeading(line, state);
-    const headingMatch = state.heading;
+  const visible = headingText(body).split('\n');
+  const sections = body.split('\n').reduce((items, line, index) => {
+    const headingMatch = visible[index].match(/^#{1,6}\s+(.*\S)\s*$/);
     if (headingMatch) {
       items.push({ heading: headingMatch[1].trim(), bodyLines: [] });
     } else if (items.length > 0) {

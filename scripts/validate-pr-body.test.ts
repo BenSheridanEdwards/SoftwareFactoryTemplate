@@ -100,6 +100,7 @@ describe('Markdown section boundaries', () => {
     '   ```sh\n# indented fence\n   ```',
     '<!--\n# commented heading\n-->',
     '- ```sh\n  pnpm verify\n  ```',
+    '10. ```sh\n    pnpm verify\n    ```',
   ])('keeps verification fields after %s in their section', (block) => {
     const body = VALID_BODY.replace('- Head commit:', `${block}\n- Head commit:`);
     expect(
@@ -110,6 +111,7 @@ describe('Markdown section boundaries', () => {
   it.each([
     '```html\n<!--\n```',
     '`<!--`',
+    '`<!--\nexample`',
   ])('preserves literal comment markers inside %s', (code) => {
     const body = VALID_BODY.replace(
       '- Added a machine validator for the PR body.',
