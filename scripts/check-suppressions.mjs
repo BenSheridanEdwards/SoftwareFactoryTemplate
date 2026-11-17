@@ -26,7 +26,7 @@ const SOURCE_FILES = [
 const DIRECTIVE =
   /^(?:\s|\*)*(@ts-(?:expect-error|ignore|nocheck)\b|biome-ignore(?:-(?:all|start|end))?\b|(?:oxlint|eslint)-(?:disable|enable)(?:-next-line|-line)?\b|fallow-ignore[\w-]*|(?:istanbul|c8|v8)\s+ignore\b)/;
 const FINAL_TS_DIRECTIVE =
-  /(?:^|[\r\n])(?:[ \t]|\*)*(@ts-(?:expect-error|ignore)\b)[^\r\n]*(?![\s\S])/;
+  /(?:^|[\r\n\u2028\u2029])(?:[^\S\r\n\u2028\u2029]|\*)*(@ts-(?:expect-error|ignore)\b)[^\r\n\u2028\u2029]*(?![\s\S])/;
 const BLOCK_CONFIG = /^(?:\s|\*)*(eslint(?:-env)?|globals?)(?=\s)/;
 const FIX =
   'Fix the cause. An exception goes in ALLOWED_SUPPRESSIONS in scripts/check-suppressions.mjs, which needs enforcement sign-off.';
@@ -78,7 +78,12 @@ export function findSuppressions(text, fileName = 'source.tsx') {
       if (!directive) return [];
 
       const position = start + directive.index + directive[0].lastIndexOf(directive[1]);
-      return [{ line: text.slice(0, position).split(/\r\n?|\n/).length, kind: directive[1] }];
+      return [
+        {
+          line: text.slice(0, position).split(/\r\n?|[\n\u2028\u2029]/).length,
+          kind: directive[1],
+        },
+      ];
     })
     .sort((a, b) => a.line - b.line);
 }
