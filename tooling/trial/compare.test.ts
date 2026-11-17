@@ -1313,6 +1313,24 @@ describe('renderComparison', () => {
     expect(report).not.toContain('foreign-task-01');
   });
 
+  it('keeps multiline hook failures in one Runs table row and one failed-run note', () => {
+    const failure = 'commit hooks failed (exit 1):\n\n lint | failed\r\n`details`';
+    const report = renderComparison(
+      runs((records) =>
+        records.map((record, index) => (index === 0 ? { ...record, failures: [failure] } : record)),
+      ),
+      read,
+    );
+    const formatted = "`commit hooks failed (exit 1): lint \\| failed 'details'`";
+    expect(report).toContain(formatted);
+    const tableRow = report
+      .split('\n')
+      .find((line) => line.startsWith('| `todo-01` | **`failed`**'));
+    expect(present(tableRow)).toContain(formatted);
+    expect(report).not.toContain('lint | failed\n');
+    expect(report.split(formatted)).toHaveLength(3);
+  });
+
   it('opens the verdict with the full pass count and shows the failed run with its checks', () => {
     const report = renderComparison(runs(), read);
     expect(verdict(report).split('\n')[0]).toBe('- Full pass count 2/3');
