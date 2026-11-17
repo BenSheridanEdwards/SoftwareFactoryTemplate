@@ -18,7 +18,7 @@
  * missing, stale or extra one. `--root <dir>` targets another repository.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readRepository, runCli } from './graph.mjs';
@@ -158,6 +158,6 @@ function main(root) {
   return extra.length === 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   runCli(main);
 }

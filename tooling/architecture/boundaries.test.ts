@@ -653,3 +653,30 @@ describe('A Fallow warning fails the gate', () => {
     expect(gate.stderr).toContain(`  - rule pack ${RULE_PACK}`);
   });
 });
+
+describe('gate CLI entrypoints through symlinks', () => {
+  it.each<[string, string[], number, string]>([
+    ['scripts/check-fallow-severity.mjs', [], 0, 'OK: every Fallow finding'],
+    ['tooling/architecture/structure.mjs', ['--root'], 1, 'architecture: --root needs a folder.'],
+    ['tooling/architecture/diagram.mjs', ['--root'], 1, 'architecture: --root needs a folder.'],
+    ['scripts/enforcement-approval.mjs', ['--git', 'HEAD', 'HEAD'], 0, '"problems": []'],
+  ])('runs %s through repository and script symlinks', (script, args, status, output) => {
+    const directory = mkdtempSync(join(tmpdir(), 'gate-cli-'));
+    try {
+      const repoLink = join(directory, 'repository link');
+      const scriptLink = join(directory, 'script link.mjs');
+      symlinkSync(REPOSITORY_ROOT, repoLink, 'dir');
+      symlinkSync(join(REPOSITORY_ROOT, script), scriptLink);
+      const runs = [join(repoLink, script), scriptLink].map((path) =>
+        spawnSync(process.execPath, [path, ...args], { cwd: REPOSITORY_ROOT, encoding: 'utf8' }),
+      );
+      expect(runs.map((run) => run.status)).toEqual([status, status]);
+      expect(runs.map((run) => `${run.stdout}${run.stderr}`)).toEqual([
+        expect.stringContaining(output),
+        expect.stringContaining(output),
+      ]);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+});
