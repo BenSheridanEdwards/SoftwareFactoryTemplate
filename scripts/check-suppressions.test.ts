@@ -42,6 +42,17 @@ describe('findSuppressions', () => {
     expect(findSuppressions(`const text = \`${comment}\`;`)).toEqual([]);
   });
 
+  it.each(['ignore', 'expect-error'])('rejects @ts-%s on the last block-comment line', (kind) => {
+    const source = `const before = 1;\n/** Checked by the caller.\n * @ts-${kind} */\nconst value: number = 'x';`;
+    expect(findSuppressions(source)).toEqual([{ line: 3, kind: `@ts-${kind}` }]);
+  });
+
+  it('keeps a TypeScript directive on an earlier prose line out of the last-line rule', () => {
+    expect(
+      findSuppressions('/* A note\n * @ts-ignore\n * still prose */\nconst n: number = "x";'),
+    ).toEqual([]);
+  });
+
   it('passes a triple-slash reference directive', () => {
     expect(findSuppressions('/// <reference types="node" />')).toEqual([]);
   });

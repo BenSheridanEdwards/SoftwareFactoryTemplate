@@ -13,6 +13,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
+- Detect TypeScript suppressions on final block-comment lines. Issue [#386](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/386). [T3 thread](t3-thread://v2/ff5e723c-72ed-4a43-a941-deab3df7dddc/mcp:launch:64057517f7bd4d224abd6598dae6f03d94971e45565a1282ffa6f22af2e61420).
+
 - Remove greeting and recent-greetings, Phase C PR 15; merge current main and verify shared title rules. No thread recorded. PR [#377](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/377); verification in progress.
 
 - Log blocked hook-bypass attempts. No thread recorded. Issue [#361](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/361).

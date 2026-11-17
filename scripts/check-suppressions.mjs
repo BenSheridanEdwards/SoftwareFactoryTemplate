@@ -25,6 +25,8 @@ const SOURCE_FILES = [
 ];
 const DIRECTIVE =
   /^(?:\s|\*)*(@ts-(?:expect-error|ignore|nocheck)\b|biome-ignore(?:-(?:all|start|end))?\b|(?:oxlint|eslint)-(?:disable|enable)(?:-next-line|-line)?\b|fallow-ignore[\w-]*|(?:istanbul|c8|v8)\s+ignore\b)/;
+const FINAL_TS_DIRECTIVE =
+  /(?:^|[\r\n])(?:[ \t]|\*)*(@ts-(?:expect-error|ignore)\b)[^\r\n]*(?![\s\S])/;
 const BLOCK_CONFIG = /^(?:\s|\*)*(eslint(?:-env)?|globals?)(?=\s)/;
 const FIX =
   'Fix the cause. An exception goes in ALLOWED_SUPPRESSIONS in scripts/check-suppressions.mjs, which needs enforcement sign-off.';
@@ -59,7 +61,7 @@ function configComments(text, fileName) {
     .map(({ index, 0: token }) => ({ pos: index, end: index + token.length }));
 }
 
-/** Report directives only at the beginning of a real comment's body. */
+/** Report comment directives, including TypeScript's final block-comment line. */
 export function findSuppressions(text, fileName = 'source.tsx') {
   const comments = ['.css', '.json', '.jsonc'].includes(extname(fileName))
     ? configComments(text, fileName)
@@ -70,11 +72,12 @@ export function findSuppressions(text, fileName = 'source.tsx') {
       const block = text.startsWith('/*', pos);
       const start = pos + (text.startsWith('///', pos) ? 3 : 2);
       const body = text.slice(start, block && text.slice(pos, end).endsWith('*/') ? end - 2 : end);
-      const directive = body.match(DIRECTIVE) ?? (block ? body.match(BLOCK_CONFIG) : null);
-
+      const directive =
+        body.match(DIRECTIVE) ??
+        (block ? (body.match(BLOCK_CONFIG) ?? body.match(FINAL_TS_DIRECTIVE)) : null);
       if (!directive) return [];
 
-      const position = start + directive[0].lastIndexOf(directive[1]);
+      const position = start + directive.index + directive[0].lastIndexOf(directive[1]);
       return [{ line: text.slice(0, position).split(/\r\n?|\n/).length, kind: directive[1] }];
     })
     .sort((a, b) => a.line - b.line);
