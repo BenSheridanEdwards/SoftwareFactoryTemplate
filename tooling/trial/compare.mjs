@@ -226,7 +226,7 @@ const span = (value) => `\`${value.replaceAll('`', "'")}\``;
 /** A code span safe inside a table cell; long hashes shortened. */
 function code(value) {
   const short = /^[0-9a-f]{40,64}$/.test(value) ? `${value.slice(0, 12)}…` : value;
-  return `\`${short.replaceAll('|', '\\|').replaceAll('`', "'")}\``;
+  return `\`${short.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|').replaceAll('`', "'")}\``;
 }
 
 const row = (cells) => `| ${cells.join(' | ')} |`;
