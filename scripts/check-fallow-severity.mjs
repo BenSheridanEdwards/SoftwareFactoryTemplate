@@ -7,9 +7,9 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const FALLOW = fileURLToPath(new URL('../node_modules/.bin/fallow', import.meta.url));
 const WARN_SEVERITY = /"severity"\s*:\s*"warn"/;
@@ -56,7 +56,7 @@ export function fallowWarnings(directory) {
   ];
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const warnings = fallowWarnings(process.cwd());
 
   if (warnings.length > 0) {

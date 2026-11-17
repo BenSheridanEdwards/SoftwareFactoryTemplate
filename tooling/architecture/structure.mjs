@@ -11,7 +11,7 @@
  * repository.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, matchesGlob, posix } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { routeInventory } from '../trial/briefs.mjs';
@@ -571,6 +571,6 @@ export function checkStructure(root, report = console) {
   return true;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   runCli(checkStructure);
 }
