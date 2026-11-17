@@ -341,12 +341,17 @@ const tail = (text) => text.split('\n').slice(-OUTPUT_TAIL_LINES).join('\n');
 const commandText = (argv) => argv.join(' ');
 
 /** @param {Deps} deps */
-async function git(deps, cwd, ...args) {
+async function gitOutput(deps, cwd, ...args) {
   const run = await deps.exec(['git', ...args], { cwd });
   if (run.code !== 0) {
     throw new Error(`git ${args.join(' ')} exited ${run.code}: ${run.output.trim()}`);
   }
-  return run.stdout.trim();
+  return run.stdout;
+}
+
+/** @param {Deps} deps */
+async function git(deps, cwd, ...args) {
+  return (await gitOutput(deps, cwd, ...args)).trim();
 }
 
 /** A file's bytes at the scaffold, or null when the scaffold lacks it. */
@@ -742,20 +747,20 @@ async function writePatch(plan, deps) {
     return plan.task.evidenceDir ? plan.patchPath : relative(plan.root, plan.patchPath);
   }
   await git(deps, plan.clone, 'add', '-A');
-  const committed = await git(
+  const committed = await gitOutput(
     deps,
     plan.clone,
     'format-patch',
     '--stdout',
     `${plan.scaffoldRev}..HEAD`,
   );
-  const uncommitted = await git(deps, plan.clone, 'diff', '--cached', '--binary', 'HEAD');
-  const patch = [committed, uncommitted].filter(Boolean).join('\n');
+  const uncommitted = await gitOutput(deps, plan.clone, 'diff', '--cached', '--binary', 'HEAD');
+  const patch = committed + uncommitted;
   if (patch === '' && plan.task.land !== 'patch') {
     return null;
   }
   mkdirSync(dirname(plan.patchPath), { recursive: true });
-  writeFileSync(plan.patchPath, `${patch}\n`);
+  writeFileSync(plan.patchPath, patch);
   return plan.task.evidenceDir ? plan.patchPath : relative(plan.root, plan.patchPath);
 }
 

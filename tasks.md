@@ -13,6 +13,8 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 
 ## In progress
 
+- Preserve trial patch bytes and verify the updated head with normal fixture commit hooks. [T3 thread](t3-thread://v2/ff5e723c-72ed-4a43-a941-deab3df7dddc/mcp:launch:64057517f7bd4d224abd6598dae6f03d94971e45565a1282ffa6f22af2e61420). PR [#383](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/383). Issue [#380](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/380).
+
 - Remove greeting and recent-greetings, Phase C PR 15; merge current main and verify shared title rules. No thread recorded. PR [#377](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/377); verification in progress.
 
 - Log blocked hook-bypass attempts. No thread recorded. Issue [#361](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/issues/361).
@@ -44,6 +46,7 @@ issue. Write "no thread recorded" when the work has no T3 thread.
 - Add this task list and the AGENTS.md rule to keep it. T3 thread 15a5d0fa. PR [#350](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/350)
 
 ## Waiting
+
 
 - Specify the to-do app, Phase B PR 12 of ADR 0123; awaiting Ben's guarded-path tick. No thread recorded. PR [#370](https://github.com/BenSheridanEdwards/SoftwareFactoryTemplate/pull/370).
 
